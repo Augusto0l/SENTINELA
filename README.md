@@ -34,10 +34,10 @@ Para a primeira fase deste projeto, o foco será estruturar os dados e criar um 
 
 ---
 
-## 👨‍💻 3. Membros da Equipe e Papéis
+## 👨‍💻 3. Responsável pelo Projeto
 
-| Membro | Papel |
-|--------|-------|
-| Pedro Augusto | Desenvolvedor do Projeto |
-| Pedro Augusto | Analista de Dados |
-| Pedro Augusto | Responsável pela Documentação |
+Este projeto está sendo desenvolvido individualmente por **Pedro Augusto**, responsável pela definição do escopo, pesquisa das fontes de dados, modelagem do banco de dados, desenvolvimento do dashboard e documentação do sistema.
+
+| Responsável | Função |
+|-------------|--------|
+| Pedro Augusto | Idealizador, desenvolvedor e responsável pela documentação |
