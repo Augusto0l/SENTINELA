@@ -1,333 +1,347 @@
-<div align="center">
+# SENTINELA
 
-SENTINELA
+### Sistema Estratégico de Análise Territorial de Incidências, Níveis, Estatísticas, Localizações e Alertas
 
-Sistema Estratégico de Análise Territorial de Incidências, Níveis, Estatísticas, Localizações e Alertas
+![Status](https://img.shields.io/badge/status-em%20planejamento-1f4e79)
+![Projeto](https://img.shields.io/badge/tipo-projeto%20acad%C3%AAmico-526d82)
+![Plataformas](https://img.shields.io/badge/plataformas-web%20%7C%20mobile-2f7d68)
 
-Plataforma web e mobile para cadastro, centralização, visualização e análise de ocorrências criminais.
+O **SENTINELA** é uma plataforma web e mobile para centralização, cadastro, visualização e análise de ocorrências criminais.
 
+Sua proposta é transformar registros dispersos em informações organizadas, comparáveis e úteis para a compreensão estratégica da criminalidade.
 
+---
 
-</div>
+## Visão geral
 
-Sobre o projeto
+Dados de ocorrências podem estar distribuídos em planilhas, arquivos e sistemas diferentes, dificultando a construção de uma visão consolidada sobre determinada região.
 
-O SENTINELA é um sistema de informação voltado à análise e ao monitoramento estatístico de ocorrências criminais.
+O SENTINELA reunirá essas informações em um único ambiente, permitindo localizar áreas com maior incidência, compreender variações ao longo do tempo, identificar padrões geográficos e temporais e gerar relatórios de apoio à análise.
 
-A proposta é reunir dados que normalmente se encontram distribuídos em arquivos, planilhas, sistemas e períodos distintos, transformando esses registros em informações organizadas, comparáveis e visualmente acessíveis.
+| Item | Definição |
+|---|---|
+| **Tipo de solução** | Sistema de informação web e mobile |
+| **Finalidade** | Análise e monitoramento estatístico de ocorrências criminais |
+| **Entrada de dados** | Cadastro manual e importação de planilhas |
+| **Principais resultados** | Mapas, indicadores, comparações, alertas e relatórios |
+| **Acesso** | Restrito a usuários institucionais autorizados |
+| **Situação atual** | Planejamento e definição do produto |
 
-A solução será composta por uma plataforma web e um aplicativo mobile, conectados ao mesmo ambiente de dados e submetidos a regras de autenticação, autorização e auditoria.
+---
 
-Problema identificado
+## Objetivo
 
-A fragmentação dos dados dificulta a obtenção de uma visão ampla e confiável sobre a criminalidade de uma região.
+Desenvolver uma solução capaz de receber dados de ocorrências por cadastro individual ou importação em lote e transformá-los em informações visuais e analíticas.
 
-Sem uma plataforma centralizada, tarefas como localizar áreas de maior incidência, comparar períodos, identificar horários críticos e acompanhar alterações estatísticas exigem esforço manual e podem produzir análises incompletas.
+O sistema deverá permitir que usuários autorizados compreendam:
 
-O SENTINELA pretende reduzir essa dificuldade ao organizar os registros em um único ambiente de consulta e análise.
+- onde as ocorrências estão concentradas;
+- quais categorias aparecem com maior frequência;
+- em quais dias e horários há maior incidência;
+- como os dados variam entre regiões e períodos;
+- quais alterações estão fora do comportamento histórico esperado.
 
-Objetivo geral
+---
 
-Desenvolver um sistema web e mobile capaz de receber dados de ocorrências por importação em lote ou cadastro manual, transformando-os em mapas, indicadores, comparações, alertas analíticos e relatórios que auxiliem a compreensão estratégica da criminalidade.
+## Como o SENTINELA funcionará
 
-Principais funcionalidades
+```mermaid
+flowchart LR
+    A[Cadastro manual] --> C[Validação e padronização]
+    B[Importação de planilhas] --> C
+    C --> D[Base centralizada]
+    D --> E[Mapas e indicadores]
+    D --> F[Filtros e comparações]
+    D --> G[Alertas analíticos]
+    E --> H[Relatórios]
+    F --> H
+    G --> H
+```
 
-Cadastro e centralização de dados
+O fluxo geral do sistema será composto pelas seguintes etapas:
 
-Cadastro manual de ocorrências por usuários autorizados;
+1. Os dados serão inseridos manualmente ou importados por meio de arquivos padronizados.
+2. O sistema verificará campos obrigatórios, formatos, coordenadas e possíveis duplicidades.
+3. Os registros validados serão centralizados em uma única base.
+4. As informações serão apresentadas em mapas, dashboards, gráficos e comparações.
+5. Alterações relevantes poderão gerar alertas analíticos.
+6. Os resultados poderão ser consolidados em relatórios.
 
-Importação de arquivos CSV e planilhas padronizadas;
+---
 
-Validação de campos obrigatórios;
+## Estrutura da solução
 
-Identificação de possíveis registros duplicados;
+O SENTINELA será composto por uma **plataforma web**, um **aplicativo mobile** e um ambiente compartilhado de dados.
 
-Padronização de categorias e localidades;
+| Plataforma web | Aplicativo mobile |
+|---|---|
+| Análises completas e filtros avançados | Consulta rápida de indicadores |
+| Importação de planilhas | Cadastro manual adaptado ao celular |
+| Cadastro e validação de ocorrências | Mapa simplificado |
+| Mapas com diferentes formas de visualização | Filtros essenciais |
+| Comparações detalhadas | Alertas analíticos |
+| Geração de relatórios | Consulta de relatórios |
+| Administração e auditoria | Consulta dos próprios registros |
 
-Histórico de importações, cadastros e alterações;
+As duas plataformas utilizarão os mesmos dados, permissões e regras de validação, garantindo consistência entre os registros cadastrados no computador e no celular.
 
-Diferenciação entre registros manuais e registros importados.
+---
 
-Dashboard de indicadores
+## Funcionalidades principais
 
-Total de ocorrências no período selecionado;
+### 1. Cadastro e centralização de ocorrências
 
-Tipos de crime mais registrados;
+O sistema permitirá registrar uma ocorrência individualmente ou importar diversos registros de uma só vez.
 
-Regiões com maior quantidade de registros;
+O cadastro deverá contemplar informações como:
 
-Variação em relação ao período anterior;
+- tipo de crime;
+- data e horário;
+- localização;
+- região;
+- fonte do registro;
+- método de entrada;
+- situação de validação.
 
-Evolução por dia, mês e ano;
+Cada inclusão ou alteração ficará associada ao usuário responsável, permitindo rastrear o histórico dos registros.
 
-Distribuição por horário e categoria;
+---
 
-Alertas estatísticos recentes.
+### 2. Importação de planilhas
 
-Mapa criminal interativo
+Arquivos CSV ou planilhas padronizadas poderão ser utilizados para popular a base de dados.
 
-Visualização das ocorrências por localização;
+Antes da gravação definitiva, o SENTINELA verificará:
 
-Pontos individuais e agrupamentos por proximidade;
+- presença das colunas obrigatórias;
+- formatos de datas e horários;
+- categorias não reconhecidas;
+- coordenadas inválidas;
+- registros possivelmente duplicados;
+- inconsistências entre região e localização.
 
-Mapa de calor;
+Ao final da importação, o usuário receberá um resumo com os registros:
 
-Delimitação de regiões administrativas;
+- aceitos;
+- rejeitados;
+- duplicados;
+- pendentes de correção.
 
-Consulta de indicadores por área selecionada;
+---
 
-Alteração de período diretamente no mapa;
+### 3. Dashboard de indicadores
 
-Visualização da evolução da concentração criminal.
+O painel principal apresentará uma visão resumida do período selecionado.
 
-Filtros e comparações
+| Indicador | Informação apresentada |
+|---|---|
+| **Total de ocorrências** | Quantidade registrada no período |
+| **Crimes predominantes** | Categorias com maior número de registros |
+| **Regiões em destaque** | Áreas com maior incidência |
+| **Variação temporal** | Crescimento ou redução em relação ao período anterior |
+| **Distribuição por horário** | Faixas de maior concentração |
+| **Alertas recentes** | Alterações relevantes identificadas nos dados |
 
-Filtros por período, data, dia da semana e faixa de horário;
+O dashboard permitirá que o usuário compreenda rapidamente o cenário geral antes de acessar análises mais detalhadas.
 
-Filtros por região, área e localização;
+---
 
-Filtros por tipo, categoria e gravidade da ocorrência;
+### 4. Mapa criminal interativo
 
-Comparação entre regiões;
+As ocorrências poderão ser visualizadas geograficamente por meio de:
 
-Comparação entre períodos;
+- pontos individuais;
+- agrupamentos por proximidade;
+- mapa de calor;
+- limites de regiões;
+- indicadores vinculados à área selecionada;
+- comparação da concentração criminal em diferentes períodos.
 
-Análise de séries históricas;
+O usuário poderá selecionar uma área, consultar seus indicadores e alterar os filtros sem sair do mapa.
 
-Identificação de crescimento, redução e mudanças de padrão.
+---
 
-Alertas analíticos
+### 5. Filtros e comparações
 
-Identificação de quantidades acima ou abaixo do comportamento histórico;
+O SENTINELA permitirá combinar diferentes filtros para construir análises específicas.
 
-Detecção de alterações relevantes nos dados;
+| Categoria | Exemplos |
+|---|---|
+| **Temporal** | Ano, mês, intervalo personalizado, dia da semana e horário |
+| **Geográfica** | Região, localidade ou área selecionada no mapa |
+| **Criminal** | Tipo, categoria e gravidade |
+| **Contextual** | Ambiente da ocorrência, fonte e método de entrada |
 
-Indicação da região, categoria e período analisados;
+Também será possível comparar:
 
-Apresentação da referência utilizada na comparação;
+- duas ou mais regiões;
+- mês atual e mês anterior;
+- períodos equivalentes de anos diferentes;
+- intervalos personalizados;
+- evolução histórica de uma categoria criminal.
 
-Acesso aos dados que originaram o alerta.
+---
 
-Os alertas terão caráter estatístico e informativo. O sistema não afirmará que um crime necessariamente ocorrerá.
+### 6. Alertas analíticos
 
-Relatórios
+O sistema poderá sinalizar situações como:
 
-Relatórios diários, semanais, mensais ou personalizados;
+- quantidade acima da média histórica;
+- crescimento contínuo em determinado período;
+- redução significativa de uma categoria;
+- surgimento de uma nova concentração geográfica;
+- mudança no dia de maior incidência;
+- mudança no horário de maior incidência.
 
-Resumo executivo;
+Os alertas terão caráter estatístico e informativo.
 
-Indicadores consolidados;
+Cada alerta deverá apresentar:
 
-Mapas, gráficos e tabelas;
+- região analisada;
+- período considerado;
+- categoria da ocorrência;
+- referência utilizada na comparação;
+- data de geração;
+- situação do alerta.
 
-Comparação entre regiões e períodos;
+O sistema não afirmará que um crime necessariamente ocorrerá.
 
-Crimes mais frequentes e horários críticos;
+---
 
-Exportações autorizadas.
+### 7. Relatórios
 
-Plataforma web
+Os usuários autorizados poderão gerar relatórios:
 
-A versão web será o ambiente principal do SENTINELA e concentrará as funcionalidades mais completas de:
+- diários;
+- semanais;
+- mensais;
+- personalizados.
 
-cadastro manual de ocorrências;
+Os documentos poderão incluir:
 
-importação e validação de dados;
+- resumo executivo;
+- indicadores consolidados;
+- mapas;
+- gráficos;
+- tabelas;
+- comparação entre regiões e períodos;
+- categorias mais frequentes;
+- dias e horários críticos;
+- fonte dos dados;
+- período de atualização.
 
-análise aprofundada;
+---
 
-aplicação de filtros avançados;
+### 8. Segurança e auditoria
 
-comparação entre regiões e períodos;
+Toda ação relevante realizada no sistema deverá ser rastreável.
 
-visualização de mapas com múltiplas camadas;
+O SENTINELA manterá registros de:
 
-geração de relatórios;
+- usuário responsável;
+- data e horário;
+- cadastro realizado;
+- alteração efetuada;
+- validação de ocorrência;
+- importação de arquivos;
+- consulta de dados;
+- geração de relatórios;
+- resultado da operação.
 
-administração de usuários e permissões;
+Essa trilha de auditoria permitirá verificar quem realizou cada ação e quando ela ocorreu.
 
-consulta à trilha de auditoria.
+---
 
-Aplicativo mobile
+## Perfis de acesso
 
-O aplicativo mobile funcionará como uma interface complementar, priorizando rapidez, legibilidade e facilidade de uso.
+Cada usuário terá acesso somente às funções compatíveis com sua responsabilidade.
 
-Entre as funcionalidades previstas estão:
+| Perfil | Atribuições principais |
+|---|---|
+| **Administrador** | Configurações, usuários, permissões e parâmetros |
+| **Gestor** | Dashboards, mapas, comparações, alertas e relatórios |
+| **Analista** | Filtros avançados e análises temporais e geográficas |
+| **Supervisor** | Consulta gerencial de indicadores e relatórios |
+| **Cadastrador** | Cadastro e atualização autorizada de ocorrências |
+| **Auditor** | Verificação de acessos, importações e alterações |
 
-painel resumido de indicadores;
+---
 
-mapa simplificado;
+## Escopo da primeira versão
 
-filtros essenciais;
+A primeira versão do SENTINELA deverá contemplar:
 
-cadastro manual de ocorrências;
+- [ ] autenticação e controle de acesso;
+- [ ] cadastro manual de ocorrências;
+- [ ] importação e validação de planilhas;
+- [ ] identificação de possíveis duplicidades;
+- [ ] dashboard com indicadores consolidados;
+- [ ] mapa criminal interativo;
+- [ ] filtros geográficos, temporais e criminais;
+- [ ] comparação entre regiões e períodos;
+- [ ] alertas baseados em alterações estatísticas;
+- [ ] geração de relatórios;
+- [ ] trilha de auditoria;
+- [ ] aplicativo mobile com as funções essenciais.
 
-consulta do status dos registros enviados;
+---
 
-recebimento de alertas analíticos;
+## Limites da primeira versão
 
-visualização e compartilhamento autorizado de relatórios.
+O SENTINELA será inicialmente uma plataforma de cadastro e análise.
 
-Usuários e controle de acesso
+Não fará parte desta versão:
 
-O SENTINELA será destinado a usuários institucionais autorizados.
+- despacho ou atendimento emergencial;
+- acompanhamento de ocorrências em andamento;
+- localização de agentes, equipes ou veículos;
+- definição de rotas e patrulhamento;
+- comunicação operacional em tempo real;
+- envio de ordens operacionais;
+- acompanhamento de operações em campo;
+- classificação automática de pessoas como suspeitas;
+- previsão determinística de crimes.
 
-Cada usuário terá acesso somente às funções e informações compatíveis com seu perfil e suas responsabilidades.
+---
 
-Perfis inicialmente previstos:
+## Princípios do projeto
 
-Perfil
+| Princípio | Aplicação |
+|---|---|
+| **Orientação por dados** | Informações objetivas, comparáveis e rastreáveis |
+| **Segurança** | Controle de acesso e proteção das informações |
+| **Privacidade** | Uso somente dos dados necessários |
+| **Transparência analítica** | Alertas acompanhados de período, região e referência |
+| **Usabilidade** | Interfaces claras para computador e celular |
+| **Rastreabilidade** | Histórico de cadastros, alterações e importações |
+| **Evolução gradual** | Entrega das funções essenciais antes de recursos avançados |
 
-Responsabilidade principal
+---
 
-Administrador
+## Status do projeto
 
-Configuração, usuários, permissões e auditoria
+O SENTINELA encontra-se na etapa de **definição do produto e planejamento da primeira versão**.
 
-Gestor
+### Próximas etapas
 
-Consulta estratégica de indicadores, mapas e relatórios
+1. detalhamento dos requisitos;
+2. prototipação das telas;
+3. modelagem dos dados;
+4. implementação dos módulos principais;
+5. validação do MVP;
+6. apresentação do sistema.
 
-Analista
+---
 
-Exploração detalhada dos dados e aplicação de filtros avançados
+## Sobre este repositório
 
-Supervisor
+Este repositório será utilizado para registrar o desenvolvimento acadêmico do SENTINELA, incluindo:
 
-Consulta gerencial de indicadores e relatórios
+- documentação do projeto;
+- código-fonte;
+- protótipos;
+- modelos de dados;
+- evolução das funcionalidades;
+- registros das etapas de desenvolvimento.
 
-Cadastrador
-
-Registro e atualização autorizada de ocorrências
-
-Auditor
-
-Verificação de acessos, importações e alterações
-
-Segurança, privacidade e rastreabilidade
-
-O projeto considera como princípios essenciais:
-
-autenticação e controle de acesso por perfil;
-
-registro das ações relevantes realizadas no sistema;
-
-identificação do responsável por cada cadastro ou alteração;
-
-histórico de cadastros, importações, validações e correções;
-
-minimização de dados pessoais;
-
-proteção das informações armazenadas;
-
-exclusão lógica e preservação do histórico quando aplicável;
-
-uso de dados apenas conforme as permissões institucionais.
-
-Dados pessoais de vítimas, testemunhas ou suspeitos não são necessários para demonstrar as funções analíticas do protótipo inicial.
-
-Escopo da primeira versão
-
-A primeira versão deverá permitir:
-
-autenticar usuários e aplicar permissões;
-
-cadastrar ocorrências manualmente;
-
-importar ocorrências por planilha;
-
-validar e padronizar os dados;
-
-exibir indicadores em dashboard;
-
-visualizar ocorrências em mapas;
-
-aplicar filtros geográficos, temporais e criminais;
-
-comparar regiões e períodos;
-
-identificar alterações relevantes;
-
-gerar relatórios;
-
-registrar ações em trilha de auditoria;
-
-disponibilizar funções essenciais no aplicativo mobile.
-
-Fora do escopo inicial
-
-Nesta primeira versão, o SENTINELA não será uma plataforma de despacho, comando operacional ou acompanhamento em tempo real.
-
-Não estão previstos inicialmente:
-
-acompanhamento de operações;
-
-localização de viaturas, equipes ou agentes;
-
-distribuição de patrulhamento ou rotas;
-
-comunicação operacional em campo;
-
-envio de ordens operacionais;
-
-gerenciamento de ocorrências em andamento;
-
-classificação automática de pessoas como suspeitas;
-
-previsão determinística de crimes.
-
-Fluxo geral
-
-Cadastro manual ou importação de planilhas
-                    ↓
-        Validação e padronização
-                    ↓
-      Armazenamento centralizado
-                    ↓
- Mapas, indicadores, filtros e comparações
-                    ↓
-       Alertas e relatórios analíticos
-
-Etapas previstas
-
-Definição detalhada dos requisitos;
-
-Modelagem do banco de dados;
-
-Protótipo das telas web e mobile;
-
-Autenticação e perfis de acesso;
-
-Cadastro manual de ocorrências;
-
-Importação e validação de planilhas;
-
-Dashboard de indicadores;
-
-Mapa criminal interativo;
-
-Filtros e comparações;
-
-Alertas analíticos;
-
-Relatórios;
-
-Auditoria e histórico;
-
-Testes e validação do MVP.
-
-Status do projeto
-
-Projeto em fase de planejamento, definição funcional e levantamento de dados.
-
-As funcionalidades e regras poderão ser refinadas durante o desenvolvimento e a validação com usuários.
-
-Autor
-
-Desenvolvido por Pedro Augusto Lourenço da Silva como projeto acadêmico de sistema de informação.
-
-<div align="center">
-
-SENTINELA — dados organizados para análises mais claras, comparáveis e estratégicas.
-
-</div>
+> O valor do SENTINELA está em transformar registros dispersos em informação organizada, visual e comparável para apoiar análises mais claras e fundamentadas.
