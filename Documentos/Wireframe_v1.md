@@ -5,4 +5,4 @@
 
 <br>
 
-Segue link para acesso: [Link para o Wireframe](https://www.figma.com/make/dllYHcJ2YYWmhsZP5zr9n3/CyberCrime-Monitor-Dashboard-Wireframe?t=qgGYzUV2JWiI3ZCt-1)
+Segue link para acesso: [Link para o Wireframe]()
