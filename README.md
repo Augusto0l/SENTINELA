@@ -20,7 +20,7 @@ Repositório institucional de Projeto Integrador criado a partir do template do 
 | -------------------------------------- | ------------------------------------------------------------------------------------ |
 | Instituição                            | CEUB                                                                                 |
 | Organização no GitHub                  | CampusCEUB                                                                           |
-| Professor(a) responsável pela criação: | [Informar DRT e o(a) nome do professor(a)]                                           |
+| Professor(a) responsável pela criação: | Adriana                                                                               |
 | Equipe                                 | A equipe está listada nos times ou inserida diretamente no acesso a este repositório |
 | IDProjeto                              | Informar o ID do Projeto conforme consta no Portfólio de Projetos de TI do CEUB      |
 
