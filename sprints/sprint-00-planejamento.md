@@ -2,27 +2,43 @@
 
 ## Contexto
 
-Descreva o ponto de partida da disciplina, as restrições iniciais, as premissas conhecidas e o escopo que motivou a organização da sprint de planejamento.
+O ponto de partida é a disciplina de Projeto Integrador 2 (PI-II). A Sprint 00 foi motivada pela necessidade de estruturar a organização e a governança do repositório, configurar o GitHub Project e definir a Estrutura Analítica do Projeto (EAP) antes de iniciar o desenvolvimento das funcionalidades.
 
 ## Equipe
 
-Liste os participantes, a turma, a disciplina e demais informações relevantes para identificar o grupo responsável.
+- **Disciplina:** Projeto Integrador 2 (PI-II)
+- **Curso / Turma:** Ciência da Computação, Turma A
+- **Nome do Repositório:**  SENTINELA
+- **Integrantes:**
+    - Pedro Felizardo Barbosa
+    - João Pedro Roriz
+    - Arthur de Jesus Lira
+    - Pedro Augusto Lourenço
+    - Henrique Rabelo Rega
 
 ## Papéis
 
-Registre os papéis assumidos pelo grupo, como responsável por produto, facilitação, documentação, desenvolvimento, validação ou comunicação.
+Os papéis definidos pela equipe são meramente um facilitador para a delegação de tarefas e responsabilidades. Os integrantes possuem total liberdade para a colaboração mútua em atividades fora do escopo da sua função.
+
+- **Arthur de Jesus Lira** - Project Owner
+- **Pedro Felizardo Barbosa** - Scrum Master
+- **Pedro Augusto Lourenço** - Desenvolvedor Principal
+- **João Pedro Roriz** - DBA/Desenvolvedor Auxiliar
+- **Henrique Rabelo Rega** - Documentador
 
 ## Cadência escolhida
 
-Explique a duração da sprint, a frequência de checkpoints, os momentos de revisão e o formato de acompanhamento adotado.
+- **Duração da Sprint:** As S**prints 01, 02, 05 e 06** possuem a duração de **uma semana**, enquanto as **Sprints 03 e 04** possuem a duração de **duas semanas.**
+- **Checkpoints:** Acompanhamento contínuo no GitHub Project e reuniões breves durante as aulas presenciais.
+- **Momentos de Revisão e Retrospectiva:** Avaliação de encerramento de sprint no último dia de cada sprint, para revisar o fechamento das issues, validar os entregáveis e preencher o relatório da sprint.
 
 ## Problema
 
-Explique o desafio principal que a equipe precisa resolver durante o ciclo inicial de organização.
+O desafio principal consiste em organizar o ecossistema de governança e planejamento inicial do projeto, evitando que os membros trabalhem de forma desordenada ou realizem entregas sem rastreabilidade individual. 
 
 ## Objetivo
 
-Defina o resultado esperado para encerrar o planejamento com clareza e critério verificável.
+Encerrar a Sprint 00 com o ambiente de desenvolvimento e governança plenamente configurado e auditável.
 
 ## Riscos
 
