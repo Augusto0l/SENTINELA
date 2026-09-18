@@ -1,7 +1,5 @@
 # Arquitetura
 
-Este documento é um template genérico e deve permanecer independente de stack até que a turma defina oficialmente a sua tecnologia.
-
 ## Contexto técnico
 
 O Projeto SENTINELA é desenvolvido no âmbito acadêmico como um Projeto Integrador. Trata-se de uma plataforma web unificada para centralizar, monitorar e analisar dados de ocorrências criminais, orientada inicialmente ao Distrito Federal (DF). O sistema tem como canais de uso navegadores web (desktops e notebooks) e visa atender três perfis estritos de usuários: Administrador (acesso total), Operador (alimentação e análise) e Analista (somente leitura/consulta). A operação exige fluxos contínuos de processamento de arquivos em lote (planilhas CSV/XLSX de até 50MB) e interfaces interativas de geolocalização focadas nas Regiões Administrativas (RAs) do DF. Como restrição, a arquitetura provisória será validada primeiro no front-end com dados simulados, aguardando a carga histórica real de cinco anos para a consolidação definitiva do banco.
@@ -42,3 +40,5 @@ O Projeto SENTINELA é desenvolvido no âmbito acadêmico como um Projeto Integr
 
 *   **Arquitetura do Sistema (v0.1):** Diagrama de contexto evidenciando os blocos da hospedagem, serviços de BaaS, front-end e comunicação via requisições HTTPS.
 *   **Estrutura Inicial do Banco de Dados (v0.3):** Diagrama Entidade-Relacionamento ilustrando a chave estrangeira 1:N entre as `ocorrencias` e as instâncias de `importacoes`, `naturezas_crime` e `regioes_administrativas`.
+
+![Arquitetura do Sistema](./docs/Arquitetura)
