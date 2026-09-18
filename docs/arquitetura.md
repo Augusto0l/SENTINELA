@@ -41,4 +41,6 @@ O Projeto SENTINELA é desenvolvido no âmbito acadêmico como um Projeto Integr
 *   **Arquitetura do Sistema (v0.1):** Diagrama de contexto evidenciando os blocos da hospedagem, serviços de BaaS, front-end e comunicação via requisições HTTPS.
 *   **Estrutura Inicial do Banco de Dados (v0.3):** Diagrama Entidade-Relacionamento ilustrando a chave estrangeira 1:N entre as `ocorrencias` e as instâncias de `importacoes`, `naturezas_crime` e `regioes_administrativas`.
 
-![Arquitetura do Sistema](./docs/Arquitetura)
+![Arquitetura do Sistema](docs/Arquitetura_do_Sistema_(v0.1).jpeg)
+
+![Estrutura Inicial Banco de Dados](docs/Estrutura_Inicial_Banco_Dados_SENTINELA_v0.3.pdf)
