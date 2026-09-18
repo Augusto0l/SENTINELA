@@ -4,6 +4,7 @@
 * **Título:** Consolidação da Arquitetura, EAP, Cronograma de Sprints e Especificação de Requisitos (v0.4 / v3.6)
 * **Projeto:** SENTINELA — Sistema de Análise e Monitoramento de Ocorrências Criminais do Distrito Federal
 * **Instituição:** Centro Universitário de Brasília (UniCEUB / CAMPUSCEUB)
+* **Turma:** A
 * **Data:** 17 de Setembro de 2026
 * **Repositório:** [CAMPUSCEUB/Sentinela](https://github.com/CAMPUSCEUB/Sentinela)
 
