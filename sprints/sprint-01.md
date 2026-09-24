@@ -1,6 +1,6 @@
 ## Período
-* Data início: 21/09
-* Data Fim: 27/09
+* Data início: 21/09/2026
+* Data Fim: 27/09/2026
 
 ## Objetivo
 O foco e objetivo principal da sprint é o Setup Next.js 14, Tailwind, shadcn/ui, Design System e Mapeamento de Regras, estabelecendo a Fundação Web e Regras de Negócio do sistema
