@@ -25,3 +25,7 @@ temp/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+.next/
+out/
+next-env.d.ts
