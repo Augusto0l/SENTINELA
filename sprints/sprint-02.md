@@ -1,6 +1,6 @@
 ## Período
 * Data Início:28/09/2026
-* Data Fim: 09/10/2026
+* Data Fim: 04/10/2026
 
 ## Objetivo
 O foco e objetivo principal da sprint é a construção da Interface Operacional de Ocorrências, Leaflet UI (Pino/Mapa) e Guards de Perfil, estabelecendo os Fluxos Operacionais e a Geocodificação na UI.
