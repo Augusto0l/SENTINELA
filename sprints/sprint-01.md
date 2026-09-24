@@ -1,6 +1,6 @@
 ## Período
-Data início: 21/09
-Data Fim: 27/09
+* Data início: 21/09
+* Data Fim: 27/09
 
 ## Objetivo
 O foco e objetivo principal da sprint é o Setup Next.js 14, Tailwind, shadcn/ui, Design System e Mapeamento de Regras, estabelecendo a Fundação Web e Regras de Negócio do sistema
@@ -16,7 +16,11 @@ O foco e objetivo principal da sprint é o Setup Next.js 14, Tailwind, shadcn/ui
 * **ISSUE-11**: Formalização de Catálogos, Regras e Perfis Supabase.
 
 ## Responsáveis
-
+* **Pedro Augusto**:
+  * **ISSUE-01**: Setup inicial do projeto Web, Next.js 14+ e Design System
+  * **ISSUE-02**: Páginas e Mocks do Layout Base
+  * **ISSUE-03**: Padronização Visual, Responsividade e Feedbacks
+  * **ISSUE-11**: Formalização de Catálogos, Regras e Perfis Supabase
 
 ## Entregas
 * Repositório inicializado no GitHub, com Next.js 14+ (App Router), Tailwind CSS e componentes shadcn/ui configurados para o layout base (Sidebar + Topbar).
