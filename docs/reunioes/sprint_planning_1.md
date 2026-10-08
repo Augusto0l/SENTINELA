@@ -15,6 +15,7 @@ Reunião de planeamento (Sprint Planning) para o início da execução da Sprint
 * Definição da stack tecnológica inicial do front-end a ser utilizada (Next.js 14+ com App Router, Tailwind CSS e shadcn/ui).
 * Aprovação dos itens e entregas planeadas para a Sprint 1, correspondentes aos Épicos 01 e 05.
 * Atribuição da totalidade do desenvolvimento das issues desta primeira sprint ao colaborador Pedro Augusto.
+* Definição de que João Pedro Roriz será o responsável por documentar as cerimônias desta sprint (Planning e Review).
 
 ## Encaminhamentos
 Todas as seguintes tarefas serão desenvolvidas por **Pedro Augusto**, com prazo de entrega até ao dia **27/09/2026**:
