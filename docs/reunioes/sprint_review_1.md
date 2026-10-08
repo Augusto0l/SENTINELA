@@ -24,4 +24,4 @@ Reunião de revisão (Sprint Review) para a demonstração e validação das ent
 * Houve um atraso na realização dos documentos de Sprint Planning e Sprint Review da Sprint 1. Isso ocorreu pela falta de tempo devido a dificuldades inesperadas que surgiram para o responsável (João Pedro Roriz), levando a um atraso na entrega final da documentação do ciclo.
 
 ## Links
-* [Documento da Sprint 1](https://github.com/CAMPUSCEUB/Sentinela/blob/main/sprints/sprint-01.md)
+* [Sprint 1](https://github.com/CAMPUSCEUB/Sentinela/blob/main/sprints/sprint-01.md)
