@@ -24,7 +24,7 @@ As seguintes tarefas de desenvolvimento serão realizadas por **Pedro Augusto**,
 * **ISSUE-06**: Interface de Geocodificação e Ajuste no Mapa.
 
 ## Impedimentos
-
+* Infelizmente, houve mais um atraso na elaboração da documentação desta sprint (Sprint Planning e Review), desta vez devido a uma semana conturbada com muitas provas e trabalhos de outras matérias, o que comprometeu a disponibilidade de tempo do colaborador João Pedro Roriz
 
 ## Links
 * [Sprint 2](https://github.com/CAMPUSCEUB/Sentinela/blob/main/sprints/sprint-02.md)
