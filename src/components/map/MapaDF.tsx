@@ -85,17 +85,18 @@ function renderHeatmap(
   const ch = canvas.height;
   const scaleX = cw / vw;
   const scaleY = ch / vh;
-  const offX = -vx * scaleX;
-  const offY = -vy * scaleY;
+  const scale = Math.min(scaleX, scaleY);
+  const offX = (cw - vw * scale) / 2 - vx * scale;
+  const offY = (ch - vh * scale) / 2 - vy * scale;
 
   ctx.clearRect(0, 0, cw, ch);
 
-  const r = Math.max(28, Math.min(72, (cw / vw) * 52));
+  const r = Math.max(28, Math.min(72, scale * 52));
 
   // First pass — wide cool-color bloom
   for (const p of points) {
-    const cx = p.x * scaleX + offX;
-    const cy = p.y * scaleY + offY;
+    const cx = p.x * scale + offX;
+    const cy = p.y * scale + offY;
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.4);
     g.addColorStop(0,   "rgba(250,204,21,0.08)");
     g.addColorStop(0.5, "rgba(37,99,235,0.04)");
@@ -108,8 +109,8 @@ function renderHeatmap(
 
   // Second pass — hot core
   for (const p of points) {
-    const cx = p.x * scaleX + offX;
-    const cy = p.y * scaleY + offY;
+    const cx = p.x * scale + offX;
+    const cy = p.y * scale + offY;
     const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
     grad.addColorStop(0,    "rgba(239,68,68,0.52)");
     grad.addColorStop(0.25, "rgba(249,115,22,0.32)");
@@ -142,7 +143,7 @@ export default function MapaDF({
   mockOccurrences = [],
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
   const [hoveredOcc, setHoveredOcc] = useState<MockOccurrence | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -175,15 +176,23 @@ export default function MapaDF({
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
-    canvas.width = MAP_WIDTH;
-    canvas.height = MAP_HEIGHT;
-    renderHeatmap(canvas, svgRef.current, visibleOccs, viewBox);
+    const draw = () => {
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width));
+      canvas.height = Math.max(1, Math.round(rect.height));
+      renderHeatmap(canvas, svgRef.current, visibleOccs, viewBox);
+    };
+    draw();
+    const observer = new ResizeObserver(draw);
+    if (svgRef.current) observer.observe(svgRef.current);
+    return () => observer.disconnect();
   }, [mapMode, visibleOccs, viewBox]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top, width: rect.width });
     }
   };
 
@@ -204,7 +213,7 @@ export default function MapaDF({
   return (
     <div
       ref={containerRef}
-      style={{ width: "100%", height: "100%", minHeight: 420, position: "relative" }}
+      style={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
       onMouseMove={handleMouseMove}
     >
       <svg
@@ -224,6 +233,16 @@ export default function MapaDF({
             return (
               <path
                 key={ra.code}
+                role="button"
+                tabIndex={onSelectRa ? 0 : undefined}
+                aria-label={`${ra.displayName}: ${count} ocorrências demonstrativas`}
+                aria-pressed={selectedRaCode === ra.code}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectRa?.(ra.code);
+                  }
+                }}
                 id={ra.id}
                 d={ra.path}
                 fill={selectedRA ? "#1d4ed8" : colorFor(count, minValue, maxValue)}
@@ -313,7 +332,7 @@ export default function MapaDF({
                     setHoveredOcc(p);
                     if (containerRef.current) {
                       const rect = containerRef.current.getBoundingClientRect();
-                      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top, width: rect.width });
                     }
                   }}
                   onMouseLeave={() => { setHoveredOcc(null); setTooltipPos(null); }}
@@ -403,8 +422,8 @@ export default function MapaDF({
           border: "1px solid rgba(30,58,95,0.6)", borderRadius: 7, padding: "7px 10px",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-            <span style={{ fontSize: 9, color: "#475569", letterSpacing: "0.02em" }}>Menor incidência</span>
-            <span style={{ fontSize: 9, color: "#475569", letterSpacing: "0.02em" }}>Maior incidência</span>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", letterSpacing: "0.02em" }}>Menor incidência</span>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", letterSpacing: "0.02em" }}>Maior incidência</span>
           </div>
           <div style={{
             width: 168, height: 7, borderRadius: 4,
@@ -413,7 +432,7 @@ export default function MapaDF({
           }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
             {["Baixa", "Média", "Alta"].map((l) => (
-              <span key={l} style={{ fontSize: 8, color: "#334155" }}>{l}</span>
+              <span key={l} style={{ fontSize: 8, color: "var(--color-text-muted)" }}>{l}</span>
             ))}
           </div>
         </div>
@@ -424,7 +443,7 @@ export default function MapaDF({
         <div
           style={{
             position: "absolute",
-            left: Math.min(tooltipPos.x + 14, (containerRef.current?.clientWidth ?? 300) - 180),
+            left: Math.max(8, Math.min(tooltipPos.x + 14, tooltipPos.width - 180)),
             top: Math.max(tooltipPos.y - 10, 8),
             padding: "10px 14px",
             borderRadius: 8,
@@ -456,7 +475,7 @@ export default function MapaDF({
         <div
           style={{
             position: "absolute",
-            left: Math.min(tooltipPos.x + 14, (containerRef.current?.clientWidth ?? 300) - 200),
+            left: Math.max(8, Math.min(tooltipPos.x + 14, tooltipPos.width - 200)),
             top: Math.max(tooltipPos.y - 10, 8),
             padding: "10px 14px",
             borderRadius: 8,
@@ -473,10 +492,10 @@ export default function MapaDF({
             {hoveredOcc.natureza}
           </div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 2 }}>{hoveredOcc.raName}</div>
-          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>
             {hoveredOcc.data} — {hoveredOcc.horario}
           </div>
-          <div style={{ fontSize: 10, color: "#334155", fontFamily: "monospace" }}>{hoveredOcc.id}</div>
+          <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "monospace" }}>{hoveredOcc.id}</div>
         </div>
       )}
     </div>

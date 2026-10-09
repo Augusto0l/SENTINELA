@@ -12,7 +12,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
 
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
         Ranking por ocorrências
       </div>
       {sorted.map((ra, i) => {
@@ -80,7 +80,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
             <span
               style={{
                 fontSize: 11,
-                color: "#64748b",
+                color: "var(--color-text-muted)",
                 flexShrink: 0,
                 fontVariantNumeric: "tabular-nums",
               }}
@@ -96,7 +96,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
             background: "transparent",
             border: "1px solid #1e3a5f",
             borderRadius: 5,
-            color: "#64748b",
+            color: "var(--color-text-muted)",
             fontSize: 11,
             padding: "5px 10px",
             cursor: "pointer",

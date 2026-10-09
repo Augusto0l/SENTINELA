@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Header from "../components/Header";
+import { useDemoToast } from "../components/DemoProvider";
 
 // ─── colour tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -12,8 +13,8 @@ const T = {
   border2:  "#1e3a5f",
   text:     "#f1f5f9",
   muted:    "#94a3b8",
-  dim:      "#475569",
-  faint:    "#334155",
+  dim:      "#94a3b8",
+  faint:    "#94a3b8",
   blue:     "#2563eb",
   blueHi:   "#60a5fa",
   green:    "#22c55e",
@@ -21,13 +22,6 @@ const T = {
 };
 
 // ─── inline icons ─────────────────────────────────────────────────────────────
-const IcUpload = () => (
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={T.blueHi} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="11" stroke={T.border2} strokeWidth="1" fill="rgba(37,99,235,0.07)" />
-    <path d="M12 16V9" /><polyline points="9 12 12 9 15 12" />
-    <path d="M8 17h8" />
-  </svg>
-);
 const IcDownload = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -185,6 +179,7 @@ const cell: React.CSSProperties = {
 
 // ─── main page ────────────────────────────────────────────────────────────────
 export default function ImportarDados() {
+  const notify = useDemoToast();
   const [dragging, setDragging]   = useState(false);
   const [fileName, setFileName]   = useState("ocorrencias_df_2026.xlsx");
   const [mappings, setMappings]   = useState(() =>
@@ -197,8 +192,8 @@ export default function ImportarDados() {
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f) setFileName(f.name);
-  }, []);
+    if (f) { setFileName(f.name); notify("Arquivo selecionado somente como exemplo. Seu conteúdo não foi lido nem enviado."); }
+  }, [notify]);
 
   const selStyle: React.CSSProperties = {
     background: T.surface2, border: `1px solid ${T.border2}`,
@@ -225,7 +220,7 @@ export default function ImportarDados() {
         </div>
 
         {/* two-column layout */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, alignItems: "start" }}>
+        <div className="two-column-grid import-grid" style={{ display: "grid", gap: 12, alignItems: "start" }}>
 
           {/* ═══ LEFT ═══════════════════════════════════════════════════════ */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -245,10 +240,11 @@ export default function ImportarDados() {
                 transition: "border-color .15s, background .15s",
                 cursor: "pointer",
               }}
+              role="button" tabIndex={0} aria-label="Selecionar arquivo demonstrativo" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current?.click(); } }}
               onClick={() => fileRef.current?.click()}
             >
               <input ref={fileRef} type="file" accept=".csv,.xlsx" style={{ display: "none" }}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) setFileName(f.name); }} />
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFileName(f.name); notify("Arquivo selecionado somente como exemplo. Seu conteúdo não foi lido nem enviado."); } }} />
 
               {/* upload icon */}
               <div style={{
@@ -287,7 +283,7 @@ export default function ImportarDados() {
 
               {/* baixar modelo */}
               <button
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); notify("O modelo de importação será disponibilizado na etapa de processamento de arquivos."); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   background: "transparent", border: "none",
@@ -302,7 +298,7 @@ export default function ImportarDados() {
             {/* Preview table */}
             <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
               <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${T.border}` }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Pré-visualização dos dados</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Pré-visualização fictícia (independente do arquivo selecionado)</span>
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -346,24 +342,24 @@ export default function ImportarDados() {
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "10px 16px", borderTop: `1px solid ${T.border}`,
               }}>
-                <span style={{ fontSize: 11, color: T.dim }}>Mostrando 5 de 1.248 registros</span>
+                <span style={{ fontSize: 11, color: T.dim }}>5 exemplos fictícios · arquivo não processado</span>
                 <div style={{ display: "flex", gap: 3 }}>
-                  <PagBtn disabled={previewPage === 1} onClick={() => setPreviewPage(1)}><IcFirst /></PagBtn>
-                  <PagBtn disabled={previewPage === 1} onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}><IcChevron dir="left" /></PagBtn>
-                  {[1, 2, 3].map((n) => (
+                  <PagBtn disabled onClick={() => setPreviewPage(1)}><IcFirst /></PagBtn>
+                  <PagBtn disabled onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}><IcChevron dir="left" /></PagBtn>
+                  {[1].map((n) => (
                     <PagBtn key={n} active={previewPage === n} onClick={() => setPreviewPage(n)}>{n}</PagBtn>
                   ))}
                   <PagBtn disabled><span style={{ fontSize: 11 }}>…</span></PagBtn>
-                  <PagBtn onClick={() => setPreviewPage(250)}>250</PagBtn>
-                  <PagBtn disabled={previewPage === 250} onClick={() => setPreviewPage((p) => Math.min(250, p + 1))}><IcChevron /></PagBtn>
-                  <PagBtn disabled={previewPage === 250} onClick={() => setPreviewPage(250)}><IcLast /></PagBtn>
+                  <PagBtn disabled>1</PagBtn>
+                  <PagBtn disabled onClick={() => setPreviewPage((p) => Math.min(250, p + 1))}><IcChevron /></PagBtn>
+                  <PagBtn disabled onClick={() => setPreviewPage(250)}><IcLast /></PagBtn>
                 </div>
               </div>
             </div>
 
             {/* Action buttons */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 2 }}>
-              <button style={{
+              <button onClick={() => { setFileName("ocorrencias_df_2026.xlsx"); setPreviewPage(1); notify("Seleção demonstrativa cancelada."); }} style={{
                 background: "transparent", border: `1px solid ${T.border2}`,
                 borderRadius: 8, color: T.muted, fontSize: 13, fontWeight: 500,
                 padding: "10px 24px", cursor: "pointer",
@@ -375,14 +371,14 @@ export default function ImportarDados() {
                 Cancelar
               </button>
 
-              <button style={{
+              <button onClick={() => notify("Simulação: nenhum arquivo foi validado ou importado. Processamento previsto em etapa posterior.")} style={{
                 display: "flex", alignItems: "center", gap: 8,
                 background: T.blue, border: "none", borderRadius: 8,
                 color: "#fff", fontSize: 13, fontWeight: 700,
                 padding: "10px 24px", cursor: "pointer",
                 boxShadow: "0 2px 12px rgba(37,99,235,0.4)",
               }}>
-                <IcImport /> Validar e importar
+                <IcImport /> Simular validação e importação
               </button>
             </div>
           </div>
@@ -430,7 +426,7 @@ export default function ImportarDados() {
                     </div>
                     <div style={{ position: "relative" }}>
                       <select
-                        value={mappings[r.planilha]}
+                        aria-label={`Campo de destino para ${r.planilha}`} value={mappings[r.planilha]}
                         onChange={(e) => setMappings((m) => ({ ...m, [r.planilha]: e.target.value }))}
                         style={selStyle}
                       >
@@ -448,9 +444,9 @@ export default function ImportarDados() {
             <CardShell icon={<IcSummary />} title="Resumo da importação">
               {[
                 { label: "Arquivo selecionado",      value: fileName,          color: T.muted },
-                { label: "Registros identificados",  value: "1.248",           color: T.muted },
-                { label: "Campos obrigatórios válidos", value: "1.203",        color: T.green },
-                { label: "Pendências",               value: "45",              color: T.amber },
+                { label: "Registros identificados",  value: "1.248 (exemplo)",           color: T.muted },
+                { label: "Campos obrigatórios válidos", value: "1.203 (exemplo)",        color: T.green },
+                { label: "Pendências",               value: "45 (exemplo)",              color: T.amber },
                 { label: "Status",                   value: "badge",           color: "" },
               ].map((row, i, arr) => (
                 <div key={row.label} style={{
@@ -465,7 +461,7 @@ export default function ImportarDados() {
                       background: "rgba(37,99,235,0.1)",
                       border: "1px solid rgba(96,165,250,0.2)",
                       borderRadius: 20, padding: "2px 10px",
-                    }}>Aguardando validação</span>
+                    }}>Demonstração sem processamento</span>
                   ) : (
                     <span style={{ fontSize: 12, fontWeight: 600, color: row.color }}>{row.value}</span>
                   )}
@@ -473,17 +469,17 @@ export default function ImportarDados() {
               ))}
             </CardShell>
 
-            {/* Histórico recente */}
+            {/* Histórico fictício */}
             <CardShell
               icon={<IcHistory />}
-              title="Histórico recente"
+              title="Histórico fictício"
               action={
-                <button style={{ background: "none", border: "none", color: T.blueHi, fontSize: 12, cursor: "pointer" }}>
+                <button onClick={() => notify("Histórico fictício; não existem importações persistidas nesta demonstração.")} style={{ background: "none", border: "none", color: T.blueHi, fontSize: 12, cursor: "pointer" }}>
                   Ver todos
                 </button>
               }
             >
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table className="compact-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
                     {["Arquivo", "Data", "Registros", "Status"].map((h) => (

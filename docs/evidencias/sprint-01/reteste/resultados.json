@@ -1,0 +1,1387 @@
+{
+  "base": "http://127.0.0.1:3001",
+  "browser": "154.0.8037.98",
+  "routes": [
+    {
+      "route": "/login",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Acesse a demonstração",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": null,
+        "topbar": null,
+        "main": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/dashboard",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Visão Geral do DF",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 264,
+              "y": 174.5,
+              "width": 1632,
+              "height": 134.390625,
+              "right": 1896,
+              "bottom": 308.890625
+            },
+            "columns": "318.391px 318.406px 318.391px 318.406px 318.391px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/mapa-criminal",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Mapa Criminal",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/ocorrencias",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Ocorrências",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [],
+        "tables": [
+          {
+            "width": 1630,
+            "parentWidth": 1630,
+            "parentOverflow": "auto"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/ocorrencias/nova",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Nova ocorrência",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 260,
+              "y": 200.5,
+              "width": 1640,
+              "height": 1073.140625,
+              "right": 1900,
+              "bottom": 1273.640625
+            },
+            "columns": "814px 814px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/importar",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Importar dados",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 264,
+              "y": 193.5,
+              "width": 1632,
+              "height": 1101,
+              "right": 1896,
+              "bottom": 1294.5
+            },
+            "columns": "1240px 380px"
+          }
+        ],
+        "tables": [
+          {
+            "width": 1238,
+            "parentWidth": 1238,
+            "parentOverflow": "auto"
+          },
+          {
+            "width": 415.015625,
+            "parentWidth": 378,
+            "parentOverflow": "visible"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/usuarios",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Usuários",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 266,
+              "y": 193.5,
+              "width": 1628,
+              "height": 84,
+              "right": 1894,
+              "bottom": 277.5
+            },
+            "columns": "398px 398px 398px 398px"
+          }
+        ],
+        "tables": [
+          {
+            "width": 1626,
+            "parentWidth": 1626,
+            "parentOverflow": "auto"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/configuracoes",
+      "width": 1920,
+      "height": 1080,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Configurações",
+      "layout": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 1080,
+          "right": 240,
+          "bottom": 1080
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1680,
+          "height": 56,
+          "right": 1920,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1680,
+          "height": 1080,
+          "right": 1920,
+          "bottom": 1080
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 266,
+              "y": 195.5,
+              "width": 1628,
+              "height": 1062.25,
+              "right": 1894,
+              "bottom": 1257.75
+            },
+            "columns": "808px 808px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/login",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Acesse a demonstração",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": null,
+        "topbar": null,
+        "main": {
+          "x": 0,
+          "y": 0,
+          "width": 1366,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/dashboard",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Visão Geral do DF",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 264,
+              "y": 174.5,
+              "width": 1078,
+              "height": 141.890625,
+              "right": 1342,
+              "bottom": 316.390625
+            },
+            "columns": "207.594px 207.594px 207.609px 207.594px 207.609px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/mapa-criminal",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Mapa Criminal",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/ocorrencias",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Ocorrências",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [],
+        "tables": [
+          {
+            "width": 1076,
+            "parentWidth": 1076,
+            "parentOverflow": "auto"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/ocorrencias/nova",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Nova ocorrência",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 260,
+              "y": 200.5,
+              "width": 1086,
+              "height": 1073.140625,
+              "right": 1346,
+              "bottom": 1273.640625
+            },
+            "columns": "537px 537px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/importar",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Importar dados",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 264,
+              "y": 193.5,
+              "width": 1078,
+              "height": 1101,
+              "right": 1342,
+              "bottom": 1294.5
+            },
+            "columns": "686px 380px"
+          }
+        ],
+        "tables": [
+          {
+            "width": 744.640625,
+            "parentWidth": 684,
+            "parentOverflow": "auto"
+          },
+          {
+            "width": 415.015625,
+            "parentWidth": 378,
+            "parentOverflow": "visible"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/usuarios",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Usuários",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 266,
+              "y": 193.5,
+              "width": 1074,
+              "height": 84,
+              "right": 1340,
+              "bottom": 277.5
+            },
+            "columns": "259.5px 259.5px 259.5px 259.5px"
+          }
+        ],
+        "tables": [
+          {
+            "width": 1072,
+            "parentWidth": 1072,
+            "parentOverflow": "auto"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/configuracoes",
+      "width": 1366,
+      "height": 768,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Configurações",
+      "layout": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 768,
+          "right": 240,
+          "bottom": 768
+        },
+        "topbar": {
+          "x": 240,
+          "y": 33,
+          "width": 1126,
+          "height": 56,
+          "right": 1366,
+          "bottom": 89
+        },
+        "main": {
+          "x": 240,
+          "y": 0,
+          "width": 1126,
+          "height": 768,
+          "right": 1366,
+          "bottom": 768
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 266,
+              "y": 195.5,
+              "width": 1074,
+              "height": 1062.25,
+              "right": 1340,
+              "bottom": 1257.75
+            },
+            "columns": "531px 531px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/login",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Acesse a demonstração",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": null,
+        "topbar": null,
+        "main": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/dashboard",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Visão Geral do DF",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 96,
+              "y": 203,
+              "width": 648,
+              "height": 286.28125,
+              "right": 744,
+              "bottom": 489.28125
+            },
+            "columns": "209.328px 209.328px 209.328px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/mapa-criminal",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Mapa Criminal",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/ocorrencias",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Ocorrências",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [],
+        "tables": [
+          {
+            "width": 692.25,
+            "parentWidth": 646,
+            "parentOverflow": "auto"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/ocorrencias/nova",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Nova ocorrência",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 92,
+              "y": 200.5,
+              "width": 656,
+              "height": 2030.640625,
+              "right": 748,
+              "bottom": 2231.140625
+            },
+            "columns": "656px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    },
+    {
+      "route": "/importar",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Importar dados",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 96,
+              "y": 193.5,
+              "width": 648,
+              "height": 1780,
+              "right": 744,
+              "bottom": 1973.5
+            },
+            "columns": "648px"
+          }
+        ],
+        "tables": [
+          {
+            "width": 744.640625,
+            "parentWidth": 646,
+            "parentOverflow": "auto"
+          },
+          {
+            "width": 610,
+            "parentWidth": 646,
+            "parentOverflow": "visible"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/usuarios",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Usuários",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 98,
+              "y": 193.5,
+              "width": 644,
+              "height": 180,
+              "right": 742,
+              "bottom": 373.5
+            },
+            "columns": "316px 316px"
+          }
+        ],
+        "tables": [
+          {
+            "width": 793.015625,
+            "parentWidth": 642,
+            "parentOverflow": "auto"
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "route": "/configuracoes",
+      "width": 768,
+      "height": 1024,
+      "http": 200,
+      "browserHttp": 200,
+      "heading": "Configurações",
+      "layout": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "width": 72,
+          "height": 1024,
+          "right": 72,
+          "bottom": 1024
+        },
+        "topbar": {
+          "x": 72,
+          "y": 33,
+          "width": 696,
+          "height": 56,
+          "right": 768,
+          "bottom": 89
+        },
+        "main": {
+          "x": 72,
+          "y": 0,
+          "width": 696,
+          "height": 1024,
+          "right": 768,
+          "bottom": 1024
+        },
+        "grids": [
+          {
+            "rect": {
+              "x": 98,
+              "y": 195.5,
+              "width": 644,
+              "height": 1990.25,
+              "right": 742,
+              "bottom": 2185.75
+            },
+            "columns": "644px"
+          }
+        ],
+        "tables": []
+      },
+      "passed": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "login e toast explícito de demonstração",
+      "passed": true,
+      "evidence": "Demonstração aberta. Nenhuma autenticação foi realizada.\n×"
+    },
+    {
+      "name": "navegação por todos os destinos da Sidebar",
+      "passed": true,
+      "evidence": [
+        "/mapa-criminal",
+        "/ocorrencias",
+        "/ocorrencias/nova",
+        "/importar",
+        "/usuarios",
+        "/configuracoes",
+        "/dashboard",
+        "/login"
+      ]
+    },
+    {
+      "name": "contagens coerentes entre dashboard, mapa e listagem",
+      "passed": true,
+      "evidence": {
+        "dashboard": 790,
+        "map": 790,
+        "listing": 790
+      }
+    },
+    {
+      "name": "filtros de mocks e estado vazio",
+      "passed": true,
+      "evidence": {
+        "emptyTable": true,
+        "filteredRegions": 37,
+        "filteredCount": 238
+      }
+    },
+    {
+      "name": "paginação acessível e KPI contido no card em notebook",
+      "passed": true,
+      "evidence": {
+        "overflow": [
+          {
+            "width": 206,
+            "content": 206
+          },
+          {
+            "width": 206,
+            "content": 206
+          },
+          {
+            "width": 206,
+            "content": 206
+          },
+          {
+            "width": 206,
+            "content": 206
+          },
+          {
+            "width": 206,
+            "content": 206
+          }
+        ],
+        "footer": {
+          "x": 281,
+          "y": 689.75,
+          "width": 153.625,
+          "height": 16.5
+        },
+        "first": "DEMO-000001",
+        "next": "DEMO-000026"
+      }
+    },
+    {
+      "name": "diálogo, foco preso e Escape 1366",
+      "passed": true,
+      "evidence": {
+        "box": {
+          "x": 433,
+          "y": 138,
+          "width": 500,
+          "height": 492
+        },
+        "focusRestored": true
+      }
+    },
+    {
+      "name": "diálogo, foco preso e Escape 768",
+      "passed": true,
+      "evidence": {
+        "box": {
+          "x": 134,
+          "y": 266,
+          "width": 500,
+          "height": 492
+        },
+        "focusRestored": true
+      }
+    },
+    {
+      "name": "usuário fictício e feedback sem conta real",
+      "passed": true,
+      "evidence": "Usuário fictício adicionado nesta tela; nenhuma conta foi criada.\n×"
+    },
+    {
+      "name": "menu em portal e drawer por teclado",
+      "passed": true,
+      "evidence": "Menu e drawer abertos por Enter e encerrados por Escape"
+    },
+    {
+      "name": "importação e configurações anunciam simulação",
+      "passed": true,
+      "evidence": {
+        "importToast": "Simulação: nenhum arquivo foi validado ou importado. Processamento previsto em etapa posterior.\n×",
+        "settingsToast": "Simulação concluída. Preferências não foram gravadas nem aplicadas às outras telas.\n×"
+      }
+    },
+    {
+      "name": "cadastro e descarte demonstrativo",
+      "passed": true,
+      "evidence": "Nenhum registro foi gravado. Os dados serão descartados ao sair desta tela."
+    },
+    {
+      "name": "skeleton visível durante carregamento do módulo",
+      "passed": true,
+      "evidence": "Skeleton observado com atraso controlado de 350 ms nas respostas JS"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "failedRequests": [],
+  "httpErrors": [],
+  "screenshots": [
+    "1920x1080-login.png",
+    "1920x1080-dashboard.png",
+    "1920x1080-mapa-criminal.png",
+    "1920x1080-ocorrencias.png",
+    "1920x1080-ocorrencias-nova.png",
+    "1920x1080-importar.png",
+    "1920x1080-usuarios.png",
+    "1920x1080-configuracoes.png",
+    "1366x768-login.png",
+    "1366x768-dashboard.png",
+    "1366x768-mapa-criminal.png",
+    "1366x768-ocorrencias.png",
+    "1366x768-ocorrencias-nova.png",
+    "1366x768-importar.png",
+    "1366x768-usuarios.png",
+    "1366x768-configuracoes.png",
+    "768x1024-login.png",
+    "768x1024-dashboard.png",
+    "768x1024-mapa-criminal.png",
+    "768x1024-ocorrencias.png",
+    "768x1024-ocorrencias-nova.png",
+    "768x1024-importar.png",
+    "768x1024-usuarios.png",
+    "768x1024-configuracoes.png",
+    "login-toast.png",
+    "paginacao-notebook.png",
+    "dialogo-1366.png",
+    "dialogo-768.png",
+    "drawer-usuario.png",
+    "cadastro-simulado.png",
+    "skeleton-dashboard.png"
+  ]
+}

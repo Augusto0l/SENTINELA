@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import { useDemoToast } from "../components/DemoProvider";
 import Header from "../components/Header";
 
 // ─── Inline SVG icons ──────────────────────────────────────────────────────
@@ -100,11 +101,12 @@ const MonitorSistema = () => (
 );
 
 // ─── Toggle pill ────────────────────────────────────────────────────────────
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button
       onClick={() => onChange(!on)}
       role="switch"
+      aria-label={label}
       aria-checked={on}
       style={{
         width: 42, height: 24, borderRadius: 12, border: "none",
@@ -152,7 +154,7 @@ function Card({ icon, title, subtitle, children }: {
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em" }}>{title}</div>
-          <div style={{ fontSize: 11.5, color: "#475569", marginTop: 1 }}>{subtitle}</div>
+          <div style={{ fontSize: 11.5, color: "var(--color-text-muted)", marginTop: 1 }}>{subtitle}</div>
         </div>
       </div>
       <div style={{ padding: "4px 22px 18px" }}>
@@ -166,15 +168,17 @@ function Card({ icon, title, subtitle, children }: {
 function FieldRow({ label, value, onChange, type = "text" }: {
   label: string; value: string; onChange?: (v: string) => void; type?: string;
 }) {
+  const id = useId();
   return (
-    <div style={{
+    <div className="field-row" style={{
       display: "grid", gridTemplateColumns: "160px 1fr",
       alignItems: "center", gap: 14,
       padding: "11px 0",
       borderBottom: "1px solid rgba(26,48,80,0.6)",
     }}>
-      <span style={{ fontSize: 13, color: "#64748b" }}>{label}</span>
+      <label htmlFor={id} style={{ fontSize: 13, color: "#94a3b8" }}>{label}</label>
       <input
+        id={id} autoComplete={type === "password" ? "off" : undefined}
         type={type}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
@@ -205,7 +209,7 @@ function SwitchRow({ label, on, onChange, last }: {
       borderBottom: last ? "none" : "1px solid rgba(26,48,80,0.6)",
     }}>
       <span style={{ fontSize: 13, color: "#94a3b8" }}>{label}</span>
-      <Toggle on={on} onChange={onChange} />
+      <Toggle on={on} onChange={onChange} label={label} />
     </div>
   );
 }
@@ -220,7 +224,7 @@ function InfoRow({ label, value, badge, last }: {
       padding: "12px 0",
       borderBottom: last ? "none" : "1px solid rgba(26,48,80,0.6)",
     }}>
-      <span style={{ fontSize: 13, color: "#64748b" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{label}</span>
       {badge ? (
         <span style={{
           fontSize: 11, fontWeight: 700, color: "#22c55e",
@@ -274,16 +278,17 @@ function ThemeCard({ label, selected, onSelect, preview }: {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function Configuracoes() {
+  const notify = useDemoToast();
   // Perfil
   const [nome, setNome]         = useState("Pedro Augusto");
   const [email, setEmail]       = useState("pedro.augusto@sentinela.gov.br");
   const [cargo, setCargo]       = useState("Administrador do sistema");
 
   // Segurança
-  const [senhaAtual, setSenhaAtual]         = useState("sentinela2025");
-  const [novaSenha, setNovaSenha]           = useState("sentinela2025");
-  const [confirmarSenha, setConfirmarSenha] = useState("sentinela2025");
-  const [mfa, setMfa]                       = useState(true);
+  const [senhaAtual, setSenhaAtual]         = useState("");
+  const [novaSenha, setNovaSenha]           = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [mfa, setMfa]                       = useState(false);
 
   // Preferências
   const [compacto, setCompacto]                 = useState(false);
@@ -309,6 +314,7 @@ export default function Configuracoes() {
     await new Promise((r) => setTimeout(r, 1200));
     setSaving(false);
     setSavedOk(true);
+    notify("Simulação concluída. Preferências não foram gravadas nem aplicadas às outras telas.");
     setTimeout(() => setSavedOk(false), 2600);
   }
 
@@ -318,12 +324,12 @@ export default function Configuracoes() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 36px" }}>
         {/* ── Page heading ─────────────────────────────────────────────── */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
+        <div className="page-heading" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: 0, letterSpacing: "-0.025em" }}>
               Configurações
             </h1>
-            <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
+            <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
               Gerencie as preferências e configurações da sua conta.
             </p>
           </div>
@@ -334,7 +340,7 @@ export default function Configuracoes() {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                Alterações salvas
+                Simulação concluída; sem gravação
               </span>
             )}
             <button
@@ -350,13 +356,13 @@ export default function Configuracoes() {
               }}
             >
               <IcSave />
-              {saving ? "Salvando…" : "Salvar alterações"}
+              {saving ? "Simulando…" : "Simular alterações"}
             </button>
           </div>
         </div>
 
         {/* ── Two-column grid ──────────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
+        <div className="two-column-grid" style={{ display: "grid", gap: 12, alignItems: "start" }}>
 
           {/* ═══ LEFT COLUMN ═══ */}
           <div>
@@ -396,8 +402,8 @@ export default function Configuracoes() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
-                  <span style={{ fontSize: 11.5, color: "#475569" }}>
-                    As alterações de tema são aplicadas automaticamente.
+                  <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
+                    Prévia demonstrativa; a seleção não altera o tema global.
                   </span>
                 </div>
               </div>
@@ -418,19 +424,19 @@ export default function Configuracoes() {
                 padding: "15px 0 12px",
                 borderBottom: "1px solid rgba(26,48,80,0.6)",
               }}>
-                <Toggle on={mfa} onChange={setMfa} />
+                <Toggle on={mfa} onChange={setMfa} label="Simular autenticação em dois fatores" />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>
                     Autenticação em dois fatores
                   </div>
-                  <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>
-                    Ativada via aplicativo autenticador
+                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
+                    Controle ilustrativo; nenhum autenticador está conectado
                   </div>
                 </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
-                <button style={{
+                <button onClick={() => notify("Alteração de senha indisponível na demonstração. Não informe senhas reais.")} style={{
                   background: "#2563eb", border: "none", borderRadius: 7,
                   color: "#fff", fontSize: 13, fontWeight: 600,
                   padding: "8px 18px", cursor: "pointer",
@@ -453,16 +459,17 @@ export default function Configuracoes() {
             <Card icon={<IcShield />} title="Sessão e acesso" subtitle="Informações sobre sua sessão atual">
               <InfoRow label="Último acesso"     value="24/05/2025 às 09:42" />
               <InfoRow label="Dispositivo ativo" value="Windows • Chrome 124.0.6367.91" />
-              <InfoRow label="Endereço IP"        value="177.131.21.45 • Brasil" />
-              <InfoRow label="Sessão iniciada"    value="Ativa" badge last />
+              <InfoRow label="Endereço IP"        value="192.0.2.1 • Exemplo fictício" />
+              <InfoRow label="Sessão iniciada"    value="Demonstrativa" badge last />
 
               <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
                 <button
+                  onClick={() => notify("Não existem sessões autenticadas para encerrar neste protótipo.")}
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
                     background: "transparent",
                     border: "1px solid #1e3a5f",
-                    borderRadius: 7, color: "#64748b", fontSize: 13,
+                    borderRadius: 7, color: "var(--color-text-muted)", fontSize: 13,
                     padding: "8px 14px", cursor: "pointer",
                     transition: "border-color .15s, color .15s",
                   }}

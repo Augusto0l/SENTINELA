@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import Header from "../components/Header";
+import Dialog from "../components/ui/dialog";
 import MapaDF from "../components/map/MapaDF";
 import { RA_BY_CODE, GEO_BOUNDS } from "../components/map/raMapData";
 import { RA_LIST, CRIME_NATURES } from "../data/mockData";
@@ -65,7 +66,7 @@ const inputStyle: React.CSSProperties = {
   transition: "border-color .15s",
 };
 const labelStyle: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 5, display: "block",
+  fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 5, display: "block",
 };
 const cardStyle: React.CSSProperties = {
   background: "#0d1a2d", border: "1px solid #1e3a5f", borderRadius: 10, padding: "18px 20px", marginBottom: 12,
@@ -177,11 +178,11 @@ export default function NovaOcorrencia({ onBack }: Props) {
   if (success) {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-        <Header title="Nova Ocorrência" subtitle="Registre uma nova ocorrência no sistema." />
+        <Header title="Nova Ocorrência" subtitle="Simule o cadastro com dados fictícios. Não há gravação." />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14 }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2px solid #22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#22c55e" }}>✓</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9" }}>Ocorrência registrada com sucesso</div>
-          <div style={{ fontSize: 13, color: "#64748b" }}>A ocorrência foi salva e está disponível no sistema.</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9" }}>Simulação de cadastro concluída</div>
+          <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Nenhum registro foi gravado. Os dados serão descartados ao sair desta tela.</div>
           <button onClick={onBack} style={{ marginTop: 6, background: "#2563eb", border: "none", borderRadius: 7, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 22px", cursor: "pointer" }}>
             Voltar ao Dashboard
           </button>
@@ -193,30 +194,30 @@ export default function NovaOcorrencia({ onBack }: Props) {
   // ── Main form ─────────────────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      <Header title="Nova Ocorrência" subtitle="Registre uma nova ocorrência no sistema." />
+      <Header title="Nova Ocorrência" subtitle="Simule o cadastro com dados fictícios. Não há gravação." />
 
       <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px 24px" }}>
         {/* Back + Title */}
         <div style={{ marginBottom: 16 }}>
-          <button onClick={handleCancel} style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={handleCancel} style={{ background: "none", border: "none", color: "var(--color-text-muted)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
             ← Voltar
           </button>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9", margin: 0 }}>Nova ocorrência</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "3px 0 0" }}>Registre uma nova ocorrência no sistema.</p>
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "3px 0 0" }}>Simule o cadastro com dados fictícios. Não há gravação.</p>
         </div>
 
         {/* Two-column grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "55fr 45fr", gap: 12, alignItems: "start" }}>
+        <div className="two-column-grid" style={{ display: "grid", gap: 12, alignItems: "start" }}>
 
           {/* ══ LEFT ══════════════════════════════════════════════════════════ */}
           <div>
             {/* Card 1 – Informações */}
             <div style={cardStyle}>
               <div style={cardTitleStyle}>Informações da ocorrência</div>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1fr", gap: 10 }}>
+              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1fr", gap: 10 }}>
                 <div>
-                  <label style={labelStyle}>Natureza da ocorrência{req}</label>
-                  <select value={natureza} onChange={(e) => { setNatureza(e.target.value); setErrors((p) => ({ ...p, natureza: "" })); }}
+                  <label htmlFor="occ-natureza" style={labelStyle}>Natureza da ocorrência{req}</label>
+                  <select id="occ-natureza" aria-label="Natureza da ocorrência" value={natureza} onChange={(e) => { setNatureza(e.target.value); setErrors((p) => ({ ...p, natureza: "" })); }}
                     style={{ ...inputStyle, ...errBorder(errors, "natureza") }}>
                     <option value="">Selecione a natureza</option>
                     {CRIME_NATURES.map((n) => <option key={n} value={n} style={{ background: "#0a1525" }}>{n}</option>)}
@@ -224,14 +225,14 @@ export default function NovaOcorrencia({ onBack }: Props) {
                   {errors.natureza && <span style={errMsgStyle}>{errors.natureza}</span>}
                 </div>
                 <div>
-                  <label style={labelStyle}>Data{req}</label>
-                  <input type="date" value={data} onChange={(e) => { setData(e.target.value); setErrors((p) => ({ ...p, data: "" })); }}
+                  <label htmlFor="occ-data" style={labelStyle}>Data{req}</label>
+                  <input type="date" id="occ-data" aria-label="Data" value={data} onChange={(e) => { setData(e.target.value); setErrors((p) => ({ ...p, data: "" })); }}
                     style={{ ...inputStyle, ...errBorder(errors, "data"), colorScheme: "dark" }} />
                   {errors.data && <span style={errMsgStyle}>{errors.data}</span>}
                 </div>
                 <div>
-                  <label style={labelStyle}>Horário{req}</label>
-                  <input type="time" value={horario} onChange={(e) => { setHorario(e.target.value); setErrors((p) => ({ ...p, horario: "" })); }}
+                  <label htmlFor="occ-horario" style={labelStyle}>Horário{req}</label>
+                  <input type="time" id="occ-horario" aria-label="Horário" value={horario} onChange={(e) => { setHorario(e.target.value); setErrors((p) => ({ ...p, horario: "" })); }}
                     style={{ ...inputStyle, ...errBorder(errors, "horario"), colorScheme: "dark" }} />
                   {errors.horario && <span style={errMsgStyle}>{errors.horario}</span>}
                 </div>
@@ -244,8 +245,8 @@ export default function NovaOcorrencia({ onBack }: Props) {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
                 <div>
-                  <label style={labelStyle}>Região Administrativa{req}</label>
-                  <select value={raCode} onChange={(e) => selectRa(e.target.value)}
+                  <label htmlFor="occ-raCode" style={labelStyle}>Região Administrativa{req}</label>
+                  <select id="occ-raCode" aria-label="Região Administrativa" value={raCode} onChange={(e) => selectRa(e.target.value)}
                     style={{ ...inputStyle, ...errBorder(errors, "raCode") }}>
                     <option value="">Selecione a RA</option>
                     {RA_LIST.map((ra) => <option key={ra.codigo} value={ra.codigo} style={{ background: "#0a1525" }}>{ra.nomeCompleto}</option>)}
@@ -253,8 +254,8 @@ export default function NovaOcorrencia({ onBack }: Props) {
                   {errors.raCode && <span style={errMsgStyle}>{errors.raCode}</span>}
                 </div>
                 <div>
-                  <label style={labelStyle}>Bairro ou setor{req}</label>
-                  <select value={setor} onChange={(e) => { setSetor(e.target.value); setErrors((p) => ({ ...p, setor: "" })); }}
+                  <label htmlFor="occ-setor" style={labelStyle}>Bairro ou setor{req}</label>
+                  <select id="occ-setor" aria-label="Bairro ou setor" value={setor} onChange={(e) => { setSetor(e.target.value); setErrors((p) => ({ ...p, setor: "" })); }}
                     disabled={!raCode} style={{ ...inputStyle, ...errBorder(errors, "setor"), opacity: raCode ? 1 : 0.5 }}>
                     <option value="">Selecione o bairro/setor</option>
                     {setores.map((s) => <option key={s} value={s} style={{ background: "#0a1525" }}>{s}</option>)}
@@ -264,26 +265,26 @@ export default function NovaOcorrencia({ onBack }: Props) {
               </div>
 
               <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Endereço ou local</label>
-                <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)}
+                <label htmlFor="occ-endereco" style={labelStyle}>Endereço ou local</label>
+                <input type="text" id="occ-endereco" aria-label="Endereço ou local" value={endereco} onChange={(e) => setEndereco(e.target.value)}
                   placeholder="Ex: QNN 25 Conjunto A, próximo ao mercado" style={inputStyle} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 <div>
-                  <label style={labelStyle}>Latitude</label>
-                  <input type="text" value={latitude} onChange={(e) => setLatitude(e.target.value)}
+                  <label htmlFor="occ-latitude" style={labelStyle}>Latitude</label>
+                  <input type="text" id="occ-latitude" aria-label="Latitude" value={latitude} onChange={(e) => setLatitude(e.target.value)}
                     placeholder="Ex: -15.800000" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Longitude</label>
-                  <input type="text" value={longitude} onChange={(e) => setLongitude(e.target.value)}
+                  <label htmlFor="occ-longitude" style={labelStyle}>Longitude</label>
+                  <input type="text" id="occ-longitude" aria-label="Longitude" value={longitude} onChange={(e) => setLongitude(e.target.value)}
                     placeholder="Ex: -47.800000" style={inputStyle} />
                 </div>
               </div>
 
               {/* Mini-map */}
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8, fontSize: 12, color: "#64748b" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8, fontSize: 12, color: "var(--color-text-muted)" }}>
                 <span>📍</span> Selecionar no mapa
               </div>
               <div style={{ height: 200, borderRadius: 8, overflow: "hidden", border: "1px solid #1e3a5f", position: "relative" }}>
@@ -300,7 +301,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 />
                 <div style={{ position: "absolute", right: 8, top: 8, display: "flex", flexDirection: "column", gap: 3 }}>
                   {["+", "−"].map((s) => (
-                    <button key={s} style={{ width: 24, height: 24, background: "rgba(13,26,45,0.9)", border: "1px solid #1e3a5f", borderRadius: 4, color: "#64748b", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{s}</button>
+                    <button key={s} disabled title="Zoom ilustrativo; implementação prevista na Sprint 2" aria-label={s === "+" ? "Ampliar mapa (indisponível)" : "Reduzir mapa (indisponível)"} style={{ width: 24, height: 24, background: "rgba(13,26,45,0.9)", border: "1px solid #1e3a5f", borderRadius: 4, color: "var(--color-text-muted)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{s}</button>
                   ))}
                 </div>
               </div>
@@ -310,19 +311,20 @@ export default function NovaOcorrencia({ onBack }: Props) {
             <div style={cardStyle}>
               <div style={cardTitleStyle}>Descrição da ocorrência</div>
               <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Descrição detalhada{req}</label>
-                <textarea value={descricao} onChange={(e) => { setDescricao(e.target.value); setErrors((p) => ({ ...p, descricao: "" })); }}
+                <label htmlFor="occ-descricao" style={labelStyle}>Descrição detalhada{req}</label>
+                <textarea id="occ-descricao" aria-label="Descrição detalhada" value={descricao} onChange={(e) => { setDescricao(e.target.value); setErrors((p) => ({ ...p, descricao: "" })); }}
                   placeholder="Descreva os detalhes da ocorrência..." rows={4}
                   style={{ ...inputStyle, resize: "vertical", minHeight: 90, ...errBorder(errors, "descricao") }} />
                 {errors.descricao && <span style={errMsgStyle}>{errors.descricao}</span>}
               </div>
 
               <div>
-                <label style={labelStyle}>Anexos</label>
+                <label htmlFor="occ-anexos" style={labelStyle}>Anexos</label>
                 <div
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+                  role="button" tabIndex={0} aria-label="Selecionar anexos demonstrativos" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current?.click(); } }}
                   onClick={() => fileRef.current?.click()}
                   style={{
                     border: `1.5px dashed ${dragOver ? "#2563eb" : "#1e3a5f"}`,
@@ -331,11 +333,11 @@ export default function NovaOcorrencia({ onBack }: Props) {
                     cursor: "pointer", background: dragOver ? "rgba(37,99,235,0.06)" : "transparent", transition: "all .15s",
                   }}
                 >
-                  <span style={{ fontSize: 22, color: "#334155" }}>☁</span>
+                  <span style={{ fontSize: 22, color: "var(--color-text-muted)" }}>☁</span>
                   <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "center" }}>
                     Arraste arquivos aqui ou <span style={{ color: "#2563eb", textDecoration: "underline" }}>clique para selecionar</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "#475569" }}>Imagens, documentos, áudios ou vídeos (máx. 10MB cada)</div>
+                  <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Imagens, documentos, áudios ou vídeos (máx. 10MB cada)</div>
                   {files.length > 0 && (
                     <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
                       {files.map((f, i) => (
@@ -344,7 +346,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                     </div>
                   )}
                 </div>
-                <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
+                <input id="occ-anexos" aria-label="Anexos demonstrativos" ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
               </div>
             </div>
           </div>
@@ -369,7 +371,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 />
                 <div style={{
                   position: "absolute", bottom: 8, right: 10,
-                  fontSize: 10, color: "#475569", fontStyle: "italic",
+                  fontSize: 10, color: "var(--color-text-muted)", fontStyle: "italic",
                   background: "rgba(7,17,31,0.75)", padding: "3px 8px", borderRadius: 4,
                 }}>
                   Clique no mapa para definir a localização
@@ -389,7 +391,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 ["Anexos", `${files.length} arquivo(s)`],
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: "1px solid rgba(30,58,95,0.45)" }}>
-                  <span style={{ fontSize: 12, color: "#64748b", flexShrink: 0 }}>{k}</span>
+                  <span style={{ fontSize: 12, color: "var(--color-text-muted)", flexShrink: 0 }}>{k}</span>
                   <span style={{ fontSize: 12, color: "#94a3b8", textAlign: "right", wordBreak: "break-word", maxWidth: "65%" }}>{v}</span>
                 </div>
               ))}
@@ -400,8 +402,8 @@ export default function NovaOcorrencia({ onBack }: Props) {
               <div style={cardTitleStyle}>Informações adicionais</div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={labelStyle}>Responsável pelo registro{req}</label>
-                <select value={responsavel} onChange={(e) => { setResponsavel(e.target.value); setErrors((p) => ({ ...p, responsavel: "" })); }}
+                <label htmlFor="occ-responsavel" style={labelStyle}>Responsável pelo registro{req}</label>
+                <select id="occ-responsavel" aria-label="Responsável" value={responsavel} onChange={(e) => { setResponsavel(e.target.value); setErrors((p) => ({ ...p, responsavel: "" })); }}
                   style={{ ...inputStyle, ...errBorder(errors, "responsavel") }}>
                   <option value="">Selecione o responsável</option>
                   {RESPONSAVEIS.map((r) => <option key={r} value={r} style={{ background: "#0a1525" }}>{r}</option>)}
@@ -410,23 +412,23 @@ export default function NovaOcorrencia({ onBack }: Props) {
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Unidade/Órgão</label>
-                <select value={unidade} onChange={(e) => setUnidade(e.target.value)} style={inputStyle}>
+                <label htmlFor="occ-unidade" style={labelStyle}>Unidade/Órgão</label>
+                <select id="occ-unidade" aria-label="Unidade" value={unidade} onChange={(e) => setUnidade(e.target.value)} style={inputStyle}>
                   <option value="">Selecione a unidade/órgão</option>
                   {UNIDADES.map((u) => <option key={u} value={u} style={{ background: "#0a1525" }}>{u}</option>)}
                 </select>
               </div>
 
               <div>
-                <label style={{ ...labelStyle, marginBottom: 12 }}>Prioridade</label>
-                <div style={{ display: "flex", gap: 16 }}>
+                <div id="priority-label" style={{ ...labelStyle, marginBottom: 12 }}>Prioridade</div>
+                <div role="group" aria-labelledby="priority-label" style={{ display: "flex", gap: 16 }}>
                   {([
                     { key: "baixa", label: "Baixa", color: "#22c55e" },
                     { key: "media", label: "Média", color: "#facc15" },
                     { key: "alta",  label: "Alta",  color: "#ef4444" },
                   ] as const).map(({ key, label, color }) => (
-                    <label key={key} onClick={() => setPrioridade(key)}
-                      style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12, color: prioridade === key ? "#f1f5f9" : "#64748b", userSelect: "none" }}>
+                    <button type="button" aria-pressed={prioridade === key} key={key} onClick={() => setPrioridade(key)}
+                      style={{ background: "none", border: "none", padding: 0, display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12, color: prioridade === key ? "#f1f5f9" : "#94a3b8", userSelect: "none" }}>
                       <span style={{
                         width: 16, height: 16, borderRadius: "50%",
                         border: `2px solid ${prioridade === key ? color : "#334155"}`,
@@ -436,7 +438,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                       </span>
                       {label}
                       <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -454,27 +456,25 @@ export default function NovaOcorrencia({ onBack }: Props) {
           style={{ background: "transparent", border: "1px solid #1e3a5f", borderRadius: 7, color: "#94a3b8", fontSize: 13, padding: "9px 20px", cursor: "pointer" }}>
           Cancelar
         </button>
-        <button onClick={handleSave} disabled={saving}
+        <button onClick={handleSave} disabled={saving} aria-busy={saving}
           style={{ background: "#2563eb", border: "none", borderRadius: 7, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 24px", cursor: saving ? "wait" : "pointer", opacity: saving ? 0.7 : 1, transition: "opacity .15s" }}>
-          {saving ? "Salvando…" : "Salvar ocorrência"}
+          {saving ? "Simulando…" : "Simular cadastro"}
         </button>
         {Object.keys(errors).length > 0 && (
-          <span style={{ fontSize: 12, color: "#ef4444" }}>Preencha os campos obrigatórios antes de salvar.</span>
+          <span role="alert" style={{ fontSize: 12, color: "#ef4444" }}>Preencha os campos obrigatórios antes de salvar.</span>
         )}
       </div>
 
       {/* Discard dialog */}
       {showCancel && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div style={{ background: "#0d1a2d", border: "1px solid #1e3a5f", borderRadius: 12, padding: "28px 32px", maxWidth: 380, width: "90%" }}>
+        <Dialog title="Descartar alterações?" onClose={() => setShowCancel(false)} style={{ maxWidth: 380 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>Descartar alterações?</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 22 }}>Os dados preenchidos nesta ocorrência serão perdidos.</div>
+            <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 22 }}>Os dados preenchidos nesta ocorrência serão perdidos.</div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowCancel(false)} style={{ background: "transparent", border: "1px solid #1e3a5f", borderRadius: 7, color: "#94a3b8", fontSize: 13, padding: "8px 18px", cursor: "pointer" }}>Continuar editando</button>
               <button onClick={() => { setShowCancel(false); onBack?.(); }} style={{ background: "#ef4444", border: "none", borderRadius: 7, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 18px", cursor: "pointer" }}>Descartar</button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

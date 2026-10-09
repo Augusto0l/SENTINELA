@@ -36,9 +36,9 @@ export default function Breadcrumb({ selectedRA, onBack }: BreadcrumbProps) {
         ← Voltar para visão do DF
       </button>
 
-      <div style={{ fontSize: 13, color: "#64748b" }}>
-        <span style={{ color: "#475569" }}>Distrito Federal</span>
-        <span style={{ margin: "0 6px", color: "#334155" }}>›</span>
+      <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+        <span style={{ color: "var(--color-text-muted)" }}>Distrito Federal</span>
+        <span style={{ margin: "0 6px", color: "var(--color-text-muted)" }}>›</span>
         <span style={{ color: "#93c5fd", fontWeight: 600 }}>{selectedRA}</span>
       </div>
 
@@ -46,7 +46,7 @@ export default function Breadcrumb({ selectedRA, onBack }: BreadcrumbProps) {
         style={{
           marginLeft: "auto",
           fontSize: 10,
-          color: "#334155",
+          color: "var(--color-text-muted)",
           fontStyle: "italic",
         }}
       >
