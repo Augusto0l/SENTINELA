@@ -36,7 +36,7 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {icon && <span style={{ fontSize: 14, opacity: 0.6 }}>{icon}</span>}
-        <span style={{ fontSize: 10, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
           {label}
         </span>
       </div>
@@ -44,7 +44,7 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: 12, color: "#64748b" }}>{sub}</div>
+        <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{sub}</div>
       )}
       {variation !== undefined && (
         <div
@@ -61,7 +61,7 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
           {isPositive && <span>▲</span>}
           {isNegative && <span>▼</span>}
           <span>{variation > 0 ? "+" : ""}{variation.toFixed(1)}%</span>
-          <span style={{ fontWeight: 400, color: "#475569" }}>vs período anterior</span>
+          <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>vs período anterior</span>
         </div>
       )}
     </div>

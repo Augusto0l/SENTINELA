@@ -1,0 +1,395 @@
+{
+  "versao": "0.1.0",
+  "data_revisao": "2026-10-09",
+  "status": "proposta_para_homologacao",
+  "escopo": "Catálogo interno do protótipo SENTINELA; não é classificação oficial.",
+  "fontes": [
+    {
+      "arquivo": "src/data/mockData.ts",
+      "uso": "IDs e nomes existentes no protótipo"
+    },
+    {
+      "arquivo": "public/data/ras-df.geojson",
+      "uso": "referência cartográfica local; origem, data e correspondência precisam de homologação"
+    }
+  ],
+  "pendencias": [
+    "Confirmar origem, versão e abrangência da cartografia com fonte institucional.",
+    "Homologar cada RA e seu identificador oficial; RA-S/Ponte Alta é uma área demonstrativa e não deve ser publicada como RA oficial sem confirmação.",
+    "Homologar nomenclatura e granularidade das naturezas com fonte institucional; não são códigos penais nem classificação policial oficial.",
+    "Definir aliases autorizados, vigência e correspondência com fontes importadas."
+  ],
+  "regioes": [
+    {
+      "id": "RA-I",
+      "nome": "Plano Piloto",
+      "nome_fonte_projeto": "PLANO PILOTO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-II",
+      "nome": "Gama",
+      "nome_fonte_projeto": "GAMA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-III",
+      "nome": "Taguatinga",
+      "nome_fonte_projeto": "TAGUATINGA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-IV",
+      "nome": "Brazlândia",
+      "nome_fonte_projeto": "BRAZLÂNDIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-V",
+      "nome": "Sobradinho",
+      "nome_fonte_projeto": "SOBRADINHO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-VI",
+      "nome": "Planaltina",
+      "nome_fonte_projeto": "PLANALTINA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-VII",
+      "nome": "Paranoá",
+      "nome_fonte_projeto": "PARANOÁ",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-VIII",
+      "nome": "Núcleo Bandeirante",
+      "nome_fonte_projeto": "NÚCLEO BANDEIRANTE",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-IX",
+      "nome": "Ceilândia",
+      "nome_fonte_projeto": "CEILÂNDIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-X",
+      "nome": "Guará",
+      "nome_fonte_projeto": "GUARÁ",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XI",
+      "nome": "Cruzeiro",
+      "nome_fonte_projeto": "CRUZEIRO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XII",
+      "nome": "Samambaia",
+      "nome_fonte_projeto": "SAMAMBAIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XIII",
+      "nome": "Santa Maria",
+      "nome_fonte_projeto": "SANTA MARIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XIV",
+      "nome": "São Sebastião",
+      "nome_fonte_projeto": "SÃO SEBASTIÃO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XV",
+      "nome": "Recanto das Emas",
+      "nome_fonte_projeto": "RECANTO DAS EMAS",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XVI",
+      "nome": "Lago Sul",
+      "nome_fonte_projeto": "LAGO SUL",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XVII",
+      "nome": "Riacho Fundo",
+      "nome_fonte_projeto": "RIACHO FUNDO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XVIII",
+      "nome": "Lago Norte",
+      "nome_fonte_projeto": "LAGO NORTE",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XIX",
+      "nome": "Candangolândia",
+      "nome_fonte_projeto": "CANDANGOLÂNDIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XX",
+      "nome": "Águas Claras",
+      "nome_fonte_projeto": "ÁGUAS CLARAS",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXI",
+      "nome": "Riacho Fundo II",
+      "nome_fonte_projeto": "RIACHO FUNDO II",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXII",
+      "nome": "Sudoeste/Octogonal",
+      "nome_fonte_projeto": "SUDOESTE/OCTOGONAL",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXIII",
+      "nome": "Varjão",
+      "nome_fonte_projeto": "VARJÃO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXIV",
+      "nome": "Park Way",
+      "nome_fonte_projeto": "PARK WAY",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXV",
+      "nome": "SCIA/Estrutural",
+      "nome_fonte_projeto": "SCIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXVI",
+      "nome": "Sobradinho II",
+      "nome_fonte_projeto": "SOBRADINHO II",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXVII",
+      "nome": "Jardim Botânico",
+      "nome_fonte_projeto": "JARDIM BOTÂNICO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXVIII",
+      "nome": "Itapoã",
+      "nome_fonte_projeto": "ITAPOÃ",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXIX",
+      "nome": "SIA",
+      "nome_fonte_projeto": "SIA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXX",
+      "nome": "Vicente Pires",
+      "nome_fonte_projeto": "VICENTE PIRES",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXXI",
+      "nome": "Fercal",
+      "nome_fonte_projeto": "FERCAL",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXXII",
+      "nome": "Sol Nascente e Pôr do Sol",
+      "nome_fonte_projeto": "SOL NASCENTE E POR DO SOL",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXXIII",
+      "nome": "Arniqueira",
+      "nome_fonte_projeto": "ARNIQUEIRA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXXIV",
+      "nome": "Arapoanga",
+      "nome_fonte_projeto": "ARAPOANGA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXXV",
+      "nome": "Água Quente",
+      "nome_fonte_projeto": "AGUA QUENTE",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-XXXVI",
+      "nome": "26 de Setembro",
+      "nome_fonte_projeto": "26 DE SETEMBRO",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "regiao_administrativa_a_confirmar"
+    },
+    {
+      "id": "RA-S",
+      "nome": "Ponte Alta",
+      "nome_fonte_projeto": "PONTE ALTA",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "tipo": "area_demonstrativa"
+    }
+  ],
+  "naturezas": [
+    {
+      "id": "NAT-001",
+      "nome": "Furto",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-002",
+      "nome": "Roubo",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-003",
+      "nome": "Lesão Corporal",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-004",
+      "nome": "Ameaça",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-005",
+      "nome": "Homicídio",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-006",
+      "nome": "Tráfico",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-007",
+      "nome": "Estelionato",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    },
+    {
+      "id": "NAT-008",
+      "nome": "Vandalismo",
+      "codigo_oficial": null,
+      "status_validacao": "pendente",
+      "uso": "categoria interna demonstrativa"
+    }
+  ],
+  "supabase_proposto": {
+    "tabelas": [
+      "regioes_administrativas",
+      "naturezas_crime"
+    ],
+    "chave": "id interno estável; não reutilizar nem alterar após referências persistentes",
+    "campos": [
+      "id",
+      "nome",
+      "codigo_oficial",
+      "status_validacao",
+      "versao_catalogo",
+      "vigente_desde",
+      "vigente_ate"
+    ],
+    "migracao": "Homologar catálogo antes de carga real; versionar alterações e preservar IDs históricos."
+  }
+}

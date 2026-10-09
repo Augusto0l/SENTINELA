@@ -42,7 +42,7 @@ export default function FilterBar({ filters, onChange, showWeekday }: FilterBarP
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: 11, color: "#475569", fontWeight: 600, letterSpacing: "0.06em", marginRight: 4 }}>FILTROS</span>
+      <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, letterSpacing: "0.06em", marginRight: 4 }}>FILTROS</span>
 
       <select style={selectStyle} value={filters.period} onChange={(e) => set("period", e.target.value)}>
         {PERIODS.map((p) => (
@@ -98,7 +98,7 @@ export default function FilterBar({ filters, onChange, showWeekday }: FilterBarP
           background: "transparent",
           border: "1px solid #1e3a5f",
           borderRadius: 6,
-          color: "#64748b",
+          color: "var(--color-text-muted)",
           fontSize: 12,
           padding: "6px 12px",
           cursor: "pointer",

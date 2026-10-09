@@ -118,9 +118,9 @@ export function SentinelaIcon({ size = 40 }: { size?: number }) {
 // Layout: [icon] [SENTINELA / Análise e Monitoramento]
 export function SentinelaBrand({ iconSize = 36 }: { iconSize?: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+    <div className="brand-lockup" style={{ display: "flex", alignItems: "center", gap: 11 }}>
       <SentinelaIcon size={iconSize} />
-      <div>
+      <div className="brand-text">
         <div
           style={{
             fontSize: 15,
@@ -137,7 +137,7 @@ export function SentinelaBrand({ iconSize = 36 }: { iconSize?: number }) {
           style={{
             fontSize: 9,
             fontWeight: 500,
-            color: "#475569",
+            color: "var(--color-text-muted)",
             letterSpacing: "0.07em",
             marginTop: 4,
             textTransform: "uppercase",

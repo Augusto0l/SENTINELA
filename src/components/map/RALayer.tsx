@@ -109,7 +109,7 @@ export default function RALayer({ geoJSON, raStats, selectedRA, onSelectRA }: RA
     return () => {
       layer.remove();
     };
-  }, [geoJSON, raStats, selectedRA, map, minCount, maxCount]);
+  }, [geoJSON, raStats, selectedRA, map, minCount, maxCount, onSelectRA]);
 
   // Fly to selected RA bounds
   useEffect(() => {

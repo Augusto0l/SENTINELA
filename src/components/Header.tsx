@@ -1,11 +1,18 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useDemoToast } from "./DemoProvider";
+
 interface HeaderProps {
   title: string;
   subtitle?: string;
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
+  const router = useRouter();
+  const notify = useDemoToast();
   return (
-    <header
+    <header className="system-topbar"
       style={{
         height: 56,
         background: "#0d1626",
@@ -20,18 +27,18 @@ export default function Header({ title, subtitle }: HeaderProps) {
       {/* Page title on left for context */}
       <div style={{ flex: "0 0 auto", marginRight: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8" }}>{title}</span>
-        {subtitle && <span style={{ fontSize: 12, color: "#334155", marginLeft: 8 }}>{subtitle}</span>}
+        {subtitle && <span className="topbar-subtitle" style={{ fontSize: 12, color: "#94a3b8", marginLeft: 8 }}>{subtitle}</span>}
       </div>
 
       {/* Search */}
-      <div style={{ flex: 1, maxWidth: 480, position: "relative" }}>
+      <div className="topbar-search" style={{ flex: 1, maxWidth: 480, position: "relative" }}>
         <span
           style={{
             position: "absolute",
             left: 12,
             top: "50%",
             transform: "translateY(-50%)",
-            color: "#334155",
+            color: "var(--color-text-muted)",
             fontSize: 13,
             pointerEvents: "none",
           }}
@@ -40,7 +47,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
         </span>
         <input
           type="text"
-          placeholder="Buscar ocorrência, região, natureza..."
+          readOnly
+          aria-label="Busca global ilustrativa, disponível em etapa posterior"
+          onClick={() => notify("Busca global prevista em etapa posterior. Use os filtros da tela de Ocorrências.")}
+          placeholder="Busca global (ilustrativa)"
           style={{
             width: "100%",
             background: "#080f1a",
@@ -59,11 +69,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
       {/* Notifications */}
       <button
         title="Notificações"
+        aria-label="Notificações demonstrativas"
+        onClick={() => notify("Notificações ilustrativas. Não há alertas de ocorrências reais.")}
         style={{
           position: "relative",
           background: "transparent",
           border: "none",
-          color: "#64748b",
+          color: "var(--color-text-muted)",
           cursor: "pointer",
           fontSize: 18,
           padding: "4px 8px",
@@ -88,10 +100,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
       {/* Theme toggle */}
       <button
         title="Alternar tema"
+        aria-label="Prévia de aparência"
+        onClick={() => router.push("/configuracoes")}
         style={{
           background: "transparent",
           border: "none",
-          color: "#64748b",
+          color: "var(--color-text-muted)",
           cursor: "pointer",
           fontSize: 16,
           padding: "4px 8px",
@@ -101,7 +115,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
       </button>
 
       {/* User */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+      <button className="topbar-user" aria-label="Abrir configurações do usuário demonstrativo" onClick={() => router.push("/configuracoes")} style={{ background: "none", border: "none", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
         <div
           style={{
             width: 30,
@@ -119,8 +133,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
           PA
         </div>
         <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>Pedro Augusto</span>
-        <span style={{ fontSize: 10, color: "#334155" }}>▾</span>
-      </div>
+        <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>▾</span>
+      </button>
     </header>
   );
 }

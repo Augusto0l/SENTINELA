@@ -1,0 +1,4 @@
+# Explicitly skip this optional install hook; ESLint uses the installed platform package.
+# Supported by the pnpm 10.34.3 toolchain and pnpm 12 used in this Windows session.
+allowBuilds:
+  unrs-resolver: false

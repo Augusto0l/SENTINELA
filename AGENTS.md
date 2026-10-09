@@ -1,41 +1,31 @@
-# figma-make-app
+# SENTINELA — instruções de desenvolvimento
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+Protótipo acadêmico em Next.js 16 (App Router), React 19, TypeScript e Tailwind CSS 4. Os dados são fictícios; não há autenticação ou persistência real. Preserve a identificação de demonstração e não apresente sucesso de gravação inexistente.
 
-## Development Server
+## Estrutura atual
 
-A Vite development server is **already running** on `$PORT` (default 8443). You don't need to start it manually.
+- `src/app/layout.tsx`: documento HTML, CSS global e provedor de feedback.
+- `src/app/page.tsx`: redireciona para o login demonstrativo.
+- `src/app/login/page.tsx`: login ilustrativo; não verifica credenciais.
+- `src/app/(sistema)/layout.tsx`: Sidebar e identificação da demonstração.
+- `src/app/(sistema)/**/page.tsx`: rotas das telas.
+- `src/features`: telas e wrappers de cliente. Mocks Canvas/Path2D devem permanecer sem SSR.
+- `src/components`: componentes compartilhados; `ui` contém componentes no padrão shadcn/ui.
+- `src/index.css`: imports primeiro, tokens Tailwind v4, identidade visual e breakpoints.
+- `src/data`: mocks e regras puras de análise demonstrativa.
+- `docs/contratos`: catálogos internos e proposta de deduplicação/permissões/RLS.
+- `sprints/sprint-01.md`: planejamento original e evidências da revisão.
 
-- Preview URL: The user can access the running app through the preview panel
-- Hot reload: Changes to source files are reflected immediately
+## Ferramentas
 
-## Project Structure
+Use as versões de `.mise.toml` e o `pnpm-lock.yaml`. Comandos: `pnpm install --frozen-lockfile`, `pnpm dev`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm validate:contracts`, `pnpm check:routes`, `pnpm build`. O script de testes usa o runner do Node 22. Não inicie outro servidor se já houver um disponível; confirme o ambiente antes de iniciar.
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+O build é Next.js e usa `.next`; não há Vite, `src/App.tsx`, `src/main.tsx` ou `dist` como saída de publicação. Vercel usa integração Next.js nativa. Publicação é uma ação separada, autorizada pelo usuário, e não faz parte das verificações locais.
 
-- `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
-- `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/index.css` - Global CSS entrypoint and Tailwind CSS v4 import
-- `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
-- `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
-- `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
+## Qualidade e preservação
 
-## Dependencies
+Use TypeScript estrito, imports pelo alias `@/` e componentes compartilhados. Componentes de entrada usam export default; utilitários e primitivas podem usar exports nomeados. Preserve a identidade do SENTINELA e a navegação por teclado. Use strings válidas, JSX fechado, labels associados e foco visível.
 
-- Runtime: React 19 and React DOM 19
-- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin
-- Build tooling: Vite 8, TypeScript 5.7, and `@vitejs/plugin-react`
-- Formatting: oxfmt
+Não remova implementações legadas sem verificar dependências. Não sobrescreva alterações do usuário, faça commits, push ou publique automaticamente. Documente limitações reais dos testes: TypeScript aprovado não significa build ou homologação visual aprovados. Não desative políticas do Windows para carregar SWC.
 
-## Styling
-
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
-
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
-
-## Code quality
-
-- Use double quotes for strings containing apostrophes (`"We're here to help"`), or escape them in single-quoted strings. An unescaped apostrophe in a single-quoted string breaks the build.
-- Ensure JSX tags are closed and braces are balanced.
-- Export components as default exports.
+Os três perfis são Administrador, Operador e Analista. A interface de permissões é uma prévia; autorização no servidor e RLS serão implementados em outra etapa. IDs dos catálogos são internos e dependem de homologação; não invente códigos oficiais.

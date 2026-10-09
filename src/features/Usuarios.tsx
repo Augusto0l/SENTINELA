@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Header from "../components/Header";
+import Dialog from "../components/ui/dialog";
+import { useDemoToast } from "../components/DemoProvider";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type Perfil = "Administrador" | "Analista" | "Operador";
@@ -48,9 +51,6 @@ const PERMS_BY_PROFILE: Record<Perfil, string[]> = {
     "Visualizar Dashboard",
     "Visualizar Mapa Criminal",
     "Consultar ocorrências",
-    "Cadastrar ocorrência",
-    "Editar ocorrência",
-    "Importar dados",
     "Exportar dados",
   ],
   Operador: [
@@ -58,6 +58,9 @@ const PERMS_BY_PROFILE: Record<Perfil, string[]> = {
     "Visualizar Mapa Criminal",
     "Consultar ocorrências",
     "Cadastrar ocorrência",
+    "Editar ocorrência",
+    "Importar dados",
+    "Exportar dados",
   ],
 };
 
@@ -158,7 +161,7 @@ function StatusBadge({ s }: { s: Status }) {
 }
 
 const colH: React.CSSProperties = {
-  fontSize: 10, fontWeight: 700, color: "#475569",
+  fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)",
   letterSpacing: "0.07em", textTransform: "uppercase",
   padding: "10px 14px", textAlign: "left",
   borderBottom: "1px solid #1a3050", background: "#0a1525",
@@ -191,34 +194,39 @@ function KpiCard({ label, value, color }: { label: string; value: number; color?
       padding: "16px 20px",
     }}>
       <div style={{ fontSize: 26, fontWeight: 800, color: color ?? "#f1f5f9", lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>{label}</div>
+      <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 6 }}>{label}</div>
     </div>
   );
 }
 
 // ─── Inline field label ────────────────────────────────────────────────────────
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{children}</div>;
+  return <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{children}</div>;
 }
 
 // ─── Action menu ──────────────────────────────────────────────────────────────
 function ActionMenu({
-  user, onView, onNewProfile, onToggleStatus, onClose,
+  user, onView, onNewProfile, onToggleStatus, onClose, anchor, position,
 }: {
   user: User;
   onView: () => void;
   onNewProfile: () => void;
   onToggleStatus: () => void;
   onClose: () => void;
+  anchor: HTMLButtonElement;
+  position: { left: number; top: number };
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      if (ref.current && !ref.current.contains(e.target as Node) && !anchor.contains(e.target as Node)) onClose();
     }
+    ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const close = () => onClose();
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
+    window.addEventListener("resize", close);
+    return () => { document.removeEventListener("mousedown", handler); window.removeEventListener("resize", close); };
+  }, [onClose, anchor]);
 
   const items = [
     { label: "Visualizar usuário",         icon: "👁", action: onView },
@@ -232,9 +240,9 @@ function ActionMenu({
     },
   ];
 
-  return (
-    <div ref={ref} style={{
-      position: "absolute", right: 0, top: "100%", zIndex: 100,
+  return createPortal(
+    <div ref={ref} role="group" aria-label={`Ações de ${user.name}`} onKeyDown={(event) => { if (event.key === "Escape") { anchor.focus(); onClose(); } }} style={{
+      position: "fixed", left: position.left, top: position.top, zIndex: 55, maxHeight: "calc(100dvh - 24px)", overflowY: "auto",
       background: "#111d2e", border: "1px solid #1e3a5f",
       borderRadius: 9, padding: "6px 0", minWidth: 210,
       boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
@@ -242,7 +250,7 @@ function ActionMenu({
       {items.map((item) => (
         <button
           key={item.label}
-          onClick={() => { item.action(); onClose(); }}
+          onClick={() => { anchor.focus(); item.action(); onClose(); }}
           style={{
             display: "flex", alignItems: "center", gap: 10,
             width: "100%", background: "none", border: "none",
@@ -257,7 +265,7 @@ function ActionMenu({
           {item.label}
         </button>
       ))}
-    </div>
+    </div>, document.body
   );
 }
 
@@ -269,16 +277,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
   const activity = ACTIVITY[user.id] ?? [];
 
   return (
-    <>
-      <div
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 40 }}
-        onClick={onClose}
-      />
-      <div style={{
-        position: "fixed", top: 0, right: 0, bottom: 0, width: 440,
-        background: "#111d2e", borderLeft: "1px solid #1e3a5f",
-        zIndex: 50, overflowY: "auto", display: "flex", flexDirection: "column",
-      }}>
+    <Dialog title="Detalhes do usuário" onClose={onClose} drawer>
         {/* Drawer header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -286,8 +285,8 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
           borderBottom: "1px solid #1a3050", flexShrink: 0,
         }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9" }}>Detalhes do usuário</div>
-          <button onClick={onClose} style={{
-            background: "none", border: "none", color: "#64748b",
+          <button aria-label="Fechar diálogo" onClick={onClose} style={{
+            background: "none", border: "none", color: "var(--color-text-muted)",
             cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 4,
           }}>×</button>
         </div>
@@ -298,7 +297,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
             <Avatar name={user.name} size={52} />
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>{user.name}</div>
-              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{user.email}</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>{user.email}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                 <PerfilBadge p={user.perfil} />
                 <StatusBadge s={user.status} />
@@ -318,7 +317,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
                 padding: "10px 14px",
                 borderBottom: i < arr.length - 1 ? "1px solid #1a3050" : "none",
               }}>
-                <span style={{ fontSize: 12, color: "#475569" }}>{row.label}</span>
+                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{row.label}</span>
                 <span style={{ fontSize: 12, color: "#94a3b8" }}>{row.value}</span>
               </div>
             ))}
@@ -388,19 +387,18 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
                     )}
                   </div>
                   <div style={{ paddingBottom: 16 }}>
-                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 2 }}>{a.time}</div>
+                    <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>{a.time}</div>
                     <div style={{ fontSize: 12, color: "#94a3b8" }}>{a.desc}</div>
                   </div>
                 </div>
               ))}
               {activity.length === 0 && (
-                <div style={{ fontSize: 12, color: "#334155" }}>Nenhuma atividade registrada.</div>
+                <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Nenhuma atividade registrada.</div>
               )}
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </Dialog>
   );
 }
 
@@ -414,52 +412,47 @@ function NewUserModal({ onClose, onSave }: {
   const [orgao, setOrgao]   = useState("");
   const [perfil, setPerfil] = useState<Perfil>("Analista");
 
+  const [error, setError] = useState("");
+
   function handleSave() {
-    if (!nome.trim() || !email.trim()) return;
+    if (!nome.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Informe nome e e-mail demonstrativos válidos."); return; }
     onSave({ name: nome, email, orgao, perfil, status: "Ativo" });
     onClose();
   }
 
   return (
-    <>
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40 }} onClick={onClose} />
-      <div style={{
-        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-        width: 460, background: "#111d2e", border: "1px solid #1e3a5f",
-        borderRadius: 12, zIndex: 50, padding: "26px 28px",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-      }}>
+    <Dialog title="Novo usuário demonstrativo" onClose={onClose}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>Novo usuário</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 18 }}>×</button>
+          <button aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
-        <p style={{ fontSize: 12, color: "#475569", margin: "0 0 20px" }}>
-          O usuário receberá acesso ao SENTINELA de acordo com o perfil selecionado.
+        <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 20px" }}>
+          O usuário fictício aparecerá nesta tela até sair. Nenhum acesso real será concedido.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <FieldLabel>Nome completo</FieldLabel>
-            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
+            <input aria-label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")} />
           </div>
           <div>
             <FieldLabel>E-mail</FieldLabel>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@sentinela.gov.br" style={inputStyle}
+            <input type="email" aria-label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@sentinela.gov.br" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")} />
           </div>
           <div>
             <FieldLabel>Órgão / Unidade</FieldLabel>
-            <input value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
+            <input aria-label="Órgão ou unidade" value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")} />
           </div>
           <div>
             <FieldLabel>Perfil</FieldLabel>
-            <select value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}
+            <select aria-label="Perfil" value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}
               style={{ ...selectStyle, width: "100%" }}>
               <option style={{ background: "#0d1728" }}>Administrador</option>
               <option style={{ background: "#0d1728" }}>Analista</option>
@@ -468,10 +461,11 @@ function NewUserModal({ onClose, onSave }: {
           </div>
         </div>
 
+        {error && <p role="alert" style={{ color: "#fca5a5", marginTop: 12 }}>{error}</p>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
-          <button onClick={onClose} style={{
+          <button aria-label="Fechar diálogo" onClick={onClose} style={{
             background: "none", border: "1px solid #1e3a5f", borderRadius: 7,
-            color: "#64748b", fontSize: 13, padding: "9px 20px", cursor: "pointer",
+            color: "var(--color-text-muted)", fontSize: 13, padding: "9px 20px", cursor: "pointer",
           }}>Cancelar</button>
           <button onClick={handleSave} style={{
             background: "#2563eb", border: "none", borderRadius: 7,
@@ -480,8 +474,7 @@ function NewUserModal({ onClose, onSave }: {
             boxShadow: "0 2px 10px rgba(37,99,235,0.35)",
           }}>Criar usuário</button>
         </div>
-      </div>
-    </>
+    </Dialog>
   );
 }
 
@@ -493,24 +486,17 @@ function ChangeProfileModal({ user, onClose, onSave }: {
   const perms = PERMS_BY_PROFILE[selected];
 
   return (
-    <>
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 60 }} onClick={onClose} />
-      <div style={{
-        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-        width: 500, background: "#111d2e", border: "1px solid #1e3a5f",
-        borderRadius: 12, zIndex: 70, padding: "26px 28px",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-      }}>
+    <Dialog title="Alterar perfil demonstrativo" onClose={onClose}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>Alterar perfil e permissões</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 18 }}>×</button>
+          <button aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
           <Avatar name={user.name} size={36} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>{user.name}</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Perfil atual: {user.perfil}</div>
+            <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Perfil atual: {user.perfil}</div>
           </div>
         </div>
 
@@ -520,7 +506,7 @@ function ChangeProfileModal({ user, onClose, onSave }: {
             const c = perfilColors[p];
             const sel = selected === p;
             return (
-              <button key={p} onClick={() => setSelected(p)} style={{
+              <button key={p} aria-pressed={selected === p} onClick={() => setSelected(p)} style={{
                 flex: 1, padding: "10px 8px", borderRadius: 8, cursor: "pointer",
                 border: `2px solid ${sel ? c.text : "#1e3a5f"}`,
                 background: sel ? c.bg : "#0d1728",
@@ -533,7 +519,7 @@ function ChangeProfileModal({ user, onClose, onSave }: {
         </div>
 
         {/* Preview permissions */}
-        <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           Permissões do perfil selecionado
         </div>
         <div style={{
@@ -569,14 +555,14 @@ function ChangeProfileModal({ user, onClose, onSave }: {
             <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
           <span style={{ fontSize: 11, color: "#92400e" }}>
-            As alterações de perfil afetam imediatamente as permissões de acesso do usuário.
+            As alterações afetam apenas a prévia demonstrativa. Não existe controle de acesso real nesta sprint.
           </span>
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{
+          <button aria-label="Fechar diálogo" onClick={onClose} style={{
             background: "none", border: "1px solid #1e3a5f", borderRadius: 7,
-            color: "#64748b", fontSize: 13, padding: "9px 20px", cursor: "pointer",
+            color: "var(--color-text-muted)", fontSize: 13, padding: "9px 20px", cursor: "pointer",
           }}>Cancelar</button>
           <button onClick={() => { onSave(selected); onClose(); }} style={{
             background: "#2563eb", border: "none", borderRadius: 7,
@@ -585,18 +571,20 @@ function ChangeProfileModal({ user, onClose, onSave }: {
             boxShadow: "0 2px 10px rgba(37,99,235,0.35)",
           }}>Salvar alterações</button>
         </div>
-      </div>
-    </>
+    </Dialog>
   );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function Usuarios() {
+  const notify = useDemoToast();
   const [users, setUsers]             = useState<User[]>(INITIAL_USERS);
   const [search, setSearch]           = useState("");
   const [filterPerfil, setFilterPerfil] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [openMenu, setOpenMenu]       = useState<number | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
   const [detailUser, setDetailUser]   = useState<User | null>(null);
   const [showNewUser, setShowNewUser] = useState(false);
   const [changeProfileFor, setChangeProfileFor] = useState<User | null>(null);
@@ -617,6 +605,7 @@ export default function Usuarios() {
   const inativos = users.filter((u) => u.status === "Inativo").length;
 
   function handleToggleStatus(id: number) {
+    notify("Status alterado somente nesta demonstração; nenhuma conta real foi modificada.");
     setUsers((prev) => prev.map((u) =>
       u.id === id ? { ...u, status: u.status === "Ativo" ? "Inativo" : "Ativo" } : u
     ));
@@ -626,6 +615,7 @@ export default function Usuarios() {
   }
 
   function handleNewUser(data: Omit<User, "id" | "ultimoAcesso" | "cadastro">) {
+    notify("Usuário fictício adicionado nesta tela; nenhuma conta foi criada.");
     const now = new Date();
     const dd = String(now.getDate()).padStart(2, "0");
     const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -637,6 +627,7 @@ export default function Usuarios() {
   }
 
   function handleChangeProfile(userId: number, newPerfil: Perfil) {
+    notify("Perfil alterado em memória; permissões reais não foram modificadas.");
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, perfil: newPerfil } : u));
     if (detailUser?.id === userId) setDetailUser((d) => d ? { ...d, perfil: newPerfil } : d);
   }
@@ -647,12 +638,12 @@ export default function Usuarios() {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 32px" }}>
         {/* ── Page heading ─────────────────────────────────────────────── */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+        <div className="page-heading" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: 0, letterSpacing: "-0.025em" }}>
               Usuários
             </h1>
-            <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
+            <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
               Gerencie usuários, perfis de acesso e permissões do sistema.
             </p>
           </div>
@@ -671,7 +662,7 @@ export default function Usuarios() {
         </div>
 
         {/* ── KPI cards ─────────────────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <div className="kpi-grid users-kpis" style={{ display: "grid", gap: 12, marginBottom: 20 }}>
           <KpiCard label="Total de usuários"  value={total} />
           <KpiCard label="Usuários ativos"    value={ativos}  color="#22c55e" />
           <KpiCard label="Administradores"    value={admins}  color="#60a5fa" />
@@ -681,21 +672,21 @@ export default function Usuarios() {
         {/* ── Filters ───────────────────────────────────────────────────── */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#334155", fontSize: 14, pointerEvents: "none" }}>⌕</span>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)", fontSize: 14, pointerEvents: "none" }}>⌕</span>
             <input
-              value={search}
+              aria-label="Buscar usuário" value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou e-mail"
               style={{ ...inputStyle, paddingLeft: 30 }}
             />
           </div>
-          <select value={filterPerfil} onChange={(e) => setFilterPerfil(e.target.value)} style={selectStyle}>
+          <select aria-label="Filtrar perfil" value={filterPerfil} onChange={(e) => setFilterPerfil(e.target.value)} style={selectStyle}>
             <option value="">Todos os perfis</option>
             <option style={{ background: "#0d1728" }}>Administrador</option>
             <option style={{ background: "#0d1728" }}>Analista</option>
             <option style={{ background: "#0d1728" }}>Operador</option>
           </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={selectStyle}>
+          <select aria-label="Filtrar status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={selectStyle}>
             <option value="">Todos os status</option>
             <option style={{ background: "#0d1728" }}>Ativo</option>
             <option style={{ background: "#0d1728" }}>Inativo</option>
@@ -703,7 +694,7 @@ export default function Usuarios() {
           {(search || filterPerfil || filterStatus) && (
             <button
               onClick={() => { setSearch(""); setFilterPerfil(""); setFilterStatus(""); }}
-              style={{ background: "none", border: "1px solid #1e3a5f", borderRadius: 7, color: "#64748b", fontSize: 12, padding: "7px 12px", cursor: "pointer" }}
+              style={{ background: "none", border: "1px solid #1e3a5f", borderRadius: 7, color: "var(--color-text-muted)", fontSize: 12, padding: "7px 12px", cursor: "pointer" }}
             >
               Limpar filtros
             </button>
@@ -733,31 +724,40 @@ export default function Usuarios() {
                         <Avatar name={u.name} size={34} />
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>{u.name}</div>
-                          <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{u.email}</div>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>{u.email}</div>
                         </div>
                       </div>
                     </td>
                     <td style={{ ...cell, color: "#94a3b8" }}>{u.orgao}</td>
                     <td style={cell}><PerfilBadge p={u.perfil} /></td>
                     <td style={cell}><StatusBadge s={u.status} /></td>
-                    <td style={{ ...cell, color: "#64748b", fontSize: 12 }}>{u.ultimoAcesso}</td>
+                    <td style={{ ...cell, color: "var(--color-text-muted)", fontSize: 12 }}>{u.ultimoAcesso}</td>
                     {/* Actions */}
                     <td style={{ ...cell, textAlign: "center", position: "relative" }}>
                       <div style={{ position: "relative", display: "inline-block" }}>
                         <button
-                          onClick={() => setOpenMenu(openMenu === u.id ? null : u.id)}
+                          aria-label={`Ações do usuário ${u.name}`}
+                          aria-expanded={openMenu === u.id}
+                          onClick={(event) => {
+                            const rect = event.currentTarget.getBoundingClientRect();
+                            setMenuAnchor(event.currentTarget);
+                            setMenuPosition({ left: Math.max(8, Math.min(rect.right - 210, window.innerWidth - 218)), top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 220)) });
+                            setOpenMenu(openMenu === u.id ? null : u.id);
+                          }}
                           style={{
                             background: "none", border: "1px solid #1e3a5f",
-                            borderRadius: 6, color: "#64748b", fontSize: 16,
+                            borderRadius: 6, color: "var(--color-text-muted)", fontSize: 16,
                             padding: "2px 10px", cursor: "pointer",
                             lineHeight: 1, letterSpacing: "0.1em",
                           }}
                         >
                           •••
                         </button>
-                        {openMenu === u.id && (
+                        {openMenu === u.id && menuAnchor && (
                           <ActionMenu
                             user={u}
+                            anchor={menuAnchor}
+                            position={menuPosition}
                             onView={() => setDetailUser(u)}
                             onNewProfile={() => setChangeProfileFor(u)}
                             onToggleStatus={() => handleToggleStatus(u.id)}
@@ -770,7 +770,7 @@ export default function Usuarios() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ ...cell, textAlign: "center", padding: 40, color: "#334155" }}>
+                    <td colSpan={6} style={{ ...cell, textAlign: "center", padding: 40, color: "var(--color-text-muted)" }}>
                       Nenhum usuário encontrado com os filtros aplicados.
                     </td>
                   </tr>
@@ -782,7 +782,7 @@ export default function Usuarios() {
           {/* Table footer */}
           <div style={{
             padding: "10px 16px", borderTop: "1px solid #1a3050",
-            fontSize: 11, color: "#475569",
+            fontSize: 11, color: "var(--color-text-muted)",
           }}>
             {filtered.length} de {users.length} usuários
           </div>

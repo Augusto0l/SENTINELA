@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-pnpm run build
-figma make deploy --build-dir dist
+# Manual production publication on Vercel; the CLI builds the Next.js application.
+vercel --prod
