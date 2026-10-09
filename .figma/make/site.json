@@ -1,0 +1,10 @@
+{
+  "description": "Generates clear, concise prompts from user input to streamline content creation and enhance communication efficiency for professionals and creatives.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
