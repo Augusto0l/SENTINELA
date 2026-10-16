@@ -26,7 +26,7 @@ async function ready(route, heading) {
   const response = await page.goto(base + route, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ timeout: 30000 });
   assert.equal(response.status(), 200);
-  if (route !== "/login") await page.locator(".demo-banner").waitFor();
+  assert.equal(await page.locator(".demo-banner, .topbar-search").count(), 0);
   await page.waitForFunction(() => !document.querySelector('[aria-label="Carregando tela demonstrativa"]'));
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   return response.status();
@@ -177,8 +177,8 @@ try {
     const importToast = await page.locator(".demo-toast").innerText(); assert.match(importToast, /nenhum arquivo foi validado ou importado/);
     await ready("/configuracoes", "Configurações");
     await page.getByRole("button",{name:"Claro",exact:true}).click();
-    await page.getByText("Prévia demonstrativa; a seleção não altera o tema global.",{exact:true}).waitFor();
-    await shot("tema-demonstrativo");
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "claro");
+    await shot("tema-claro");
     assert.equal(await page.locator('input[type="password"]').evaluateAll((elements)=>elements.filter((element)=>element.value).length), 0);
     await page.getByRole("button", { name:"Simular alterações" }).click();
     await page.getByRole("button", { name:"Simular alterações" }).waitFor();

@@ -11,10 +11,10 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { name
   if (!active || !payload?.length) return null;
   const item = payload[0];
   return (
-    <div style={{ background: "#111d2e", border: "1px solid #1e3a5f", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#f1f5f9" }}>
+    <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "var(--theme-f1f5f9)" }}>
       <div style={{ fontWeight: 600 }}>{item.name}</div>
-      <div style={{ color: "#94a3b8" }}>{item.value.toLocaleString("pt-BR")} ocorrências</div>
-      <div style={{ color: "#94a3b8" }}>{(item.payload.percent * 100).toFixed(1)}%</div>
+      <div style={{ color: "var(--theme-94a3b8)" }}>{item.value.toLocaleString("pt-BR")} ocorrências</div>
+      <div style={{ color: "var(--theme-94a3b8)" }}>{(item.payload.percent * 100).toFixed(1)}%</div>
     </div>
   );
 };
@@ -49,10 +49,10 @@ export default function DonutChart({ data, title, size = 180 }: DonutChartProps)
         </PieChart>
         {/* Center text */}
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", pointerEvents: "none" }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1 }}>
             {total.toLocaleString("pt-BR")}
           </div>
-          <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2 }}>categorias exibidas</div>
+          <div style={{ fontSize: 9, color: "var(--theme-94a3b8)", marginTop: 2 }}>categorias exibidas</div>
         </div>
       </div>
       {/* Legend */}
@@ -60,7 +60,7 @@ export default function DonutChart({ data, title, size = 180 }: DonutChartProps)
         {data.map((item, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: DONUT_COLORS[i % DONUT_COLORS.length], flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: "#94a3b8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 11, color: "var(--theme-94a3b8)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {item.name}
             </span>
             <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontVariantNumeric: "tabular-nums" }}>

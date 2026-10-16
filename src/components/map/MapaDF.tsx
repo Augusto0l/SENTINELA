@@ -9,6 +9,8 @@ import {
   projectLonLat,
 } from "./raMapData";
 import type { MockOccurrence } from "../../data/mockOccurrences";
+import { createDensityField, HEAT_GRADIENT, projectHeatRecords } from "@/components/map/heatmapDensity";
+import { renderDensityHeatmap } from "@/components/map/heatmapCanvas";
 
 export type MapMode = "heat" | "points" | "clusters";
 
@@ -31,6 +33,7 @@ type Props = {
   showPoints?: boolean;
   mapMode?: MapMode;
   mockOccurrences?: MockOccurrence[];
+  heatReferenceOccurrences?: readonly MockOccurrence[];
 };
 
 function colorFor(value: number, min: number, max: number) {
@@ -70,60 +73,6 @@ function buildClusters(points: MockOccurrence[], cellSize: number) {
   }));
 }
 
-// Heatmap canvas renderer
-function renderHeatmap(
-  canvas: HTMLCanvasElement,
-  svgEl: SVGSVGElement | null,
-  points: MockOccurrence[],
-  viewBox: string
-) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx || !svgEl) return;
-
-  const [vx, vy, vw, vh] = viewBox.split(" ").map(Number);
-  const cw = canvas.width;
-  const ch = canvas.height;
-  const scaleX = cw / vw;
-  const scaleY = ch / vh;
-  const scale = Math.min(scaleX, scaleY);
-  const offX = (cw - vw * scale) / 2 - vx * scale;
-  const offY = (ch - vh * scale) / 2 - vy * scale;
-
-  ctx.clearRect(0, 0, cw, ch);
-
-  const r = Math.max(28, Math.min(72, scale * 52));
-
-  // First pass — wide cool-color bloom
-  for (const p of points) {
-    const cx = p.x * scale + offX;
-    const cy = p.y * scale + offY;
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.4);
-    g.addColorStop(0,   "rgba(250,204,21,0.08)");
-    g.addColorStop(0.5, "rgba(37,99,235,0.04)");
-    g.addColorStop(1,   "rgba(37,99,235,0)");
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.4, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-  }
-
-  // Second pass — hot core
-  for (const p of points) {
-    const cx = p.x * scale + offX;
-    const cy = p.y * scale + offY;
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0,    "rgba(239,68,68,0.52)");
-    grad.addColorStop(0.25, "rgba(249,115,22,0.32)");
-    grad.addColorStop(0.55, "rgba(250,204,21,0.16)");
-    grad.addColorStop(0.8,  "rgba(37,99,235,0.06)");
-    grad.addColorStop(1,    "rgba(37,99,235,0)");
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-  }
-}
-
 function svgToLatLon(svgX: number, svgY: number) {
   const lon = (svgX - GEO_BOUNDS.padding) / (GEO_BOUNDS.cosLat * GEO_BOUNDS.scale) + GEO_BOUNDS.minLon;
   const lat = GEO_BOUNDS.maxLat - (svgY - GEO_BOUNDS.padding) / GEO_BOUNDS.scale;
@@ -141,6 +90,7 @@ export default function MapaDF({
   showPoints = true,
   mapMode = "heat",
   mockOccurrences = [],
+  heatReferenceOccurrences = mockOccurrences,
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
@@ -152,6 +102,9 @@ export default function MapaDF({
   const selectedRA = selectedRaCode ? RA_BY_CODE[selectedRaCode] : undefined;
   const visibleRAs = selectedRA ? [selectedRA] : RAS;
   const viewBox = selectedRA ? selectedRA.viewBox : MAP_VIEWBOX;
+  // The location picker also uses this component; preserve its existing appearance.
+  const heatmapActive = mapMode === "heat" && !onClickPoint;
+  const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(" ").map(Number);
 
   const values = RAS.map((ra) => occurrencesByRa[ra.code] ?? 0);
   const minValue = Math.min(...values);
@@ -162,6 +115,24 @@ export default function MapaDF({
     return mockOccurrences.filter((o) => o.raCode === selectedRaCode);
   }, [mockOccurrences, selectedRaCode]);
 
+  const heatDomain = useMemo(() => {
+    if (!heatmapActive || typeof document === "undefined") return null;
+    const context = document.createElement("canvas").getContext("2d");
+    if (!context) return null;
+    const boundary = new Path2D();
+    for (const ra of RAS) boundary.addPath(new Path2D(ra.path));
+    return { contains: (x: number, y: number) => context.isPointInPath(boundary, x, y, "evenodd") };
+  }, [heatmapActive]);
+
+  const referenceField = useMemo(() => {
+    if (!heatDomain) return null;
+    const points = projectHeatRecords(heatReferenceOccurrences, projectLonLat, heatDomain.contains);
+    return createDensityField(points, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains);
+  }, [heatDomain, heatReferenceOccurrences]);
+
+  const heatPoints = useMemo(() => heatDomain ? projectHeatRecords(visibleOccs, projectLonLat, heatDomain.contains) : [], [visibleOccs, heatDomain]);
+  const heatField = useMemo(() => heatDomain ? createDensityField(heatPoints, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains) : null, [heatPoints, heatDomain]);
+
   const clusters = useMemo(
     () => (mapMode === "clusters" ? buildClusters(visibleOccs, 80) : []),
     [visibleOccs, mapMode]
@@ -171,23 +142,22 @@ export default function MapaDF({
   useEffect(() => {
     const canvas = heatCanvasRef.current;
     if (!canvas) return;
-    if (mapMode !== "heat" || visibleOccs.length === 0) {
+    if (!heatmapActive || !heatField || !referenceField) {
       const ctx = canvas.getContext("2d");
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
     const draw = () => {
       if (!svgRef.current) return;
-      const rect = svgRef.current.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.round(rect.width));
-      canvas.height = Math.max(1, Math.round(rect.height));
-      renderHeatmap(canvas, svgRef.current, visibleOccs, viewBox);
+      const boundary = new Path2D();
+      for (const ra of selectedRA ? [selectedRA] : RAS) boundary.addPath(new Path2D(ra.path));
+      renderDensityHeatmap(canvas, svgRef.current, heatField, referenceField.peak, boundary);
     };
     draw();
     const observer = new ResizeObserver(draw);
     if (svgRef.current) observer.observe(svgRef.current);
     return () => observer.disconnect();
-  }, [mapMode, visibleOccs, viewBox]);
+  }, [heatmapActive, heatField, referenceField, viewBox, selectedRA]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (containerRef.current) {
@@ -222,7 +192,7 @@ export default function MapaDF({
         width="100%"
         height="100%"
         preserveAspectRatio="xMidYMid meet"
-        style={{ display: "block", background: "#07111f", cursor: onClickPoint ? "crosshair" : "default" }}
+        style={{ display: "block", background: heatmapActive ? "var(--heatmap-bg)" : "#07111f", cursor: onClickPoint ? "crosshair" : "default" }}
         onClick={handleSvgClick}
       >
         {/* RA polygons */}
@@ -245,10 +215,10 @@ export default function MapaDF({
                 }}
                 id={ra.id}
                 d={ra.path}
-                fill={selectedRA ? "#1d4ed8" : colorFor(count, minValue, maxValue)}
-                fillOpacity={hovered ? 0.95 : mapMode === "heat" ? 0.42 : 0.82}
+                fill={heatmapActive ? "var(--heatmap-ra-fill)" : selectedRA ? "#1d4ed8" : colorFor(count, minValue, maxValue)}
+                fillOpacity={heatmapActive ? 1 : hovered ? 0.95 : mapMode === "heat" ? 0.42 : 0.82}
                 fillRule="evenodd"
-                stroke={hovered ? "#ffffff" : "#60a5fa"}
+                stroke={heatmapActive ? (hovered ? "var(--heatmap-border-hover)" : "var(--heatmap-border)") : hovered ? "#ffffff" : "#60a5fa"}
                 strokeWidth={hovered ? 2.6 : 0.9}
                 vectorEffect="non-scaling-stroke"
                 style={{ cursor: "pointer", transition: "fill-opacity .15s, stroke .15s" }}
@@ -259,6 +229,18 @@ export default function MapaDF({
             );
           })}
         </g>
+
+        {/* Heat belongs below geographic boundaries and labels, in the same SVG transform. */}
+        {heatmapActive && (
+          <>
+            <foreignObject x={viewX} y={viewY} width={viewWidth} height={viewHeight} pointerEvents="none">
+              <canvas ref={heatCanvasRef} data-testid="crime-heatmap" data-point-count={heatPoints.length} data-reference-peak={referenceField?.peak ?? 0} width={MAP_WIDTH} height={MAP_HEIGHT} style={{ display: "block", width: "100%", height: "100%", pointerEvents: "none" }} />
+            </foreignObject>
+            <g pointerEvents="none" fill="none">
+              {visibleRAs.map(ra => <path key={`border-${ra.code}`} d={ra.path} stroke={hoveredCode === ra.code ? "var(--heatmap-border-hover)" : "var(--heatmap-border)"} strokeWidth={hoveredCode === ra.code ? 2.6 : 0.9} vectorEffect="non-scaling-stroke" />)}
+            </g>
+          </>
+        )}
 
         {/* RA labels when showing all RAs */}
         {!selectedRA && mapMode !== "points" && (
@@ -271,18 +253,20 @@ export default function MapaDF({
               return (
                 <g key={`label-${ra.code}`}>
                   {/* Name */}
+                  {!heatmapActive && (
                   <text
                     x={ra.labelPoint.x}
                     y={ra.labelPoint.y - 8}
                     textAnchor="middle"
                     fontSize={8.5}
-                    fill="rgba(241,245,249,0.88)"
+                    fill={heatmapActive ? "var(--heatmap-label)" : "rgba(241,245,249,0.88)"}
                     fontFamily="system-ui,sans-serif"
                     fontWeight="700"
-                    style={{ textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}
+                    style={{ textShadow: heatmapActive ? "var(--heatmap-label-shadow)" : "0 1px 3px rgba(0,0,0,0.8)" }}
                   >
                     {ra.displayName}
                   </text>
+                  )}
                   {/* Count badge background */}
                   <rect
                     x={ra.labelPoint.x - badgeW / 2}
@@ -290,7 +274,7 @@ export default function MapaDF({
                     width={badgeW}
                     height={badgeH}
                     rx={4}
-                    fill="rgba(0,0,0,0.65)"
+                    fill={heatmapActive ? "var(--heatmap-badge)" : "rgba(0,0,0,0.65)"}
                     stroke="rgba(96,165,250,0.25)"
                     strokeWidth={0.6}
                   />
@@ -300,7 +284,7 @@ export default function MapaDF({
                     y={ra.labelPoint.y + 9.5}
                     textAnchor="middle"
                     fontSize={8}
-                    fill="#93c5fd"
+                    fill={heatmapActive ? "var(--heatmap-count)" : "#93c5fd"}
                     fontFamily="system-ui,sans-serif"
                     fontWeight="700"
                   >
@@ -397,37 +381,20 @@ export default function MapaDF({
         )}
       </svg>
 
-      {/* Heatmap canvas overlay */}
-      <canvas
-        ref={heatCanvasRef}
-        width={MAP_WIDTH}
-        height={MAP_HEIGHT}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-          opacity: mapMode === "heat" ? 1 : 0,
-          transition: "opacity .3s",
-          mixBlendMode: "screen",
-        }}
-      />
-
       {/* Legend */}
       {!selectedRA && (
         <div style={{
           position: "absolute", bottom: 14, left: 16, pointerEvents: "none",
-          background: "rgba(7,17,31,0.75)", backdropFilter: "blur(6px)",
+          background: "var(--theme-map-control)", backdropFilter: "blur(6px)",
           border: "1px solid rgba(30,58,95,0.6)", borderRadius: 7, padding: "7px 10px",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", letterSpacing: "0.02em" }}>Menor incidência</span>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", letterSpacing: "0.02em" }}>Maior incidência</span>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", letterSpacing: "0.02em" }}>{heatmapActive ? "Menor densidade" : "Menor incidência"}</span>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", letterSpacing: "0.02em" }}>{heatmapActive ? "Maior densidade" : "Maior incidência"}</span>
           </div>
           <div style={{
             width: 168, height: 7, borderRadius: 4,
-            background: "linear-gradient(to right, #2563eb, #06b6d4, #facc15, #f97316, #ef4444)",
+            background: heatmapActive ? HEAT_GRADIENT : "linear-gradient(to right, #2563eb, #06b6d4, #facc15, #f97316, #ef4444)",
             boxShadow: "0 0 8px rgba(239,68,68,0.3)",
           }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
@@ -447,22 +414,22 @@ export default function MapaDF({
             top: Math.max(tooltipPos.y - 10, 8),
             padding: "10px 14px",
             borderRadius: 8,
-            background: "#0b1829",
-            border: "1px solid #263a55",
-            color: "#f1f5f9",
+            background: "var(--theme-0b1829)",
+            border: "1px solid var(--theme-263a55)",
+            color: "var(--theme-f1f5f9)",
             pointerEvents: "none",
             zIndex: 10,
             minWidth: 160,
             boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-f1f5f9)", marginBottom: 2 }}>
             {tooltipRA.displayName}
           </div>
-          <div style={{ fontSize: 11, color: "#60a5fa", marginBottom: 6, fontWeight: 600 }}>
+          <div style={{ fontSize: 11, color: "var(--theme-60a5fa)", marginBottom: 6, fontWeight: 600 }}>
             {tooltipRA.code}
           </div>
-          <div style={{ fontSize: 12, color: tooltipCount !== null ? "#94a3b8" : "#475569" }}>
+          <div style={{ fontSize: 12, color: tooltipCount !== null ? "var(--theme-94a3b8)" : "var(--theme-475569)" }}>
             {tooltipCount !== null
               ? `${tooltipCount.toLocaleString("pt-BR")} ocorrências`
               : "Dados não disponíveis"}
@@ -479,19 +446,19 @@ export default function MapaDF({
             top: Math.max(tooltipPos.y - 10, 8),
             padding: "10px 14px",
             borderRadius: 8,
-            background: "#0b1829",
-            border: "1px solid #263a55",
-            color: "#f1f5f9",
+            background: "var(--theme-0b1829)",
+            border: "1px solid var(--theme-263a55)",
+            color: "var(--theme-f1f5f9)",
             pointerEvents: "none",
             zIndex: 10,
             minWidth: 180,
             boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#fb923c", marginBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-fb923c)", marginBottom: 4 }}>
             {hoveredOcc.natureza}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 2 }}>{hoveredOcc.raName}</div>
+          <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>{hoveredOcc.raName}</div>
           <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>
             {hoveredOcc.data} — {hoveredOcc.horario}
           </div>

@@ -55,10 +55,10 @@ interface Props { onBack?: () => void }
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "#0a1525",
-  border: "1px solid #1e3a5f",
+  background: "var(--theme-0a1525)",
+  border: "1px solid var(--theme-1e3a5f)",
   borderRadius: 6,
-  color: "#f1f5f9",
+  color: "var(--theme-f1f5f9)",
   fontSize: 13,
   padding: "8px 12px",
   outline: "none",
@@ -69,15 +69,15 @@ const labelStyle: React.CSSProperties = {
   fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 5, display: "block",
 };
 const cardStyle: React.CSSProperties = {
-  background: "#0d1a2d", border: "1px solid #1e3a5f", borderRadius: 10, padding: "18px 20px", marginBottom: 12,
+  background: "var(--theme-0d1a2d)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 10, padding: "18px 20px", marginBottom: 12,
 };
 const cardTitleStyle: React.CSSProperties = {
-  fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid #1e3a5f",
+  fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)", marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid var(--theme-1e3a5f)",
 };
 const errMsgStyle: React.CSSProperties = {
-  fontSize: 10, color: "#ef4444", display: "block", marginTop: 3,
+  fontSize: 10, color: "var(--theme-ef4444)", display: "block", marginTop: 3,
 };
-const req = <span style={{ color: "#ef4444", marginLeft: 2 }}>*</span>;
+const req = <span style={{ color: "var(--theme-ef4444)", marginLeft: 2 }}>*</span>;
 
 function errBorder(errors: Errors, field: string): React.CSSProperties {
   return errors[field] ? { borderColor: "#ef4444" } : {};
@@ -180,8 +180,8 @@ export default function NovaOcorrencia({ onBack }: Props) {
       <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         <Header title="Nova Ocorrência" subtitle="Simule o cadastro com dados fictícios. Não há gravação." />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14 }}>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2px solid #22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#22c55e" }}>✓</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9" }}>Simulação de cadastro concluída</div>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2px solid #22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "var(--theme-22c55e)" }}>✓</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)" }}>Simulação de cadastro concluída</div>
           <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Nenhum registro foi gravado. Os dados serão descartados ao sair desta tela.</div>
           <button onClick={onBack} style={{ marginTop: 6, background: "#2563eb", border: "none", borderRadius: 7, color: "#fff", fontSize: 13, fontWeight: 700, padding: "9px 22px", cursor: "pointer" }}>
             Voltar ao Dashboard
@@ -202,7 +202,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
           <button onClick={handleCancel} style={{ background: "none", border: "none", color: "var(--color-text-muted)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
             ← Voltar
           </button>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9", margin: 0 }}>Nova ocorrência</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0 }}>Nova ocorrência</h1>
           <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "3px 0 0" }}>Simule o cadastro com dados fictícios. Não há gravação.</p>
         </div>
 
@@ -220,20 +220,20 @@ export default function NovaOcorrencia({ onBack }: Props) {
                   <select id="occ-natureza" aria-label="Natureza da ocorrência" value={natureza} onChange={(e) => { setNatureza(e.target.value); setErrors((p) => ({ ...p, natureza: "" })); }}
                     style={{ ...inputStyle, ...errBorder(errors, "natureza") }}>
                     <option value="">Selecione a natureza</option>
-                    {CRIME_NATURES.map((n) => <option key={n} value={n} style={{ background: "#0a1525" }}>{n}</option>)}
+                    {CRIME_NATURES.map((n) => <option key={n} value={n} style={{ background: "var(--theme-0a1525)" }}>{n}</option>)}
                   </select>
                   {errors.natureza && <span style={errMsgStyle}>{errors.natureza}</span>}
                 </div>
                 <div>
                   <label htmlFor="occ-data" style={labelStyle}>Data{req}</label>
                   <input type="date" id="occ-data" aria-label="Data" value={data} onChange={(e) => { setData(e.target.value); setErrors((p) => ({ ...p, data: "" })); }}
-                    style={{ ...inputStyle, ...errBorder(errors, "data"), colorScheme: "dark" }} />
+                    style={{ ...inputStyle, ...errBorder(errors, "data"), colorScheme: "inherit" }} />
                   {errors.data && <span style={errMsgStyle}>{errors.data}</span>}
                 </div>
                 <div>
                   <label htmlFor="occ-horario" style={labelStyle}>Horário{req}</label>
                   <input type="time" id="occ-horario" aria-label="Horário" value={horario} onChange={(e) => { setHorario(e.target.value); setErrors((p) => ({ ...p, horario: "" })); }}
-                    style={{ ...inputStyle, ...errBorder(errors, "horario"), colorScheme: "dark" }} />
+                    style={{ ...inputStyle, ...errBorder(errors, "horario"), colorScheme: "inherit" }} />
                   {errors.horario && <span style={errMsgStyle}>{errors.horario}</span>}
                 </div>
               </div>
@@ -249,7 +249,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                   <select id="occ-raCode" aria-label="Região Administrativa" value={raCode} onChange={(e) => selectRa(e.target.value)}
                     style={{ ...inputStyle, ...errBorder(errors, "raCode") }}>
                     <option value="">Selecione a RA</option>
-                    {RA_LIST.map((ra) => <option key={ra.codigo} value={ra.codigo} style={{ background: "#0a1525" }}>{ra.nomeCompleto}</option>)}
+                    {RA_LIST.map((ra) => <option key={ra.codigo} value={ra.codigo} style={{ background: "var(--theme-0a1525)" }}>{ra.nomeCompleto}</option>)}
                   </select>
                   {errors.raCode && <span style={errMsgStyle}>{errors.raCode}</span>}
                 </div>
@@ -258,7 +258,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                   <select id="occ-setor" aria-label="Bairro ou setor" value={setor} onChange={(e) => { setSetor(e.target.value); setErrors((p) => ({ ...p, setor: "" })); }}
                     disabled={!raCode} style={{ ...inputStyle, ...errBorder(errors, "setor"), opacity: raCode ? 1 : 0.5 }}>
                     <option value="">Selecione o bairro/setor</option>
-                    {setores.map((s) => <option key={s} value={s} style={{ background: "#0a1525" }}>{s}</option>)}
+                    {setores.map((s) => <option key={s} value={s} style={{ background: "var(--theme-0a1525)" }}>{s}</option>)}
                   </select>
                   {errors.setor && <span style={errMsgStyle}>{errors.setor}</span>}
                 </div>
@@ -287,7 +287,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
               <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8, fontSize: 12, color: "var(--color-text-muted)" }}>
                 <span>📍</span> Selecionar no mapa
               </div>
-              <div style={{ height: 200, borderRadius: 8, overflow: "hidden", border: "1px solid #1e3a5f", position: "relative" }}>
+              <div style={{ height: 200, borderRadius: 8, overflow: "hidden", border: "1px solid var(--theme-1e3a5f)", position: "relative" }}>
                 <MapaDF
                   selectedRaCode={raCode || null}
                   onSelectRa={(code) => selectRa(code)}
@@ -301,7 +301,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 />
                 <div style={{ position: "absolute", right: 8, top: 8, display: "flex", flexDirection: "column", gap: 3 }}>
                   {["+", "−"].map((s) => (
-                    <button key={s} disabled title="Zoom ilustrativo; implementação prevista na Sprint 2" aria-label={s === "+" ? "Ampliar mapa (indisponível)" : "Reduzir mapa (indisponível)"} style={{ width: 24, height: 24, background: "rgba(13,26,45,0.9)", border: "1px solid #1e3a5f", borderRadius: 4, color: "var(--color-text-muted)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{s}</button>
+                    <button key={s} disabled title="Zoom ilustrativo; implementação prevista na Sprint 2" aria-label={s === "+" ? "Ampliar mapa (indisponível)" : "Reduzir mapa (indisponível)"} style={{ width: 24, height: 24, background: "var(--theme-map-control)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 4, color: "var(--color-text-muted)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{s}</button>
                   ))}
                 </div>
               </div>
@@ -327,21 +327,21 @@ export default function NovaOcorrencia({ onBack }: Props) {
                   role="button" tabIndex={0} aria-label="Selecionar anexos demonstrativos" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current?.click(); } }}
                   onClick={() => fileRef.current?.click()}
                   style={{
-                    border: `1.5px dashed ${dragOver ? "#2563eb" : "#1e3a5f"}`,
+                    border: `1.5px dashed ${dragOver ? "#2563eb" : "var(--theme-1e3a5f)"}`,
                     borderRadius: 8, padding: "22px 16px",
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
                     cursor: "pointer", background: dragOver ? "rgba(37,99,235,0.06)" : "transparent", transition: "all .15s",
                   }}
                 >
                   <span style={{ fontSize: 22, color: "var(--color-text-muted)" }}>☁</span>
-                  <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "center" }}>
+                  <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", textAlign: "center" }}>
                     Arraste arquivos aqui ou <span style={{ color: "#2563eb", textDecoration: "underline" }}>clique para selecionar</span>
                   </div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Imagens, documentos, áudios ou vídeos (máx. 10MB cada)</div>
                   {files.length > 0 && (
                     <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
                       {files.map((f, i) => (
-                        <span key={i} style={{ fontSize: 10, background: "rgba(37,99,235,0.12)", color: "#60a5fa", borderRadius: 4, padding: "2px 7px" }}>{f.name}</span>
+                        <span key={i} style={{ fontSize: 10, background: "rgba(37,99,235,0.12)", color: "var(--theme-60a5fa)", borderRadius: 4, padding: "2px 7px" }}>{f.name}</span>
                       ))}
                     </div>
                   )}
@@ -355,8 +355,8 @@ export default function NovaOcorrencia({ onBack }: Props) {
           <div>
             {/* Card 4 – Overview map */}
             <div style={{ ...cardStyle, padding: 0, overflow: "hidden", marginBottom: 12 }}>
-              <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1e3a5f" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9" }}>Localização no mapa</div>
+              <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid var(--theme-1e3a5f)" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Localização no mapa</div>
               </div>
               <div style={{ height: 290, position: "relative" }}>
                 <MapaDF
@@ -372,7 +372,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 <div style={{
                   position: "absolute", bottom: 8, right: 10,
                   fontSize: 10, color: "var(--color-text-muted)", fontStyle: "italic",
-                  background: "rgba(7,17,31,0.75)", padding: "3px 8px", borderRadius: 4,
+                  background: "var(--theme-map-control)", padding: "3px 8px", borderRadius: 4,
                 }}>
                   Clique no mapa para definir a localização
                 </div>
@@ -392,7 +392,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: "1px solid rgba(30,58,95,0.45)" }}>
                   <span style={{ fontSize: 12, color: "var(--color-text-muted)", flexShrink: 0 }}>{k}</span>
-                  <span style={{ fontSize: 12, color: "#94a3b8", textAlign: "right", wordBreak: "break-word", maxWidth: "65%" }}>{v}</span>
+                  <span style={{ fontSize: 12, color: "var(--theme-94a3b8)", textAlign: "right", wordBreak: "break-word", maxWidth: "65%" }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -406,7 +406,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 <select id="occ-responsavel" aria-label="Responsável" value={responsavel} onChange={(e) => { setResponsavel(e.target.value); setErrors((p) => ({ ...p, responsavel: "" })); }}
                   style={{ ...inputStyle, ...errBorder(errors, "responsavel") }}>
                   <option value="">Selecione o responsável</option>
-                  {RESPONSAVEIS.map((r) => <option key={r} value={r} style={{ background: "#0a1525" }}>{r}</option>)}
+                  {RESPONSAVEIS.map((r) => <option key={r} value={r} style={{ background: "var(--theme-0a1525)" }}>{r}</option>)}
                 </select>
                 {errors.responsavel && <span style={errMsgStyle}>{errors.responsavel}</span>}
               </div>
@@ -415,7 +415,7 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 <label htmlFor="occ-unidade" style={labelStyle}>Unidade/Órgão</label>
                 <select id="occ-unidade" aria-label="Unidade" value={unidade} onChange={(e) => setUnidade(e.target.value)} style={inputStyle}>
                   <option value="">Selecione a unidade/órgão</option>
-                  {UNIDADES.map((u) => <option key={u} value={u} style={{ background: "#0a1525" }}>{u}</option>)}
+                  {UNIDADES.map((u) => <option key={u} value={u} style={{ background: "var(--theme-0a1525)" }}>{u}</option>)}
                 </select>
               </div>
 
@@ -423,15 +423,15 @@ export default function NovaOcorrencia({ onBack }: Props) {
                 <div id="priority-label" style={{ ...labelStyle, marginBottom: 12 }}>Prioridade</div>
                 <div role="group" aria-labelledby="priority-label" style={{ display: "flex", gap: 16 }}>
                   {([
-                    { key: "baixa", label: "Baixa", color: "#22c55e" },
-                    { key: "media", label: "Média", color: "#facc15" },
-                    { key: "alta",  label: "Alta",  color: "#ef4444" },
+                    { key: "baixa", label: "Baixa", color: "var(--theme-22c55e)" },
+                    { key: "media", label: "Média", color: "var(--theme-facc15)" },
+                    { key: "alta",  label: "Alta",  color: "var(--theme-ef4444)" },
                   ] as const).map(({ key, label, color }) => (
                     <button type="button" aria-pressed={prioridade === key} key={key} onClick={() => setPrioridade(key)}
-                      style={{ background: "none", border: "none", padding: 0, display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12, color: prioridade === key ? "#f1f5f9" : "#94a3b8", userSelect: "none" }}>
+                      style={{ background: "none", border: "none", padding: 0, display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 12, color: prioridade === key ? "var(--theme-f1f5f9)" : "var(--theme-94a3b8)", userSelect: "none" }}>
                       <span style={{
                         width: 16, height: 16, borderRadius: "50%",
-                        border: `2px solid ${prioridade === key ? color : "#334155"}`,
+                        border: `2px solid ${prioridade === key ? color : "var(--theme-334155)"}`,
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .15s",
                       }}>
                         {prioridade === key && <span style={{ width: 7, height: 7, borderRadius: "50%", background: color }} />}
@@ -449,11 +449,11 @@ export default function NovaOcorrencia({ onBack }: Props) {
 
       {/* Sticky footer */}
       <div style={{
-        borderTop: "1px solid #1e3a5f", background: "#080f1a",
+        borderTop: "1px solid var(--theme-1e3a5f)", background: "var(--theme-080f1a)",
         padding: "12px 20px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
       }}>
         <button onClick={handleCancel}
-          style={{ background: "transparent", border: "1px solid #1e3a5f", borderRadius: 7, color: "#94a3b8", fontSize: 13, padding: "9px 20px", cursor: "pointer" }}>
+          style={{ background: "transparent", border: "1px solid var(--theme-1e3a5f)", borderRadius: 7, color: "var(--theme-94a3b8)", fontSize: 13, padding: "9px 20px", cursor: "pointer" }}>
           Cancelar
         </button>
         <button onClick={handleSave} disabled={saving} aria-busy={saving}
@@ -461,17 +461,17 @@ export default function NovaOcorrencia({ onBack }: Props) {
           {saving ? "Simulando…" : "Simular cadastro"}
         </button>
         {Object.keys(errors).length > 0 && (
-          <span role="alert" style={{ fontSize: 12, color: "#ef4444" }}>Preencha os campos obrigatórios antes de salvar.</span>
+          <span role="alert" style={{ fontSize: 12, color: "var(--theme-ef4444)" }}>Preencha os campos obrigatórios antes de salvar.</span>
         )}
       </div>
 
       {/* Discard dialog */}
       {showCancel && (
         <Dialog title="Descartar alterações?" onClose={() => setShowCancel(false)} style={{ maxWidth: 380 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>Descartar alterações?</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)", marginBottom: 8 }}>Descartar alterações?</div>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 22 }}>Os dados preenchidos nesta ocorrência serão perdidos.</div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowCancel(false)} style={{ background: "transparent", border: "1px solid #1e3a5f", borderRadius: 7, color: "#94a3b8", fontSize: 13, padding: "8px 18px", cursor: "pointer" }}>Continuar editando</button>
+              <button onClick={() => setShowCancel(false)} style={{ background: "transparent", border: "1px solid var(--theme-1e3a5f)", borderRadius: 7, color: "var(--theme-94a3b8)", fontSize: 13, padding: "8px 18px", cursor: "pointer" }}>Continuar editando</button>
               <button onClick={() => { setShowCancel(false); onBack?.(); }} style={{ background: "#ef4444", border: "none", borderRadius: 7, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 18px", cursor: "pointer" }}>Descartar</button>
             </div>
         </Dialog>

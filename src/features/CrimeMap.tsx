@@ -17,10 +17,10 @@ const sparkData = [45, 52, 60, 55, 70, 68, 80, 78, 92, 88, 102, 115];
 
 
 const selectStyle: React.CSSProperties = {
-  background: "#111d2e",
-  border: "1px solid #1e3a5f",
+  background: "var(--theme-111d2e)",
+  border: "1px solid var(--theme-1e3a5f)",
   borderRadius: 6,
-  color: "#94a3b8",
+  color: "var(--theme-94a3b8)",
   fontSize: 12,
   padding: "6px 10px",
   cursor: "pointer",
@@ -66,8 +66,8 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
       {/* Filter bar */}
       <div
         style={{
-          background: "#0d1626",
-          borderBottom: "1px solid #1e3a5f",
+          background: "var(--theme-0d1626)",
+          borderBottom: "1px solid var(--theme-1e3a5f)",
           padding: "10px 24px",
           display: "flex",
           alignItems: "center",
@@ -81,7 +81,7 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
         <select aria-label="Período da base fictícia" style={selectStyle} value={period} onChange={(e) => setPeriod(e.target.value)}>
           <option value="all">Toda a base fictícia</option>
           {PERIODS.filter((p) => p.value !== "custom").map((p) => (
-            <option key={p.value} value={p.value} style={{ background: "#111d2e" }}>{p.label}</option>
+            <option key={p.value} value={p.value} style={{ background: "var(--theme-111d2e)" }}>{p.label}</option>
           ))}
         </select>
 
@@ -90,24 +90,24 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
           aria-label="Região Administrativa" value={selectedRaCode ?? ""}
           onChange={(e) => setSelectedRaCode(e.target.value || null)}
         >
-          <option value="" style={{ background: "#111d2e" }}>Todas as regiões</option>
+          <option value="" style={{ background: "var(--theme-111d2e)" }}>Todas as regiões</option>
           {RA_LIST.map((ra) => (
-            <option key={ra.codigo} value={ra.codigo} style={{ background: "#111d2e" }}>
+            <option key={ra.codigo} value={ra.codigo} style={{ background: "var(--theme-111d2e)" }}>
               {ra.nomeCompleto}
             </option>
           ))}
         </select>
 
         <select aria-label="Natureza criminal" style={selectStyle} value={nature} onChange={(e) => setNature(e.target.value)}>
-          <option value="" style={{ background: "#111d2e" }}>Todas as naturezas</option>
+          <option value="" style={{ background: "var(--theme-111d2e)" }}>Todas as naturezas</option>
           {CRIME_NATURES.map((n) => (
-            <option key={n} value={n} style={{ background: "#111d2e" }}>{n}</option>
+            <option key={n} value={n} style={{ background: "var(--theme-111d2e)" }}>{n}</option>
           ))}
         </select>
 
         <select aria-label="Faixa de horário" style={selectStyle} value={hour} onChange={(e) => setHour(e.target.value)}>
           {HOURS.map((h) => (
-            <option key={h.value} value={h.value} style={{ background: "#111d2e" }}>{h.label}</option>
+            <option key={h.value} value={h.value} style={{ background: "var(--theme-111d2e)" }}>{h.label}</option>
           ))}
         </select>
 
@@ -117,7 +117,7 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
           onClick={handleClearFilters}
           style={{
             background: "transparent",
-            border: "1px solid #1e3a5f",
+            border: "1px solid var(--theme-1e3a5f)",
             borderRadius: 6,
             color: "var(--color-text-muted)",
             fontSize: 12,
@@ -149,8 +149,8 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
       {selectedRaCode && raInfo && (
         <div
           style={{
-            background: "#0d1626",
-            borderBottom: "1px solid #1e3a5f",
+            background: "var(--theme-0d1626)",
+            borderBottom: "1px solid var(--theme-1e3a5f)",
             padding: "8px 24px",
             display: "flex",
             alignItems: "center",
@@ -160,15 +160,15 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
         >
           <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Distrito Federal</span>
           <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>›</span>
-          <span style={{ fontSize: 12, color: "#93c5fd", fontWeight: 600 }}>{raInfo.nomeDisplay}</span>
+          <span style={{ fontSize: 12, color: "var(--theme-93c5fd)", fontWeight: 600 }}>{raInfo.nomeDisplay}</span>
           <div style={{ flex: 1 }} />
           <button
             onClick={handleBack}
             style={{
               background: "transparent",
-              border: "1px solid #1e3a5f",
+              border: "1px solid var(--theme-1e3a5f)",
               borderRadius: 5,
-              color: "#60a5fa",
+              color: "var(--theme-60a5fa)",
               fontSize: 11,
               padding: "4px 10px",
               cursor: "pointer",
@@ -187,7 +187,7 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: "12px 0 12px 16px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, paddingRight: 16 }}>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9", margin: 0, letterSpacing: "-0.02em" }}>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.02em" }}>
                 {raInfo ? raInfo.nomeDisplay : "Mapa Criminal"}
               </h1>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
@@ -200,8 +200,8 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
               {(["heat", "points", "clusters"] as MapMode[]).map((m) => (
                 <button key={m} onClick={() => setMapMode(m)} style={{
                   background: mapMode === m ? "#2563eb" : "transparent",
-                  border: mapMode === m ? "none" : "1px solid #1e3a5f",
-                  borderRadius: 5, color: mapMode === m ? "#fff" : "#64748b",
+                  border: mapMode === m ? "none" : "1px solid var(--theme-1e3a5f)",
+                  borderRadius: 5, color: mapMode === m ? "#fff" : "var(--theme-64748b)",
                   fontSize: 11, fontWeight: mapMode === m ? 600 : 400,
                   padding: "4px 10px", cursor: "pointer",
                 }}>
@@ -214,8 +214,8 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
           <div style={{
             flex: 1,
             minHeight: 0,
-            background: "#111d2e",
-            border: "1px solid #1e3a5f",
+            background: "var(--theme-111d2e)",
+            border: "1px solid var(--theme-1e3a5f)",
             borderRadius: 8,
             overflow: "hidden",
             position: "relative",
@@ -228,6 +228,7 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
               showPoints={false}
               mapMode={mapMode}
               mockOccurrences={mapOccurrences}
+              heatReferenceOccurrences={MOCK_OCCURRENCES}
             />
           </div>
         </div>
@@ -235,37 +236,37 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
         {/* Side panel */}
         <div className="map-side-panel" style={{ width: 270, flexShrink: 0, overflowY: "auto", padding: "12px 16px 12px 0", display: "flex", flexDirection: "column", gap: 10 }}>
           {raInfo && (
-            <div style={{ background: "#111d2e", border: "1px solid #1e3a5f", borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
                 Resumo — {raInfo.nomeDisplay}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 <div>
                   <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginBottom: 2 }}>Total</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9" }}>{raInfo.occurrence_count.toLocaleString("pt-BR")}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f1f5f9)" }}>{raInfo.occurrence_count.toLocaleString("pt-BR")}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginBottom: 2 }}>Variação</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: raInfo.variation > 0 ? "#22c55e" : "#ef4444" }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: raInfo.variation > 0 ? "var(--theme-22c55e)" : "var(--theme-ef4444)" }}>
                     {raInfo.variation > 0 ? "+" : ""}{raInfo.variation.toFixed(1)}%
                   </div>
                 </div>
               </div>
-              <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ borderTop: "1px solid var(--theme-1e3a5f)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                 <div>
                   <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>Principal natureza</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9" }}>{raInfo.most_common_crime}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{raInfo.most_common_crime}</div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
                     {(((raInfo.crimes_by_nature[raInfo.most_common_crime] ?? 0) / (raInfo.occurrence_count || 1)) * 100).toFixed(1)}% do total
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>Horário de maior incidência</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9" }}>{raInfo.peak_hour}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{raInfo.peak_hour}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>Dia da semana crítico</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9" }}>{raInfo.peak_day}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{raInfo.peak_day}</div>
                 </div>
               </div>
             </div>
@@ -277,30 +278,30 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
             sub="Comparação fictícia ilustrativa"
             variation={raInfo?.variation ?? 8.4}
             sparkData={sparkData}
-            color={raInfo && raInfo.variation > 0 ? "#22c55e" : "#ef4444"}
+            color={raInfo && raInfo.variation > 0 ? "var(--theme-22c55e)" : "var(--theme-ef4444)"}
           />
 
-          <div style={{ background: "#111d2e", border: "1px solid #1e3a5f", borderRadius: 8, padding: "14px 16px" }}>
+          <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
               Indicadores rápidos
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Horário crítico</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#f97316" }}>{summary.peakHour}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--theme-f97316)" }}>{summary.peakHour}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Dia crítico</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#f97316" }}>{summary.peakDay}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--theme-f97316)" }}>{summary.peakDay}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>RAs monitoradas</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd" }}>37</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--theme-93c5fd)" }}>37</span>
               </div>
             </div>
           </div>
 
-          <div style={{ background: "#111d2e", border: "1px solid #1e3a5f", borderRadius: 8, padding: "14px 16px" }}>
+          <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
             <DonutChart data={donutData} title="Naturezas em destaque" size={150} />
           </div>
 

@@ -6,19 +6,19 @@ import { useDemoToast } from "../components/DemoProvider";
 
 // ─── colour tokens ────────────────────────────────────────────────────────────
 const T = {
-  bg:       "#080f1a",
-  surface:  "#111d2e",
-  surface2: "#0d1728",
-  border:   "#1a3050",
-  border2:  "#1e3a5f",
-  text:     "#f1f5f9",
-  muted:    "#94a3b8",
-  dim:      "#94a3b8",
-  faint:    "#94a3b8",
+  bg:       "var(--theme-080f1a)",
+  surface:  "var(--theme-111d2e)",
+  surface2: "var(--theme-0d1728)",
+  border:   "var(--theme-1a3050)",
+  border2:  "var(--theme-1e3a5f)",
+  text:     "var(--theme-f1f5f9)",
+  muted:    "var(--theme-94a3b8)",
+  dim:      "var(--theme-94a3b8)",
+  faint:    "var(--theme-94a3b8)",
   blue:     "#2563eb",
-  blueHi:   "#60a5fa",
-  green:    "#22c55e",
-  amber:    "#f59e0b",
+  blueHi:   "var(--theme-60a5fa)",
+  green:    "var(--theme-22c55e)",
+  amber:    "var(--theme-f59e0b)",
 };
 
 // ─── inline icons ─────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       fontSize: 10, fontWeight: 700,
-      color: isPending ? "#f59e0b" : "#22c55e",
+      color: isPending ? "var(--theme-f59e0b)" : "var(--theme-22c55e)",
       background: isPending ? "rgba(245,158,11,0.1)" : "rgba(34,197,94,0.1)",
       border: `1px solid ${isPending ? "rgba(245,158,11,0.25)" : "rgba(34,197,94,0.25)"}`,
       borderRadius: 20, padding: "2px 10px", whiteSpace: "nowrap",
@@ -170,7 +170,7 @@ const colH: React.CSSProperties = {
   letterSpacing: "0.06em", textTransform: "uppercase",
   padding: "8px 12px", textAlign: "left",
   borderBottom: `1px solid ${T.border}`,
-  background: "#0a1525", whiteSpace: "nowrap",
+  background: "var(--theme-0a1525)", whiteSpace: "nowrap",
 };
 const cell: React.CSSProperties = {
   fontSize: 12, color: T.muted, padding: "10px 12px",
@@ -431,7 +431,7 @@ export default function ImportarDados() {
                         style={selStyle}
                       >
                         {SYSTEM_FIELDS.map((f) => (
-                          <option key={f} value={f} style={{ background: "#0d1728" }}>{f}</option>
+                          <option key={f} value={f} style={{ background: "var(--theme-0d1728)" }}>{f}</option>
                         ))}
                       </select>
                     </div>

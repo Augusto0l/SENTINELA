@@ -127,9 +127,9 @@ function Avatar({ name, size = 34 }: { name: string; size?: number }) {
 }
 
 const perfilColors: Record<Perfil, { bg: string; text: string; border: string }> = {
-  Administrador: { bg: "rgba(37,99,235,0.12)", text: "#60a5fa", border: "rgba(96,165,250,0.25)" },
-  Analista:      { bg: "rgba(124,58,237,0.12)", text: "#a78bfa", border: "rgba(167,139,250,0.25)" },
-  Operador:      { bg: "rgba(8,145,178,0.12)",  text: "#67e8f9", border: "rgba(103,232,249,0.2)"  },
+  Administrador: { bg: "rgba(37,99,235,0.12)", text: "var(--theme-60a5fa)", border: "rgba(96,165,250,0.25)" },
+  Analista:      { bg: "rgba(124,58,237,0.12)", text: "var(--theme-a78bfa)", border: "rgba(167,139,250,0.25)" },
+  Operador:      { bg: "rgba(8,145,178,0.12)",  text: "var(--theme-67e8f9)", border: "rgba(103,232,249,0.2)"  },
 };
 
 function PerfilBadge({ p }: { p: Perfil }) {
@@ -148,13 +148,13 @@ function StatusBadge({ s }: { s: Status }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 600,
-      color: active ? "#22c55e" : "#64748b",
+      color: active ? "var(--theme-22c55e)" : "var(--theme-64748b)",
       background: active ? "rgba(34,197,94,0.1)" : "rgba(100,116,139,0.1)",
       border: `1px solid ${active ? "rgba(34,197,94,0.25)" : "rgba(100,116,139,0.2)"}`,
       borderRadius: 20, padding: "2px 10px",
       display: "flex", alignItems: "center", gap: 5, width: "fit-content",
     }}>
-      <span style={{ width: 5, height: 5, borderRadius: "50%", background: active ? "#22c55e" : "#475569", display: "inline-block" }} />
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: active ? "#22c55e" : "var(--theme-475569)", display: "inline-block" }} />
       {s}
     </span>
   );
@@ -164,25 +164,25 @@ const colH: React.CSSProperties = {
   fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)",
   letterSpacing: "0.07em", textTransform: "uppercase",
   padding: "10px 14px", textAlign: "left",
-  borderBottom: "1px solid #1a3050", background: "#0a1525",
+  borderBottom: "1px solid var(--theme-1a3050)", background: "var(--theme-0a1525)",
   whiteSpace: "nowrap",
 };
 const cell: React.CSSProperties = {
-  fontSize: 13, color: "#94a3b8",
+  fontSize: 13, color: "var(--theme-94a3b8)",
   padding: "13px 14px",
   borderBottom: "1px solid rgba(26,48,80,0.45)",
   verticalAlign: "middle",
 };
 
 const inputStyle: React.CSSProperties = {
-  background: "#0d1728", border: "1px solid #1e3a5f",
-  borderRadius: 7, color: "#f1f5f9", fontSize: 13,
+  background: "var(--theme-0d1728)", border: "1px solid var(--theme-1e3a5f)",
+  borderRadius: 7, color: "var(--theme-f1f5f9)", fontSize: 13,
   padding: "8px 12px", outline: "none", width: "100%",
   boxSizing: "border-box",
 };
 const selectStyle: React.CSSProperties = {
-  background: "#0d1728", border: "1px solid #1e3a5f",
-  borderRadius: 7, color: "#94a3b8", fontSize: 12,
+  background: "var(--theme-0d1728)", border: "1px solid var(--theme-1e3a5f)",
+  borderRadius: 7, color: "var(--theme-94a3b8)", fontSize: 12,
   padding: "7px 10px", cursor: "pointer", outline: "none",
 };
 
@@ -190,10 +190,10 @@ const selectStyle: React.CSSProperties = {
 function KpiCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
     <div style={{
-      background: "#111d2e", border: "1px solid #1a3050", borderRadius: 10,
+      background: "var(--theme-111d2e)", border: "1px solid var(--theme-1a3050)", borderRadius: 10,
       padding: "16px 20px",
     }}>
-      <div style={{ fontSize: 26, fontWeight: 800, color: color ?? "#f1f5f9", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: color ?? "var(--theme-f1f5f9)", lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 6 }}>{label}</div>
     </div>
   );
@@ -243,7 +243,7 @@ function ActionMenu({
   return createPortal(
     <div ref={ref} role="group" aria-label={`Ações de ${user.name}`} onKeyDown={(event) => { if (event.key === "Escape") { anchor.focus(); onClose(); } }} style={{
       position: "fixed", left: position.left, top: position.top, zIndex: 55, maxHeight: "calc(100dvh - 24px)", overflowY: "auto",
-      background: "#111d2e", border: "1px solid #1e3a5f",
+      background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)",
       borderRadius: 9, padding: "6px 0", minWidth: 210,
       boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
     }}>
@@ -255,7 +255,7 @@ function ActionMenu({
             display: "flex", alignItems: "center", gap: 10,
             width: "100%", background: "none", border: "none",
             padding: "8px 16px", cursor: "pointer", textAlign: "left",
-            fontSize: 13, color: item.danger ? "#f87171" : "#94a3b8",
+            fontSize: 13, color: item.danger ? "var(--theme-f87171)" : "var(--theme-94a3b8)",
             transition: "background .1s",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37,99,235,0.08)")}
@@ -282,9 +282,9 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "20px 24px 16px",
-          borderBottom: "1px solid #1a3050", flexShrink: 0,
+          borderBottom: "1px solid var(--theme-1a3050)", flexShrink: 0,
         }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9" }}>Detalhes do usuário</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Detalhes do usuário</div>
           <button aria-label="Fechar diálogo" onClick={onClose} style={{
             background: "none", border: "none", color: "var(--color-text-muted)",
             cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 4,
@@ -296,7 +296,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <Avatar name={user.name} size={52} />
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>{user.name}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{user.name}</div>
               <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>{user.email}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                 <PerfilBadge p={user.perfil} />
@@ -306,7 +306,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
           </div>
 
           {/* Info rows */}
-          <div style={{ background: "#0d1728", border: "1px solid #1a3050", borderRadius: 9, overflow: "hidden" }}>
+          <div style={{ background: "var(--theme-0d1728)", border: "1px solid var(--theme-1a3050)", borderRadius: 9, overflow: "hidden" }}>
             {[
               { label: "Órgão / Unidade",  value: user.orgao },
               { label: "Data de cadastro", value: user.cadastro },
@@ -315,10 +315,10 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
               <div key={row.label} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "10px 14px",
-                borderBottom: i < arr.length - 1 ? "1px solid #1a3050" : "none",
+                borderBottom: i < arr.length - 1 ? "1px solid var(--theme-1a3050)" : "none",
               }}>
                 <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{row.label}</span>
-                <span style={{ fontSize: 12, color: "#94a3b8" }}>{row.value}</span>
+                <span style={{ fontSize: 12, color: "var(--theme-94a3b8)" }}>{row.value}</span>
               </div>
             ))}
           </div>
@@ -329,19 +329,19 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
               display: "flex", alignItems: "center", justifyContent: "space-between",
               marginBottom: 10,
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9" }}>Permissões</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Permissões</div>
               <button
                 onClick={onChangeProfile}
                 style={{
-                  background: "none", border: "1px solid #1e3a5f", borderRadius: 6,
-                  color: "#60a5fa", fontSize: 11, padding: "4px 10px", cursor: "pointer",
+                  background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 6,
+                  color: "var(--theme-60a5fa)", fontSize: 11, padding: "4px 10px", cursor: "pointer",
                 }}
               >
                 Alterar perfil
               </button>
             </div>
             <div style={{
-              background: "#0d1728", border: "1px solid #1a3050",
+              background: "var(--theme-0d1728)", border: "1px solid var(--theme-1a3050)",
               borderRadius: 9, overflow: "hidden",
             }}>
               {ALL_PERMS.map((perm, i) => {
@@ -352,7 +352,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
                     padding: "9px 14px",
                     borderBottom: i < ALL_PERMS.length - 1 ? "1px solid rgba(26,48,80,0.5)" : "none",
                   }}>
-                    <span style={{ fontSize: 12, color: enabled ? "#94a3b8" : "#334155" }}>{perm}</span>
+                    <span style={{ fontSize: 12, color: enabled ? "var(--theme-94a3b8)" : "var(--theme-334155)" }}>{perm}</span>
                     {enabled ? (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="10" fill="rgba(34,197,94,0.15)" />
@@ -361,8 +361,8 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
                     ) : (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="10" fill="rgba(100,116,139,0.08)" />
-                        <line x1="8" y1="8" x2="16" y2="16" stroke="#334155" strokeWidth="1.8" strokeLinecap="round" />
-                        <line x1="16" y1="8" x2="8" y2="16" stroke="#334155" strokeWidth="1.8" strokeLinecap="round" />
+                        <line x1="8" y1="8" x2="16" y2="16" stroke="var(--theme-334155)" strokeWidth="1.8" strokeLinecap="round" />
+                        <line x1="16" y1="8" x2="8" y2="16" stroke="var(--theme-334155)" strokeWidth="1.8" strokeLinecap="round" />
                       </svg>
                     )}
                   </div>
@@ -373,7 +373,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
 
           {/* Activity */}
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-f1f5f9)", marginBottom: 10 }}>
               Atividade recente
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -383,12 +383,12 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 16, flexShrink: 0 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563eb", flexShrink: 0, marginTop: 4 }} />
                     {i < activity.length - 1 && (
-                      <div style={{ width: 1, flex: 1, background: "#1e3a5f", minHeight: 24 }} />
+                      <div style={{ width: 1, flex: 1, background: "var(--theme-1e3a5f)", minHeight: 24 }} />
                     )}
                   </div>
                   <div style={{ paddingBottom: 16 }}>
                     <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>{a.time}</div>
-                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{a.desc}</div>
+                    <div style={{ fontSize: 12, color: "var(--theme-94a3b8)" }}>{a.desc}</div>
                   </div>
                 </div>
               ))}
@@ -423,7 +423,7 @@ function NewUserModal({ onClose, onSave }: {
   return (
     <Dialog title="Novo usuário demonstrativo" onClose={onClose}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>Novo usuário</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Novo usuário</div>
           <button aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
@@ -436,35 +436,35 @@ function NewUserModal({ onClose, onSave }: {
             <FieldLabel>Nome completo</FieldLabel>
             <input aria-label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")} />
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
             <FieldLabel>E-mail</FieldLabel>
             <input type="email" aria-label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@sentinela.gov.br" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")} />
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
             <FieldLabel>Órgão / Unidade</FieldLabel>
             <input aria-label="Órgão ou unidade" value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")} />
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
             <FieldLabel>Perfil</FieldLabel>
             <select aria-label="Perfil" value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}
               style={{ ...selectStyle, width: "100%" }}>
-              <option style={{ background: "#0d1728" }}>Administrador</option>
-              <option style={{ background: "#0d1728" }}>Analista</option>
-              <option style={{ background: "#0d1728" }}>Operador</option>
+              <option style={{ background: "var(--theme-0d1728)" }}>Administrador</option>
+              <option style={{ background: "var(--theme-0d1728)" }}>Analista</option>
+              <option style={{ background: "var(--theme-0d1728)" }}>Operador</option>
             </select>
           </div>
         </div>
 
-        {error && <p role="alert" style={{ color: "#fca5a5", marginTop: 12 }}>{error}</p>}
+        {error && <p role="alert" style={{ color: "var(--theme-fca5a5)", marginTop: 12 }}>{error}</p>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
           <button aria-label="Fechar diálogo" onClick={onClose} style={{
-            background: "none", border: "1px solid #1e3a5f", borderRadius: 7,
+            background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 7,
             color: "var(--color-text-muted)", fontSize: 13, padding: "9px 20px", cursor: "pointer",
           }}>Cancelar</button>
           <button onClick={handleSave} style={{
@@ -488,14 +488,14 @@ function ChangeProfileModal({ user, onClose, onSave }: {
   return (
     <Dialog title="Alterar perfil demonstrativo" onClose={onClose}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>Alterar perfil e permissões</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Alterar perfil e permissões</div>
           <button aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
           <Avatar name={user.name} size={36} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>{user.name}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)" }}>{user.name}</div>
             <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Perfil atual: {user.perfil}</div>
           </div>
         </div>
@@ -508,9 +508,9 @@ function ChangeProfileModal({ user, onClose, onSave }: {
             return (
               <button key={p} aria-pressed={selected === p} onClick={() => setSelected(p)} style={{
                 flex: 1, padding: "10px 8px", borderRadius: 8, cursor: "pointer",
-                border: `2px solid ${sel ? c.text : "#1e3a5f"}`,
-                background: sel ? c.bg : "#0d1728",
-                color: sel ? c.text : "#64748b",
+                border: `2px solid ${sel ? c.text : "var(--theme-1e3a5f)"}`,
+                background: sel ? c.bg : "var(--theme-0d1728)",
+                color: sel ? c.text : "var(--theme-64748b)",
                 fontSize: 12, fontWeight: sel ? 700 : 400,
                 transition: "all .15s",
               }}>{p}</button>
@@ -523,7 +523,7 @@ function ChangeProfileModal({ user, onClose, onSave }: {
           Permissões do perfil selecionado
         </div>
         <div style={{
-          background: "#0d1728", border: "1px solid #1a3050",
+          background: "var(--theme-0d1728)", border: "1px solid var(--theme-1a3050)",
           borderRadius: 8, padding: "10px 14px", marginBottom: 16,
           maxHeight: 180, overflowY: "auto",
         }}>
@@ -535,8 +535,8 @@ function ChangeProfileModal({ user, onClose, onSave }: {
                 padding: "5px 0",
                 borderBottom: "1px solid rgba(26,48,80,0.3)",
               }}>
-                <span style={{ fontSize: 12, color: enabled ? "#94a3b8" : "#334155" }}>{perm}</span>
-                <span style={{ fontSize: 11, color: enabled ? "#22c55e" : "#475569", fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: enabled ? "var(--theme-94a3b8)" : "var(--theme-334155)" }}>{perm}</span>
+                <span style={{ fontSize: 11, color: enabled ? "var(--theme-22c55e)" : "var(--theme-475569)", fontWeight: 600 }}>
                   {enabled ? "✓" : "—"}
                 </span>
               </div>
@@ -561,7 +561,7 @@ function ChangeProfileModal({ user, onClose, onSave }: {
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button aria-label="Fechar diálogo" onClick={onClose} style={{
-            background: "none", border: "1px solid #1e3a5f", borderRadius: 7,
+            background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 7,
             color: "var(--color-text-muted)", fontSize: 13, padding: "9px 20px", cursor: "pointer",
           }}>Cancelar</button>
           <button onClick={() => { onSave(selected); onClose(); }} style={{
@@ -640,7 +640,7 @@ export default function Usuarios() {
         {/* ── Page heading ─────────────────────────────────────────────── */}
         <div className="page-heading" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: 0, letterSpacing: "-0.025em" }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.025em" }}>
               Usuários
             </h1>
             <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
@@ -664,9 +664,9 @@ export default function Usuarios() {
         {/* ── KPI cards ─────────────────────────────────────────────────── */}
         <div className="kpi-grid users-kpis" style={{ display: "grid", gap: 12, marginBottom: 20 }}>
           <KpiCard label="Total de usuários"  value={total} />
-          <KpiCard label="Usuários ativos"    value={ativos}  color="#22c55e" />
-          <KpiCard label="Administradores"    value={admins}  color="#60a5fa" />
-          <KpiCard label="Usuários inativos"  value={inativos} color="#64748b" />
+          <KpiCard label="Usuários ativos"    value={ativos}  color="var(--theme-22c55e)" />
+          <KpiCard label="Administradores"    value={admins}  color="var(--theme-60a5fa)" />
+          <KpiCard label="Usuários inativos"  value={inativos} color="var(--theme-64748b)" />
         </div>
 
         {/* ── Filters ───────────────────────────────────────────────────── */}
@@ -682,19 +682,19 @@ export default function Usuarios() {
           </div>
           <select aria-label="Filtrar perfil" value={filterPerfil} onChange={(e) => setFilterPerfil(e.target.value)} style={selectStyle}>
             <option value="">Todos os perfis</option>
-            <option style={{ background: "#0d1728" }}>Administrador</option>
-            <option style={{ background: "#0d1728" }}>Analista</option>
-            <option style={{ background: "#0d1728" }}>Operador</option>
+            <option style={{ background: "var(--theme-0d1728)" }}>Administrador</option>
+            <option style={{ background: "var(--theme-0d1728)" }}>Analista</option>
+            <option style={{ background: "var(--theme-0d1728)" }}>Operador</option>
           </select>
           <select aria-label="Filtrar status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={selectStyle}>
             <option value="">Todos os status</option>
-            <option style={{ background: "#0d1728" }}>Ativo</option>
-            <option style={{ background: "#0d1728" }}>Inativo</option>
+            <option style={{ background: "var(--theme-0d1728)" }}>Ativo</option>
+            <option style={{ background: "var(--theme-0d1728)" }}>Inativo</option>
           </select>
           {(search || filterPerfil || filterStatus) && (
             <button
               onClick={() => { setSearch(""); setFilterPerfil(""); setFilterStatus(""); }}
-              style={{ background: "none", border: "1px solid #1e3a5f", borderRadius: 7, color: "var(--color-text-muted)", fontSize: 12, padding: "7px 12px", cursor: "pointer" }}
+              style={{ background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 7, color: "var(--color-text-muted)", fontSize: 12, padding: "7px 12px", cursor: "pointer" }}
             >
               Limpar filtros
             </button>
@@ -702,7 +702,7 @@ export default function Usuarios() {
         </div>
 
         {/* ── Table ─────────────────────────────────────────────────────── */}
-        <div style={{ background: "#111d2e", border: "1px solid #1a3050", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1a3050)", borderRadius: 10, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -723,12 +723,12 @@ export default function Usuarios() {
                       <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                         <Avatar name={u.name} size={34} />
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>{u.name}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)" }}>{u.name}</div>
                           <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>{u.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ ...cell, color: "#94a3b8" }}>{u.orgao}</td>
+                    <td style={{ ...cell, color: "var(--theme-94a3b8)" }}>{u.orgao}</td>
                     <td style={cell}><PerfilBadge p={u.perfil} /></td>
                     <td style={cell}><StatusBadge s={u.status} /></td>
                     <td style={{ ...cell, color: "var(--color-text-muted)", fontSize: 12 }}>{u.ultimoAcesso}</td>
@@ -745,7 +745,7 @@ export default function Usuarios() {
                             setOpenMenu(openMenu === u.id ? null : u.id);
                           }}
                           style={{
-                            background: "none", border: "1px solid #1e3a5f",
+                            background: "none", border: "1px solid var(--theme-1e3a5f)",
                             borderRadius: 6, color: "var(--color-text-muted)", fontSize: 16,
                             padding: "2px 10px", cursor: "pointer",
                             lineHeight: 1, letterSpacing: "0.1em",
@@ -781,7 +781,7 @@ export default function Usuarios() {
 
           {/* Table footer */}
           <div style={{
-            padding: "10px 16px", borderTop: "1px solid #1a3050",
+            padding: "10px 16px", borderTop: "1px solid var(--theme-1a3050)",
             fontSize: 11, color: "var(--color-text-muted)",
           }}>
             {filtered.length} de {users.length} usuários

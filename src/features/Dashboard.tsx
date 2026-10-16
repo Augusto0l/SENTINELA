@@ -58,7 +58,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
         {/* Page title row */}
         <div className="page-heading" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9", margin: 0, letterSpacing: "-0.02em" }}>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.02em" }}>
               Visão Geral do DF
             </h1>
             <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
@@ -73,7 +73,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           {/* Ocorrências no período */}
           <div style={kpiCard}>
             <div style={kpiLabel}>OCORRÊNCIAS NO PERÍODO</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#f1f5f9", lineHeight: 1, margin: "6px 0 4px" }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1, margin: "6px 0 4px" }}>
               {total.toLocaleString("pt-BR")}
             </div>
             <div style={kpiSub}>Total em todas as RAs</div>
@@ -86,7 +86,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           <div style={kpiCard}>
             <div style={kpiLabel}>RA COM MAIOR INCIDÊNCIA</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9", lineHeight: 1.2 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1.2 }}>
                 {topRA.nomeDisplay}
               </div>
               <span style={{ fontSize: 20, opacity: 0.5 }}>🛡</span>
@@ -100,12 +100,12 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           <div style={kpiCard}>
             <div style={kpiLabel}>MAIOR CRESCIMENTO</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#22c55e", lineHeight: 1.2 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-22c55e)", lineHeight: 1.2 }}>
                 {maxGrowth.nomeDisplay}
               </div>
-              <span style={{ fontSize: 18, color: "#22c55e" }}>↗</span>
+              <span style={{ fontSize: 18, color: "var(--theme-22c55e)" }}>↗</span>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#22c55e", marginTop: 2 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--theme-22c55e)", marginTop: 2 }}>
               +{maxGrowth.variation.toFixed(1)}%
             </div>
             <div style={kpiSub}>comparação fictícia ilustrativa</div>
@@ -115,12 +115,12 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           <div style={kpiCard}>
             <div style={kpiLabel}>MAIOR REDUÇÃO</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#60a5fa", lineHeight: 1.2 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-60a5fa)", lineHeight: 1.2 }}>
                 {maxDrop.nomeDisplay}
               </div>
-              <span style={{ fontSize: 18, color: "#60a5fa" }}>↘</span>
+              <span style={{ fontSize: 18, color: "var(--theme-60a5fa)" }}>↘</span>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#60a5fa", marginTop: 2 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--theme-60a5fa)", marginTop: 2 }}>
               {maxDrop.variation.toFixed(1)}%
             </div>
             <div style={kpiSub}>comparação fictícia ilustrativa</div>
@@ -130,7 +130,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           <div style={kpiCard}>
             <div style={kpiLabel}>NATUREZA EM DESTAQUE</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#f97316", lineHeight: 1.2 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f97316)", lineHeight: 1.2 }}>
                 {topNature?.[0] ?? "—"}
               </div>
               <span style={{ fontSize: 18, opacity: 0.5 }}>🍩</span>
@@ -148,7 +148,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             <div style={{
               flex: 1,
               background: "#07111f",
-              border: "1px solid #1a3050",
+              border: "1px solid var(--theme-1a3050)",
               borderRadius: 12,
               overflow: "hidden",
               display: "flex",
@@ -158,15 +158,15 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
               {/* Map header */}
               <div style={{
                 padding: "11px 16px",
-                borderBottom: "1px solid #1a3050",
+                borderBottom: "1px solid var(--theme-1a3050)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 flexShrink: 0,
-                background: "rgba(7,17,31,0.6)",
+                background: "var(--theme-map-control)",
               }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)" }}>
                     Ocorrências por Região Administrativa
                   </div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>
@@ -176,7 +176,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                 {/* Segmented mode selector */}
                 <div style={{
                   display: "flex", alignItems: "center",
-                  background: "#060e1a", border: "1px solid #1e3a5f",
+                  background: "var(--theme-map-control)", border: "1px solid var(--theme-1e3a5f)",
                   borderRadius: 7, padding: 3, gap: 2,
                 }}>
                   {(["heat", "points", "clusters"] as MapMode[]).map((m) => (
@@ -186,7 +186,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                       style={{
                         background: mapMode === m ? "#2563eb" : "transparent",
                         border: "none", borderRadius: 5,
-                        color: mapMode === m ? "#fff" : "#64748b",
+                        color: mapMode === m ? "#fff" : "var(--theme-64748b)",
                         fontSize: 11, fontWeight: mapMode === m ? 700 : 400,
                         padding: "5px 11px", cursor: "pointer",
                         transition: "background .15s, color .15s",
@@ -223,13 +223,13 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   ].map(({ title, svg }) => (
                     <button key={title} title={`${title} (demonstração)`} aria-label={`${title} (demonstração)`} onClick={() => notify("Controle ilustrativo; zoom e localização serão implementados em etapa posterior.")} style={{
                       width: 30, height: 30, borderRadius: 6,
-                      background: "rgba(7,17,31,0.82)", backdropFilter: "blur(4px)",
-                      border: "1px solid #1e3a5f", color: "var(--color-text-muted)",
+                      background: "var(--theme-map-control)", backdropFilter: "blur(4px)",
+                      border: "1px solid var(--theme-1e3a5f)", color: "var(--color-text-muted)",
                       cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                       transition: "border-color .15s, color .15s",
                     }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.color = "#60a5fa"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#64748b"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.color = "var(--theme-60a5fa)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--theme-1e3a5f)"; e.currentTarget.style.color = "var(--theme-64748b)"; }}
                     >
                       {svg}
                     </button>
@@ -247,7 +247,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   pointerEvents: "none",
                 }}>
                   <div style={{ fontSize: 9, color: "var(--color-text-muted)", marginBottom: 2 }}>20 km</div>
-                  <div style={{ width: 60, height: 2, background: "#475569", borderRadius: 1 }} />
+                  <div style={{ width: 60, height: 2, background: "var(--theme-475569)", borderRadius: 1 }} />
                 </div>
               </div>
             </div>
@@ -263,7 +263,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             <div style={panel}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <div style={panelLabel}>Ranking das RAs por ocorrências</div>
-                <button onClick={() => onNavigateToCrimeMap()} style={{ background: "none", border: "none", fontSize: 11, color: "#60a5fa", cursor: "pointer" }}>Ver todas</button>
+                <button onClick={() => onNavigateToCrimeMap()} style={{ background: "none", border: "none", fontSize: 11, color: "var(--theme-60a5fa)", cursor: "pointer" }}>Ver todas</button>
               </div>
               {topFiveRAs.map((ra, i) => {
                 const pct = (ra.occurrence_count / rankingMax) * 100;
@@ -272,8 +272,8 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   <div key={ra.codigo} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
                     <span style={{ fontSize: 11, color: "var(--color-text-muted)", width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 2 }}>{ra.nomeDisplay}</div>
-                      <div style={{ height: 3, background: "#0d1626", borderRadius: 2, overflow: "hidden" }}>
+                      <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>{ra.nomeDisplay}</div>
+                      <div style={{ height: 3, background: "var(--theme-0d1626)", borderRadius: 2, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 2 }} />
                       </div>
                     </div>
@@ -283,9 +283,9 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   </div>
                 );
               })}
-              <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 8, marginTop: 4, display: "flex", justifyContent: "space-between" }}>
+              <div style={{ borderTop: "1px solid var(--theme-1e3a5f)", paddingTop: 8, marginTop: 4, display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Total geral</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--theme-f1f5f9)", fontVariantNumeric: "tabular-nums" }}>
                   {total.toLocaleString("pt-BR")}
                 </span>
               </div>
@@ -300,11 +300,11 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             {/* Variation */}
             <div style={{ ...panel, padding: "12px 14px" }}>
               <div style={panelLabel}>Variação ilustrativa</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#f97316", marginTop: 6 }}>+8,4%</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f97316)", marginTop: 6 }}>+8,4%</div>
               <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>comparação fictícia ilustrativa</div>
               <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>Período anterior: {(total / 1.084).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ocorrências</div>
               <div style={{ marginTop: 8, height: 32 }}>
-                <SparklineInline data={sparkData} color="#60a5fa" />
+                <SparklineInline data={sparkData} color="var(--theme-60a5fa)" />
               </div>
             </div>
 
@@ -313,7 +313,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
               <div style={{ display: "flex", gap: 8 }}>
                 <span style={{ fontSize: 14, color: "#2563eb", flexShrink: 0, marginTop: 1 }}>💡</span>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#60a5fa", marginBottom: 4 }}>Como interpretar o mapa?</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--theme-60a5fa)", marginBottom: 4 }}>Como interpretar o mapa?</div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
                     Cores mais quentes indicam maior concentração de ocorrências. Clique em uma RA para ver detalhes e tendências.
                   </div>
@@ -345,8 +345,8 @@ function SparklineInline({ data, color }: { data: number[]; color: string }) {
 }
 
 const kpiCard: React.CSSProperties = {
-  background: "#0d1a2d",
-  border: "1px solid #1e3a5f",
+  background: "var(--theme-0d1a2d)",
+  border: "1px solid var(--theme-1e3a5f)",
   borderRadius: 10,
   padding: "14px 16px",
 };
@@ -367,8 +367,8 @@ const kpiSub: React.CSSProperties = {
 };
 
 const panel: React.CSSProperties = {
-  background: "#0d1a2d",
-  border: "1px solid #1e3a5f",
+  background: "var(--theme-0d1a2d)",
+  border: "1px solid var(--theme-1e3a5f)",
   borderRadius: 8,
   padding: "12px 14px",
 };

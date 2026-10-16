@@ -22,8 +22,8 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
   return (
     <div
       style={{
-        background: "#111d2e",
-        border: "1px solid #1e3a5f",
+        background: "var(--theme-111d2e)",
+        border: "1px solid var(--theme-1e3a5f)",
         borderTop: `2px solid ${color}`,
         borderRadius: 8,
         padding: "16px 18px",
@@ -40,7 +40,7 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
           {label}
         </span>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em", lineHeight: 1 }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: "var(--theme-f1f5f9)", letterSpacing: "-0.02em", lineHeight: 1 }}>
         {value}
       </div>
       {sub && (
@@ -55,7 +55,7 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
             marginTop: 4,
             fontSize: 12,
             fontWeight: 600,
-            color: isPositive ? "#22c55e" : isNegative ? "#ef4444" : "#64748b",
+            color: isPositive ? "var(--theme-22c55e)" : isNegative ? "var(--theme-ef4444)" : "var(--theme-64748b)",
           }}
         >
           {isPositive && <span>▲</span>}

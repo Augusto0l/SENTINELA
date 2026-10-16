@@ -78,12 +78,12 @@ export default function RALayer({ geoJSON, raStats, selectedRA, onSelectRA }: RA
           });
 
           tooltipEl.innerHTML = `
-            <div style="font-weight:700;font-size:13px;color:#f1f5f9;margin-bottom:4px">${displayName}</div>
+            <div style="font-weight:700;font-size:13px;color:var(--color-text-primary);margin-bottom:4px">${displayName}</div>
             ${ra ? `
-              <div style="font-size:11px;color:#94a3b8">Total: <b style="color:#f1f5f9">${ra.occurrence_count.toLocaleString("pt-BR")}</b></div>
+              <div style="font-size:11px;color:var(--color-text-secondary)">Total: <b style="color:var(--color-text-primary)">${ra.occurrence_count.toLocaleString("pt-BR")}</b></div>
               <div style="font-size:11px;color:${ra.variation > 0 ? "#22c55e" : "#ef4444"}">${ra.variation > 0 ? "▲" : "▼"} ${Math.abs(ra.variation).toFixed(1)}% vs período anterior</div>
-              <div style="font-size:11px;color:#94a3b8;margin-top:2px">Principal: <b style="color:#f1f5f9">${ra.most_common_crime}</b></div>
-            ` : `<div style="font-size:11px;color:#475569">Sem dados estatísticos</div>`}
+              <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Principal: <b style="color:var(--color-text-primary)">${ra.most_common_crime}</b></div>
+            ` : `<div style="font-size:11px;color:var(--color-text-muted)">Sem dados estatísticos</div>`}
           `;
         });
 

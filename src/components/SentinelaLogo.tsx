@@ -125,7 +125,7 @@ export function SentinelaBrand({ iconSize = 36 }: { iconSize?: number }) {
           style={{
             fontSize: 15,
             fontWeight: 800,
-            color: "#f1f5f9",
+            color: "var(--color-text-primary)",
             letterSpacing: "0.12em",
             lineHeight: 1,
             fontFamily: '"Inter","Segoe UI",system-ui,sans-serif',

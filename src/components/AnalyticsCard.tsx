@@ -14,16 +14,16 @@ export default function AnalyticsCard({ label, value, sub, variation, sparkData,
   const chartData = sparkData?.map((v, i) => ({ i, v })) ?? [];
 
   return (
-    <div style={{ background: "#111d2e", border: "1px solid #1e3a5f", borderRadius: 8, padding: "14px 16px", marginBottom: 10 }}>
+    <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px", marginBottom: 10 }}>
       <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
         {label}
       </div>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 }}>{value}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1 }}>{value}</div>
           {sub && <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4 }}>{sub}</div>}
           {variation !== undefined && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 12, fontWeight: 600, color: isPositive ? "#22c55e" : "#ef4444" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 12, fontWeight: 600, color: isPositive ? "var(--theme-22c55e)" : "var(--theme-ef4444)" }}>
               {isPositive ? "▲" : "▼"}
               {variation > 0 ? "+" : ""}{variation.toFixed(1)}%
             </div>

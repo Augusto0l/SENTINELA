@@ -15,10 +15,10 @@ interface FilterBarProps {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: "#111d2e",
-  border: "1px solid #1e3a5f",
+  background: "var(--theme-111d2e)",
+  border: "1px solid var(--theme-1e3a5f)",
   borderRadius: 6,
-  color: "#94a3b8",
+  color: "var(--theme-94a3b8)",
   fontSize: 12,
   padding: "6px 10px",
   cursor: "pointer",
@@ -32,8 +32,8 @@ export default function FilterBar({ filters, onChange, showWeekday }: FilterBarP
   return (
     <div
       style={{
-        background: "#0d1626",
-        borderBottom: "1px solid #1e3a5f",
+        background: "var(--theme-0d1626)",
+        borderBottom: "1px solid var(--theme-1e3a5f)",
         padding: "10px 24px",
         display: "flex",
         alignItems: "center",
@@ -46,38 +46,38 @@ export default function FilterBar({ filters, onChange, showWeekday }: FilterBarP
 
       <select style={selectStyle} value={filters.period} onChange={(e) => set("period", e.target.value)}>
         {PERIODS.map((p) => (
-          <option key={p.value} value={p.value} style={{ background: "#111d2e" }}>
+          <option key={p.value} value={p.value} style={{ background: "var(--theme-111d2e)" }}>
             {p.label}
           </option>
         ))}
       </select>
 
       <select style={selectStyle} value={filters.region} onChange={(e) => set("region", e.target.value)}>
-        <option value="" style={{ background: "#111d2e" }}>Todas as regiões</option>
+        <option value="" style={{ background: "var(--theme-111d2e)" }}>Todas as regiões</option>
         {RA_LIST.map((ra) => (
-          <option key={ra.codigo} value={ra.nomeDisplay} style={{ background: "#111d2e" }}>
+          <option key={ra.codigo} value={ra.nomeDisplay} style={{ background: "var(--theme-111d2e)" }}>
             {ra.nomeCompleto}
           </option>
         ))}
       </select>
 
       <select style={selectStyle} value={filters.nature} onChange={(e) => set("nature", e.target.value)}>
-        <option value="" style={{ background: "#111d2e" }}>Todas as naturezas</option>
+        <option value="" style={{ background: "var(--theme-111d2e)" }}>Todas as naturezas</option>
         {CRIME_NATURES.map((n) => (
-          <option key={n} value={n} style={{ background: "#111d2e" }}>{n}</option>
+          <option key={n} value={n} style={{ background: "var(--theme-111d2e)" }}>{n}</option>
         ))}
       </select>
 
       <select style={selectStyle} value={filters.hour} onChange={(e) => set("hour", e.target.value)}>
         {HOURS.map((h) => (
-          <option key={h.value} value={h.value} style={{ background: "#111d2e" }}>{h.label}</option>
+          <option key={h.value} value={h.value} style={{ background: "var(--theme-111d2e)" }}>{h.label}</option>
         ))}
       </select>
 
       {showWeekday && (
         <select style={selectStyle} value={filters.weekday ?? ""} onChange={(e) => set("weekday", e.target.value)}>
           {WEEKDAYS.map((d) => (
-            <option key={d.value} value={d.value} style={{ background: "#111d2e" }}>{d.label}</option>
+            <option key={d.value} value={d.value} style={{ background: "var(--theme-111d2e)" }}>{d.label}</option>
           ))}
         </select>
       )}
@@ -96,7 +96,7 @@ export default function FilterBar({ filters, onChange, showWeekday }: FilterBarP
         }
         style={{
           background: "transparent",
-          border: "1px solid #1e3a5f",
+          border: "1px solid var(--theme-1e3a5f)",
           borderRadius: 6,
           color: "var(--color-text-muted)",
           fontSize: 12,

@@ -1,0 +1,2 @@
+export const themeStorageKey = "sentinela-theme";
+export const themeInitializationScript = `(function(){var t="escuro";try{var s=localStorage.getItem("sentinela-theme");if(s==="claro"||s==="escuro"||s==="sistema")t=s}catch(e){}document.documentElement.dataset.themePreference=t;document.documentElement.dataset.theme=t==="sistema"?(matchMedia("(prefers-color-scheme: dark)").matches?"escuro":"claro"):t})()`;

@@ -16,8 +16,8 @@ export default function MapViewToggle({ mode, onChange }: MapViewToggleProps) {
   return (
     <div style={{
       display: "flex",
-      background: "rgba(13,22,38,0.92)",
-      border: "1px solid #1e3a5f",
+      background: "var(--theme-map-control)",
+      border: "1px solid var(--theme-1e3a5f)",
       borderRadius: 7,
       overflow: "hidden",
     }}>
@@ -28,8 +28,8 @@ export default function MapViewToggle({ mode, onChange }: MapViewToggleProps) {
           style={{
             background: mode === opt.key ? "#2563eb" : "transparent",
             border: "none",
-            borderRight: opt.key !== "clusters" ? "1px solid #1e3a5f" : "none",
-            color: mode === opt.key ? "#fff" : "#64748b",
+            borderRight: opt.key !== "clusters" ? "1px solid var(--theme-1e3a5f)" : "none",
+            color: mode === opt.key ? "#fff" : "var(--theme-64748b)",
             fontSize: 12,
             fontWeight: mode === opt.key ? 600 : 400,
             padding: "7px 14px",

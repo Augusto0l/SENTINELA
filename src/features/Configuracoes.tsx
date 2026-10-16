@@ -1,45 +1,46 @@
 "use client";
 
+import { useTheme } from "@/components/ThemeProvider";
 import { useId, useState } from "react";
 import { useDemoToast } from "../components/DemoProvider";
 import Header from "../components/Header";
 
 // ─── Inline SVG icons ──────────────────────────────────────────────────────
 const IcPerfil = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="4" />
     <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
   </svg>
 );
 const IcPrefs = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
     <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
   </svg>
 );
 const IcPalette = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="13.5" cy="6.5" r="1.5" fill="#60a5fa" stroke="none" />
-    <circle cx="17.5" cy="10.5" r="1.5" fill="#60a5fa" stroke="none" />
-    <circle cx="8.5" cy="7.5" r="1.5" fill="#60a5fa" stroke="none" />
-    <circle cx="6.5" cy="12.5" r="1.5" fill="#60a5fa" stroke="none" />
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="13.5" cy="6.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
+    <circle cx="17.5" cy="10.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
+    <circle cx="8.5" cy="7.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
+    <circle cx="6.5" cy="12.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
   </svg>
 );
 const IcLock = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
     <path d="M7 11V7a5 5 0 0110 0v4" />
   </svg>
 );
 const IcBell = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 01-3.46 0" />
   </svg>
 );
 const IcShield = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
@@ -110,7 +111,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
       aria-checked={on}
       style={{
         width: 42, height: 24, borderRadius: 12, border: "none",
-        background: on ? "#2563eb" : "#1e3a5f",
+        background: on ? "#2563eb" : "var(--theme-1e3a5f)",
         position: "relative", cursor: "pointer", flexShrink: 0,
         transition: "background .18s ease", padding: 0, outline: "none",
       }}
@@ -118,7 +119,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
       <span style={{
         position: "absolute", top: 3, left: on ? 21 : 3,
         width: 18, height: 18, borderRadius: "50%",
-        background: on ? "#fff" : "#64748b",
+        background: on ? "#fff" : "var(--theme-64748b)",
         transition: "left .18s ease",
         boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
       }} />
@@ -132,8 +133,8 @@ function Card({ icon, title, subtitle, children }: {
 }) {
   return (
     <section style={{
-      background: "#111d2e",
-      border: "1px solid #1a3050",
+      background: "var(--theme-111d2e)",
+      border: "1px solid var(--theme-1a3050)",
       borderRadius: 12,
       marginBottom: 12,
       overflow: "hidden",
@@ -142,7 +143,7 @@ function Card({ icon, title, subtitle, children }: {
       <div style={{
         display: "flex", alignItems: "center", gap: 12,
         padding: "18px 22px 16px",
-        borderBottom: "1px solid #1a3050",
+        borderBottom: "1px solid var(--theme-1a3050)",
       }}>
         <div style={{
           width: 36, height: 36, borderRadius: 8, flexShrink: 0,
@@ -153,7 +154,7 @@ function Card({ icon, title, subtitle, children }: {
           {icon}
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em" }}>{title}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)", letterSpacing: "-0.01em" }}>{title}</div>
           <div style={{ fontSize: 11.5, color: "var(--color-text-muted)", marginTop: 1 }}>{subtitle}</div>
         </div>
       </div>
@@ -176,7 +177,7 @@ function FieldRow({ label, value, onChange, type = "text" }: {
       padding: "11px 0",
       borderBottom: "1px solid rgba(26,48,80,0.6)",
     }}>
-      <label htmlFor={id} style={{ fontSize: 13, color: "#94a3b8" }}>{label}</label>
+      <label htmlFor={id} style={{ fontSize: 13, color: "var(--theme-94a3b8)" }}>{label}</label>
       <input
         id={id} autoComplete={type === "password" ? "off" : undefined}
         type={type}
@@ -184,15 +185,15 @@ function FieldRow({ label, value, onChange, type = "text" }: {
         onChange={(e) => onChange?.(e.target.value)}
         style={{
           width: "100%", boxSizing: "border-box",
-          background: "#0d1728",
-          border: "1px solid #1e3a5f",
-          borderRadius: 7, color: "#f1f5f9", fontSize: 13,
+          background: "var(--theme-0d1728)",
+          border: "1px solid var(--theme-1e3a5f)",
+          borderRadius: 7, color: "var(--theme-f1f5f9)", fontSize: 13,
           padding: "8px 12px", outline: "none",
           letterSpacing: type === "password" ? "0.12em" : "normal",
           transition: "border-color .15s",
         }}
         onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
-        onBlur={(e) => (e.currentTarget.style.borderColor = "#1e3a5f")}
+        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")}
       />
     </div>
   );
@@ -208,7 +209,7 @@ function SwitchRow({ label, on, onChange, last }: {
       padding: "13px 0",
       borderBottom: last ? "none" : "1px solid rgba(26,48,80,0.6)",
     }}>
-      <span style={{ fontSize: 13, color: "#94a3b8" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--theme-94a3b8)" }}>{label}</span>
       <Toggle on={on} onChange={onChange} label={label} />
     </div>
   );
@@ -227,13 +228,13 @@ function InfoRow({ label, value, badge, last }: {
       <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{label}</span>
       {badge ? (
         <span style={{
-          fontSize: 11, fontWeight: 700, color: "#22c55e",
+          fontSize: 11, fontWeight: 700, color: "var(--theme-22c55e)",
           background: "rgba(34,197,94,0.1)",
           border: "1px solid rgba(34,197,94,0.25)",
           borderRadius: 20, padding: "2px 11px",
         }}>{value}</span>
       ) : (
-        <span style={{ fontSize: 13, color: "#94a3b8" }}>{value}</span>
+        <span style={{ fontSize: 13, color: "var(--theme-94a3b8)" }}>{value}</span>
       )}
     </div>
   );
@@ -246,10 +247,11 @@ function ThemeCard({ label, selected, onSelect, preview }: {
   return (
     <button
       onClick={onSelect}
+      aria-pressed={selected}
       style={{
         flex: 1, position: "relative",
-        background: selected ? "rgba(37,99,235,0.07)" : "#0d1728",
-        border: `2px solid ${selected ? "#2563eb" : "#1e3a5f"}`,
+        background: selected ? "rgba(37,99,235,0.07)" : "var(--theme-0d1728)",
+        border: `2px solid ${selected ? "#2563eb" : "var(--theme-1e3a5f)"}`,
         borderRadius: 10, cursor: "pointer",
         display: "flex", flexDirection: "column",
         alignItems: "center", gap: 10,
@@ -270,7 +272,7 @@ function ThemeCard({ label, selected, onSelect, preview }: {
       {preview}
       <span style={{
         fontSize: 12, fontWeight: selected ? 600 : 400,
-        color: selected ? "#60a5fa" : "#64748b",
+        color: selected ? "var(--theme-60a5fa)" : "var(--theme-64748b)",
       }}>{label}</span>
     </button>
   );
@@ -303,7 +305,7 @@ export default function Configuracoes() {
   const [notifRelatorios, setNotifRelatorios]   = useState(true);
 
   // Aparência
-  const [tema, setTema] = useState<"claro" | "escuro" | "sistema">("escuro");
+  const { theme: tema, setTheme: setTema } = useTheme();
 
   // Save state
   const [saving, setSaving]   = useState(false);
@@ -314,7 +316,7 @@ export default function Configuracoes() {
     await new Promise((r) => setTimeout(r, 1200));
     setSaving(false);
     setSavedOk(true);
-    notify("Simulação concluída. Preferências não foram gravadas nem aplicadas às outras telas.");
+    notify("Simulação concluída. As demais preferências não foram gravadas nem aplicadas às outras telas.");
     setTimeout(() => setSavedOk(false), 2600);
   }
 
@@ -326,7 +328,7 @@ export default function Configuracoes() {
         {/* ── Page heading ─────────────────────────────────────────────── */}
         <div className="page-heading" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: 0, letterSpacing: "-0.025em" }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.025em" }}>
               Configurações
             </h1>
             <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
@@ -336,11 +338,11 @@ export default function Configuracoes() {
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 2 }}>
             {savedOk && (
-              <span style={{ fontSize: 12, color: "#22c55e", display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 12, color: "var(--theme-22c55e)", display: "flex", alignItems: "center", gap: 5 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                Simulação concluída; sem gravação
+                Simulação concluída; demais preferências sem gravação
               </span>
             )}
             <button
@@ -384,7 +386,7 @@ export default function Configuracoes() {
             {/* Aparência */}
             <Card icon={<IcPalette />} title="Aparência" subtitle="Personalize a aparência da plataforma">
               <div style={{ paddingTop: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-94a3b8)", marginBottom: 14 }}>
                   Tema da interface
                 </div>
                 <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
@@ -399,11 +401,11 @@ export default function Configuracoes() {
                   border: "1px solid rgba(30,58,95,0.5)",
                   borderRadius: 7,
                 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--theme-475569)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                   <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
-                    Prévia demonstrativa; a seleção não altera o tema global.
+                    O tema é aplicado imediatamente e salvo neste navegador.
                   </span>
                 </div>
               </div>
@@ -426,7 +428,7 @@ export default function Configuracoes() {
               }}>
                 <Toggle on={mfa} onChange={setMfa} label="Simular autenticação em dois fatores" />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)" }}>
                     Autenticação em dois fatores
                   </div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
@@ -468,13 +470,13 @@ export default function Configuracoes() {
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
                     background: "transparent",
-                    border: "1px solid #1e3a5f",
+                    border: "1px solid var(--theme-1e3a5f)",
                     borderRadius: 7, color: "var(--color-text-muted)", fontSize: 13,
                     padding: "8px 14px", cursor: "pointer",
                     transition: "border-color .15s, color .15s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#475569"; e.currentTarget.style.color = "#94a3b8"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#64748b"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--theme-475569)"; e.currentTarget.style.color = "var(--theme-94a3b8)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--theme-1e3a5f)"; e.currentTarget.style.color = "var(--theme-64748b)"; }}
                 >
                   <IcLogout />
                   Encerrar todas as sessões

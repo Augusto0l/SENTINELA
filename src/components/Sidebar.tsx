@@ -39,8 +39,8 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
       style={{
         width: collapsed ? 56 : 240,
         minWidth: collapsed ? 56 : 240,
-        background: "#0d1626",
-        borderRight: "1px solid #1e3a5f",
+        background: "var(--theme-0d1626)",
+        borderRight: "1px solid var(--theme-1e3a5f)",
         display: "flex",
         flexDirection: "column",
         transition: "width 0.2s ease, min-width 0.2s ease",
@@ -53,7 +53,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
       <div
         style={{
           padding: collapsed ? "16px 0" : "16px 18px",
-          borderBottom: "1px solid #1e3a5f",
+          borderBottom: "1px solid var(--theme-1e3a5f)",
           display: "flex",
           alignItems: "center",
           justifyContent: collapsed ? "center" : "flex-start",
@@ -98,7 +98,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
                     background: active ? "rgba(37,99,235,0.15)" : "transparent",
                     border: "none",
                     borderLeft: active ? "3px solid #2563eb" : "3px solid transparent",
-                    color: active ? "#93c5fd" : "#64748b",
+                    color: active ? "var(--theme-93c5fd)" : "var(--theme-64748b)",
                     cursor: "pointer",
                     fontSize: 13,
                     fontWeight: active ? 600 : 400,
@@ -106,10 +106,10 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
                     textAlign: "left",
                   }}
                   onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--theme-94a3b8)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--theme-64748b)";
                   }}
                 >
                   <span style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
@@ -125,7 +125,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
       <div
         style={{
           padding: collapsed ? "14px 0" : "14px 16px",
-          borderTop: "1px solid #1e3a5f",
+          borderTop: "1px solid var(--theme-1e3a5f)",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -151,7 +151,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
         </div>
         {!collapsed && (
           <div className="sidebar-text" style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               Pedro Augusto
             </div>
             <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Administrador</div>
@@ -173,8 +173,8 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
           width: 24,
           height: 24,
           borderRadius: "50%",
-          background: "#0d1626",
-          border: "1px solid #1e3a5f",
+          background: "var(--theme-0d1626)",
+          border: "1px solid var(--theme-1e3a5f)",
           color: "var(--color-text-muted)",
           cursor: "pointer",
           display: "flex",
