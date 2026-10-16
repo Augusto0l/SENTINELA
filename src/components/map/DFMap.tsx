@@ -356,11 +356,11 @@ export default function DFMap({
             position: "absolute",
             left: Math.min(tooltip.x + 14, width - 200),
             top: Math.max(tooltip.y - 16, 4),
-            background: "#111d2e",
-            border: "1px solid #1e3a5f",
+            background: "var(--theme-111d2e)",
+            border: "1px solid var(--theme-1e3a5f)",
             borderRadius: 8,
             padding: "10px 14px",
-            color: "#f1f5f9",
+            color: "var(--theme-f1f5f9)",
             pointerEvents: "none",
             zIndex: 50,
             boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
@@ -370,9 +370,9 @@ export default function DFMap({
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{tooltip.nome}</div>
           {tooltip.count != null && (
             <>
-              <div style={{ fontSize: 11, color: "#94a3b8" }}>
+              <div style={{ fontSize: 11, color: "var(--theme-94a3b8)" }}>
                 Total:{" "}
-                <b style={{ color: "#f1f5f9" }}>{tooltip.count.toLocaleString("pt-BR")}</b>
+                <b style={{ color: "var(--theme-f1f5f9)" }}>{tooltip.count.toLocaleString("pt-BR")}</b>
               </div>
               {tooltip.variation != null && (
                 <div style={{ fontSize: 11, color: tooltip.variation > 0 ? "#22c55e" : "#ef4444" }}>
@@ -380,9 +380,9 @@ export default function DFMap({
                 </div>
               )}
               {tooltip.crime && (
-                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: "var(--theme-94a3b8)", marginTop: 2 }}>
                   Principal:{" "}
-                  <b style={{ color: "#f1f5f9" }}>{tooltip.crime}</b>
+                  <b style={{ color: "var(--theme-f1f5f9)" }}>{tooltip.crime}</b>
                 </div>
               )}
             </>
@@ -397,11 +397,11 @@ export default function DFMap({
             position: "absolute",
             left: Math.min(popup.x + 10, width - 200),
             top: Math.max(popup.y - 100, 4),
-            background: "#111d2e",
-            border: "1px solid #1e3a5f",
+            background: "var(--theme-111d2e)",
+            border: "1px solid var(--theme-1e3a5f)",
             borderRadius: 8,
             padding: "12px 14px",
-            color: "#f1f5f9",
+            color: "var(--theme-f1f5f9)",
             zIndex: 60,
             boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
             minWidth: 170,
@@ -409,13 +409,13 @@ export default function DFMap({
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{popup.occ.natureza}</div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 2 }}>
+          <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>
             📅 {popup.occ.data} — {popup.occ.horario}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 2 }}>
+          <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>
             📍 {popup.occ.ra_nome}
           </div>
-          <div style={{ fontSize: 11, color: "#475569", marginTop: 6 }}>
+          <div style={{ fontSize: 11, color: "var(--theme-475569)", marginTop: 6 }}>
             Ocorrência {popup.occ.id}
           </div>
           <div style={{ fontSize: 9, color: "#334155", marginTop: 4, fontStyle: "italic" }}>
@@ -425,7 +425,7 @@ export default function DFMap({
             onClick={() => setPopup(null)}
             style={{
               position: "absolute", top: 6, right: 8,
-              background: "none", border: "none", color: "#64748b",
+              background: "none", border: "none", color: "var(--theme-64748b)",
               cursor: "pointer", fontSize: 14, lineHeight: 1,
             }}
           >
@@ -438,16 +438,16 @@ export default function DFMap({
       {mapMode !== "heatmap" && (
         <div style={{
           position: "absolute", bottom: 12, left: 12, zIndex: 10,
-          background: "rgba(13,22,38,0.92)", border: "1px solid #1e3a5f",
+          background: "var(--theme-map-control)", border: "1px solid var(--theme-1e3a5f)",
           borderRadius: 6, padding: "10px 14px", minWidth: 200,
         }}>
-          <div style={{ fontSize: 10, color: "#475569", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 6, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 10, color: "var(--theme-475569)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 6, textTransform: "uppercase" }}>
             Ocorrências por RA
           </div>
           <div style={{ height: 10, borderRadius: 5, background: "linear-gradient(to right, #1e3a5f, #1d4ed8, #0891b2, #ca8a04, #ea580c, #dc2626)" }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 10, color: "#64748b" }}>← {minCount.toLocaleString("pt-BR")}</span>
-            <span style={{ fontSize: 10, color: "#64748b" }}>{maxCount.toLocaleString("pt-BR")} →</span>
+            <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>← {minCount.toLocaleString("pt-BR")}</span>
+            <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>{maxCount.toLocaleString("pt-BR")} →</span>
           </div>
         </div>
       )}
@@ -456,16 +456,16 @@ export default function DFMap({
       {mapMode === "heatmap" && (
         <div style={{
           position: "absolute", bottom: 12, left: 12, zIndex: 10,
-          background: "rgba(13,22,38,0.92)", border: "1px solid #1e3a5f",
+          background: "var(--theme-map-control)", border: "1px solid var(--theme-1e3a5f)",
           borderRadius: 6, padding: "10px 14px", minWidth: 180,
         }}>
-          <div style={{ fontSize: 10, color: "#475569", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 6, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 10, color: "var(--theme-475569)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 6, textTransform: "uppercase" }}>
             Densidade de ocorrências
           </div>
           <div style={{ height: 10, borderRadius: 5, background: "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff7700, #ff0000)" }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 10, color: "#64748b" }}>Baixa</span>
-            <span style={{ fontSize: 10, color: "#64748b" }}>Alta</span>
+            <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>Baixa</span>
+            <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>Alta</span>
           </div>
         </div>
       )}

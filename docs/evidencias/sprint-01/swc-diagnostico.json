@@ -1,0 +1,39 @@
+{
+  "data_revisao": "2026-10-09",
+  "node": "22.23.2",
+  "npm": "10.9.8",
+  "pnpm_local": "12.9.1",
+  "plataforma": "win32",
+  "arquitetura": "x64",
+  "next": "16.3.6",
+  "node_minimo_declarado_pelo_next": ">=20.9.0",
+  "swc_nativo": {
+    "pacote": "@next/swc-win32-x64-msvc",
+    "versao": "16.3.6",
+    "bytes": 106190336,
+    "sha256_inicial_e_final": "7a9c553cb7efe1fd2529aa8c18e17d02cd80dfdb49a6b99ddfc75ef1e888d8dc",
+    "assinatura_inicial": "NotSigned",
+    "streams_observados": [":$DATA"],
+    "erro_inicial": "Uma política de Controle de Aplicativo bloqueou este arquivo.",
+    "codigo_inicial": "ERR_DLOPEN_FAILED",
+    "eventos_code_integrity": [3077, 3033],
+    "mensagem_evento": "did not meet the Enterprise signing level requirements or violated code integrity policy",
+    "teste_final": "carregado com sucesso",
+    "alteracao_de_politica_pelo_agente": false,
+    "alteracao_do_binario_pelo_agente": false,
+    "causa_da_mudanca_de_comportamento": "Não determinada. Hash e versão permaneceram iguais; não atribuir a desbloqueio manual."
+  },
+  "fallback": {
+    "pacote": "@next/swc-wasm-nodejs",
+    "versao": "16.3.6",
+    "cache_inicial": "next/wasm/@next/swc-wasm-nodejs existente e vazio",
+    "reparo": "Preenchimento do cache com os arquivos da dependência oficial da mesma versão; nenhum código do Next foi editado.",
+    "build_webpack_wasm": "aprovado",
+    "build_final": "aprovado com Turbopack/SWC nativo",
+    "entrada_reproduzivel": "scripts/next-cli.mjs",
+    "nota_lock": "Next informa que não cria .next/lock quando usa WASM; builds de homologação foram executados sequencialmente."
+  },
+  "navegador": "Chrome 154.0.8037.98",
+  "wsl": "Não instalado; não foi instalado nem configurado nesta tarefa.",
+  "auditoria_preservada_sha256": "810A65A61FBFE48EBD5D3F0618108C6784846389FF24D4D7468A3B564CDB4530"
+}

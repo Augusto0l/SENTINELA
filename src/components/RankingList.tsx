@@ -12,7 +12,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
 
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
         Ranking por ocorrências
       </div>
       {sorted.map((ra, i) => {
@@ -37,7 +37,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
                 width: 18,
                 fontSize: 11,
                 fontWeight: 700,
-                color: i === 0 ? "#ef4444" : i === 1 ? "#f97316" : "#64748b",
+                color: i === 0 ? "var(--theme-ef4444)" : i === 1 ? "var(--theme-f97316)" : "var(--theme-64748b)",
                 textAlign: "right",
                 flexShrink: 0,
               }}
@@ -49,7 +49,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
                 style={{
                   fontSize: 12,
                   fontWeight: active ? 700 : 500,
-                  color: active ? "#93c5fd" : "#94a3b8",
+                  color: active ? "var(--theme-93c5fd)" : "var(--theme-94a3b8)",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -61,7 +61,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
               <div
                 style={{
                   height: 3,
-                  background: "#0d1626",
+                  background: "var(--theme-0d1626)",
                   borderRadius: 2,
                   overflow: "hidden",
                 }}
@@ -80,7 +80,7 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
             <span
               style={{
                 fontSize: 11,
-                color: "#64748b",
+                color: "var(--color-text-muted)",
                 flexShrink: 0,
                 fontVariantNumeric: "tabular-nums",
               }}
@@ -94,9 +94,9 @@ export default function RankingList({ limit = 5, selectedRA, onSelect }: Ranking
         <button
           style={{
             background: "transparent",
-            border: "1px solid #1e3a5f",
+            border: "1px solid var(--theme-1e3a5f)",
             borderRadius: 5,
-            color: "#64748b",
+            color: "var(--color-text-muted)",
             fontSize: 11,
             padding: "5px 10px",
             cursor: "pointer",

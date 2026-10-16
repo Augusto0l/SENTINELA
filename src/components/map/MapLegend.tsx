@@ -9,14 +9,14 @@ export default function MapLegend({ mode, min, max }: MapLegendProps) {
     return (
       <div
         style={{
-          background: "rgba(13,22,38,0.92)",
-          border: "1px solid #1e3a5f",
+          background: "var(--theme-map-control)",
+          border: "1px solid var(--theme-1e3a5f)",
           borderRadius: 6,
           padding: "10px 14px",
           minWidth: 180,
         }}
       >
-        <div style={{ fontSize: 10, color: "#475569", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8, textTransform: "uppercase" }}>
+        <div style={{ fontSize: 10, color: "var(--theme-475569)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8, textTransform: "uppercase" }}>
           Densidade de Ocorrências
         </div>
         <div
@@ -27,8 +27,8 @@ export default function MapLegend({ mode, min, max }: MapLegendProps) {
           }}
         />
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: "#64748b" }}>Baixa</span>
-          <span style={{ fontSize: 10, color: "#64748b" }}>Alta</span>
+          <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>Baixa</span>
+          <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>Alta</span>
         </div>
       </div>
     );
@@ -37,14 +37,14 @@ export default function MapLegend({ mode, min, max }: MapLegendProps) {
   return (
     <div
       style={{
-        background: "rgba(13,22,38,0.92)",
-        border: "1px solid #1e3a5f",
+        background: "var(--theme-map-control)",
+        border: "1px solid var(--theme-1e3a5f)",
         borderRadius: 6,
         padding: "10px 14px",
         minWidth: 200,
       }}
     >
-      <div style={{ fontSize: 10, color: "#475569", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8, textTransform: "uppercase" }}>
+      <div style={{ fontSize: 10, color: "var(--theme-475569)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8, textTransform: "uppercase" }}>
         Ocorrências por RA
       </div>
       <div
@@ -55,8 +55,8 @@ export default function MapLegend({ mode, min, max }: MapLegendProps) {
         }}
       />
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 10, color: "#64748b" }}>← {min.toLocaleString("pt-BR")}</span>
-        <span style={{ fontSize: 10, color: "#64748b" }}>{max.toLocaleString("pt-BR")} →</span>
+        <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>← {min.toLocaleString("pt-BR")}</span>
+        <span style={{ fontSize: 10, color: "var(--theme-64748b)" }}>{max.toLocaleString("pt-BR")} →</span>
       </div>
     </div>
   );

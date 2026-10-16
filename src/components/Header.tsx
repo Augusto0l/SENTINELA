@@ -1,15 +1,24 @@
+"use client";
+
+import { useTheme } from "@/components/ThemeProvider";
+import { useRouter } from "next/navigation";
+import { useDemoToast } from "./DemoProvider";
+
 interface HeaderProps {
   title: string;
   subtitle?: string;
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
+  const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
+  const notify = useDemoToast();
   return (
-    <header
+    <header className="system-topbar"
       style={{
         height: 56,
-        background: "#0d1626",
-        borderBottom: "1px solid #1e3a5f",
+        background: "var(--theme-0d1626)",
+        borderBottom: "1px solid var(--theme-1e3a5f)",
         display: "flex",
         alignItems: "center",
         padding: "0 24px",
@@ -19,39 +28,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
     >
       {/* Page title on left for context */}
       <div style={{ flex: "0 0 auto", marginRight: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8" }}>{title}</span>
-        {subtitle && <span style={{ fontSize: 12, color: "#334155", marginLeft: 8 }}>{subtitle}</span>}
-      </div>
-
-      {/* Search */}
-      <div style={{ flex: 1, maxWidth: 480, position: "relative" }}>
-        <span
-          style={{
-            position: "absolute",
-            left: 12,
-            top: "50%",
-            transform: "translateY(-50%)",
-            color: "#334155",
-            fontSize: 13,
-            pointerEvents: "none",
-          }}
-        >
-          ⌕
-        </span>
-        <input
-          type="text"
-          placeholder="Buscar ocorrência, região, natureza..."
-          style={{
-            width: "100%",
-            background: "#080f1a",
-            border: "1px solid #1e3a5f",
-            borderRadius: 6,
-            padding: "7px 12px 7px 32px",
-            fontSize: 13,
-            color: "#94a3b8",
-            outline: "none",
-          }}
-        />
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-94a3b8)" }}>{title}</span>
+        {subtitle && <span className="topbar-subtitle" style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginLeft: 8 }}>{subtitle}</span>}
       </div>
 
       <div style={{ flex: 1 }} />
@@ -59,11 +37,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
       {/* Notifications */}
       <button
         title="Notificações"
+        aria-label="Notificações demonstrativas"
+        onClick={() => notify("Notificações ilustrativas. Não há alertas de ocorrências reais.")}
         style={{
           position: "relative",
           background: "transparent",
           border: "none",
-          color: "#64748b",
+          color: "var(--color-text-muted)",
           cursor: "pointer",
           fontSize: 18,
           padding: "4px 8px",
@@ -80,7 +60,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
             height: 8,
             background: "#ef4444",
             borderRadius: "50%",
-            border: "2px solid #0d1626",
+            border: "2px solid var(--theme-0d1626)",
           }}
         />
       </button>
@@ -88,20 +68,23 @@ export default function Header({ title, subtitle }: HeaderProps) {
       {/* Theme toggle */}
       <button
         title="Alternar tema"
+        aria-label={resolvedTheme === "escuro" ? "Ativar tema claro" : "Ativar tema escuro"}
+        aria-pressed={resolvedTheme === "escuro"}
+        onClick={() => setTheme(resolvedTheme === "escuro" ? "claro" : "escuro")}
         style={{
           background: "transparent",
           border: "none",
-          color: "#64748b",
+          color: "var(--color-text-muted)",
           cursor: "pointer",
           fontSize: 16,
           padding: "4px 8px",
         }}
       >
-        ◑
+        {resolvedTheme === "escuro" ? "☀" : "☾"}
       </button>
 
       {/* User */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+      <button className="topbar-user" aria-label="Abrir configurações do usuário demonstrativo" onClick={() => router.push("/configuracoes")} style={{ background: "none", border: "none", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
         <div
           style={{
             width: 30,
@@ -118,9 +101,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
         >
           PA
         </div>
-        <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>Pedro Augusto</span>
-        <span style={{ fontSize: 10, color: "#334155" }}>▾</span>
-      </div>
+        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--theme-94a3b8)" }}>Pedro Augusto</span>
+        <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>▾</span>
+      </button>
     </header>
   );
 }

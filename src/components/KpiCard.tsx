@@ -22,8 +22,8 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
   return (
     <div
       style={{
-        background: "#111d2e",
-        border: "1px solid #1e3a5f",
+        background: "var(--theme-111d2e)",
+        border: "1px solid var(--theme-1e3a5f)",
         borderTop: `2px solid ${color}`,
         borderRadius: 8,
         padding: "16px 18px",
@@ -36,15 +36,15 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {icon && <span style={{ fontSize: 14, opacity: 0.6 }}>{icon}</span>}
-        <span style={{ fontSize: 10, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
           {label}
         </span>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em", lineHeight: 1 }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: "var(--theme-f1f5f9)", letterSpacing: "-0.02em", lineHeight: 1 }}>
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: 12, color: "#64748b" }}>{sub}</div>
+        <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{sub}</div>
       )}
       {variation !== undefined && (
         <div
@@ -55,13 +55,13 @@ export default function KpiCard({ label, value, sub, variation, accent = "primar
             marginTop: 4,
             fontSize: 12,
             fontWeight: 600,
-            color: isPositive ? "#22c55e" : isNegative ? "#ef4444" : "#64748b",
+            color: isPositive ? "var(--theme-22c55e)" : isNegative ? "var(--theme-ef4444)" : "var(--theme-64748b)",
           }}
         >
           {isPositive && <span>▲</span>}
           {isNegative && <span>▼</span>}
           <span>{variation > 0 ? "+" : ""}{variation.toFixed(1)}%</span>
-          <span style={{ fontWeight: 400, color: "#475569" }}>vs período anterior</span>
+          <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>vs período anterior</span>
         </div>
       )}
     </div>

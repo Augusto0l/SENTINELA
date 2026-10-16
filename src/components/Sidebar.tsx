@@ -28,18 +28,19 @@ const navGroups = [
     items: [
       { key: "users", label: "Usuários", icon: "◯" },
       { key: "settings", label: "Configurações", icon: "⚙" },
+      { key: "login", label: "Voltar ao login demonstrativo", icon: "↪" },
     ],
   },
 ];
 
 export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }: SidebarProps) {
   return (
-    <aside
+    <aside className={`system-sidebar ${collapsed ? "is-collapsed" : ""}`}
       style={{
         width: collapsed ? 56 : 240,
         minWidth: collapsed ? 56 : 240,
-        background: "#0d1626",
-        borderRight: "1px solid #1e3a5f",
+        background: "var(--theme-0d1626)",
+        borderRight: "1px solid var(--theme-1e3a5f)",
         display: "flex",
         flexDirection: "column",
         transition: "width 0.2s ease, min-width 0.2s ease",
@@ -52,7 +53,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
       <div
         style={{
           padding: collapsed ? "16px 0" : "16px 18px",
-          borderBottom: "1px solid #1e3a5f",
+          borderBottom: "1px solid var(--theme-1e3a5f)",
           display: "flex",
           alignItems: "center",
           justifyContent: collapsed ? "center" : "flex-start",
@@ -70,7 +71,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
                 style={{
                   fontSize: 9,
                   fontWeight: 600,
-                  color: "#334155",
+                  color: "var(--color-text-muted)",
                   letterSpacing: "0.1em",
                   padding: "10px 20px 4px",
                 }}
@@ -83,6 +84,8 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
               return (
                 <button
                   key={item.key}
+                  aria-label={item.label}
+                  aria-current={active ? "page" : undefined}
                   onClick={() => onNavigate(item.key)}
                   title={collapsed ? item.label : undefined}
                   style={{
@@ -95,7 +98,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
                     background: active ? "rgba(37,99,235,0.15)" : "transparent",
                     border: "none",
                     borderLeft: active ? "3px solid #2563eb" : "3px solid transparent",
-                    color: active ? "#93c5fd" : "#64748b",
+                    color: active ? "var(--theme-93c5fd)" : "var(--theme-64748b)",
                     cursor: "pointer",
                     fontSize: 13,
                     fontWeight: active ? 600 : 400,
@@ -103,14 +106,14 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
                     textAlign: "left",
                   }}
                   onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--theme-94a3b8)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--theme-64748b)";
                   }}
                 >
                   <span style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
-                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && <span className="sidebar-text">{item.label}</span>}
                 </button>
               );
             })}
@@ -122,7 +125,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
       <div
         style={{
           padding: collapsed ? "14px 0" : "14px 16px",
-          borderTop: "1px solid #1e3a5f",
+          borderTop: "1px solid var(--theme-1e3a5f)",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -147,11 +150,11 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
           PA
         </div>
         {!collapsed && (
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div className="sidebar-text" style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               Pedro Augusto
             </div>
-            <div style={{ fontSize: 11, color: "#475569" }}>Administrador</div>
+            <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Administrador</div>
           </div>
         )}
       </div>
@@ -159,18 +162,20 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
       {/* Toggle button */}
       <button
         onClick={onToggle}
+        aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"}
+        aria-expanded={!collapsed}
         title={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
         style={{
           position: "absolute",
-          right: -12,
+          right: 6,
           top: "50%",
           transform: "translateY(-50%)",
           width: 24,
           height: 24,
           borderRadius: "50%",
-          background: "#0d1626",
-          border: "1px solid #1e3a5f",
-          color: "#475569",
+          background: "var(--theme-0d1626)",
+          border: "1px solid var(--theme-1e3a5f)",
+          color: "var(--color-text-muted)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",

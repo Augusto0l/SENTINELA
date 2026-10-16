@@ -22,9 +22,9 @@ export default function Breadcrumb({ selectedRA, onBack }: BreadcrumbProps) {
         onClick={onBack}
         style={{
           background: "transparent",
-          border: "1px solid #1e3a5f",
+          border: "1px solid var(--theme-1e3a5f)",
           borderRadius: 5,
-          color: "#94a3b8",
+          color: "var(--theme-94a3b8)",
           fontSize: 12,
           padding: "4px 10px",
           cursor: "pointer",
@@ -36,17 +36,17 @@ export default function Breadcrumb({ selectedRA, onBack }: BreadcrumbProps) {
         ← Voltar para visão do DF
       </button>
 
-      <div style={{ fontSize: 13, color: "#64748b" }}>
-        <span style={{ color: "#475569" }}>Distrito Federal</span>
-        <span style={{ margin: "0 6px", color: "#334155" }}>›</span>
-        <span style={{ color: "#93c5fd", fontWeight: 600 }}>{selectedRA}</span>
+      <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+        <span style={{ color: "var(--color-text-muted)" }}>Distrito Federal</span>
+        <span style={{ margin: "0 6px", color: "var(--color-text-muted)" }}>›</span>
+        <span style={{ color: "var(--theme-93c5fd)", fontWeight: 600 }}>{selectedRA}</span>
       </div>
 
       <div
         style={{
           marginLeft: "auto",
           fontSize: 10,
-          color: "#334155",
+          color: "var(--color-text-muted)",
           fontStyle: "italic",
         }}
       >

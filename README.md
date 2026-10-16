@@ -8,6 +8,20 @@
 
 O **SENTINELA** é uma plataforma web e mobile para centralização, cadastro, visualização e análise de ocorrências criminais.
 
+> Estado do código em 09/10/2026: protótipo web em Next.js com dados fictícios. Login, cadastro, importação, usuários e configurações não representam operações persistentes. O aplicativo mobile e os serviços de produção permanecem planejados.
+
+## Executar o protótipo web
+
+Use Node 22 e pnpm conforme `.mise.toml`. Instale com `pnpm install --frozen-lockfile` e execute `pnpm dev`; a rota inicial abre `/login`, uma demonstração que não autentica nem envia credenciais. As telas também podem ser acessadas diretamente, pois ainda não há controle de acesso.
+
+Verificações: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm validate:contracts`, `pnpm check:routes` e `pnpm build`. O teste de rotas é estático; homologação HTTP/visual requer servidor funcionando. O servidor de produção usa `pnpm start` após build aprovado. A configuração shadcn/ui e os componentes reutilizáveis estão descritos em [Design System](docs/design-system.md).
+
+A hospedagem prevista é Vercel com suporte nativo a Next.js: build `pnpm build`, sem configurar `dist` como saída. Os scripts manuais `.figma/make/deploy` e `deploy-preview` chamam a CLI `vercel` (pré-requisito instalado e autenticado), respectivamente produção e preview. Esses comandos publicam e só devem ser executados quando a publicação for solicitada; a revisão da sprint não executa deploy.
+
+No Windows, `scripts/next-cli.mjs` mantém o compilador nativo quando disponível e usa o fallback oficial SWC WebAssembly com Webpack se o addon nativo falhar com `ERR_DLOPEN_FAILED`. O fallback tem a mesma versão fixada do Next.js e repara apenas arquivos ausentes no cache local da dependência. Nenhuma política de segurança é alterada. Build, rotas e cinco resoluções foram homologados; consulte as [evidências da Sprint 1](docs/evidencias/sprint-01/README.md). A CI Linux foi preparada, mas sua execução remota não foi verificada.
+
+Contratos da ISSUE-11: [catálogos internos versionados](docs/contratos/catalogos-v0.1.0.json) e [deduplicação, permissões e proposta RLS](docs/contratos/deduplicacao-permissoes-v0.1.0.md). Ambos distinguem regras propostas de informações oficialmente homologadas.
+
 Sua proposta é transformar registros dispersos em informações organizadas, comparáveis e úteis para a compreensão estratégica da criminalidade.
 
 ---
@@ -259,11 +273,8 @@ Cada usuário terá acesso somente às funções compatíveis com sua responsabi
 | Perfil | Atribuições principais |
 |---|---|
 | **Administrador** | Configurações, usuários, permissões e parâmetros |
-| **Gestor** | Dashboards, mapas, comparações, alertas e relatórios |
-| **Analista** | Filtros avançados e análises temporais e geográficas |
-| **Supervisor** | Consulta gerencial de indicadores e relatórios |
-| **Cadastrador** | Cadastro e atualização autorizada de ocorrências |
-| **Auditor** | Verificação de acessos, importações e alterações |
+| **Analista** | Consulta, filtros e análises; não modifica ocorrências |
+| **Operador** | Cadastro, edição e importação de registros autorizados, consulta e análise |
 
 ---
 

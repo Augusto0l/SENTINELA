@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 
 const routes: Record<string, string> = {
+  login: "/login",
   dashboard: "/dashboard",
   "crime-map": "/mapa-criminal",
   occurrences: "/ocorrencias",
