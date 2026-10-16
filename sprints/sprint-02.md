@@ -51,7 +51,7 @@ O foco e objetivo principal da sprint é a construção da Interface Operacional
 
 ## Responsáveis
 
-* **Pedro Augusto**:
+* **Arthur de Jesus Lira Rojas**:
   * **Feature [#6](https://github.com/CAMPUSCEUB/Sentinela/issues/6)** — Consulta, Pesquisa e Filtros de Ocorrências (issue original do Artefato 2).
   * **Feature [#7](https://github.com/CAMPUSCEUB/Sentinela/issues/7)** — Formulários de Cadastro, Edição e Inativação Manual (issue original do Artefato 2).
   * **Feature [#8](https://github.com/CAMPUSCEUB/Sentinela/issues/8)** — Controle de Permissões e Perfis na Interface (issue original do Artefato 2).
