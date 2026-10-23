@@ -13,9 +13,12 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "validate:contracts": "node scripts/validate-contracts.mjs",
     "check:routes": "node scripts/check-routes.mjs",
-    "check:styles": "node scripts/check-styles.mjs"
+    "check:styles": "node scripts/check-styles.mjs",
+    "check:occurrences": "node scripts/check-occurrences.mjs",
+    "check:sprint2": "node scripts/check-sprint2.mjs"
   },
   "dependencies": {
+    "@hookform/resolvers": "^6.0.0",
     "@radix-ui/react-dialog": "^1.2.0",
     "@radix-ui/react-slot": "^1.4.0",
     "@types/d3-geo": "^3.1.1",
@@ -30,9 +33,11 @@
     "next": "16.3.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.90.0",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.10.1",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@next/swc-wasm-nodejs": "16.3.6",

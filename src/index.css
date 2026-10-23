@@ -329,3 +329,15 @@ body,
   --heatmap-badge: rgba(248,250,252,.92);
   --heatmap-count: #1e3a5f;
 }
+
+.demo-profile-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 16px; background: var(--theme-111d2e); color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); font-size: 12px; flex-shrink: 0; }
+.demo-profile-bar select, .occurrence-form input, .occurrence-form select, #inactive-reason { background: var(--theme-080f1a); color: var(--color-text-primary); border: 1px solid var(--color-border); border-radius: 6px; padding: 8px; max-width: 100%; }
+.occurrence-form { display: flex; flex-direction: column; gap: 14px; }
+.occurrence-form p { font-size: 13px; color: var(--color-text-muted); }
+.occurrence-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px; }
+.occurrence-form-grid label { display: block; margin-bottom: 6px; font-size: 13px; }
+.occurrence-form-grid input, .occurrence-form-grid select { width: 100%; }
+.occurrence-form [role="alert"] { color: var(--theme-ef4444); }
+.occurrence-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.occurrence-pin { color: #dc2626; background: #fff; border: 2px solid #dc2626; border-radius: 50%; text-align: center; line-height: 24px; }
+.map-tile-warning { position: absolute; bottom: 24px; left: 8px; right: 8px; z-index: 500; background: var(--theme-111d2e); color: var(--color-text-primary); padding: 6px; font-size: 12px; }
