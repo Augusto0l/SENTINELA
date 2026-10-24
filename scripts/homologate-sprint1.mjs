@@ -90,7 +90,7 @@ try {
   });
   await check("filtros de mocks e estado vazio", async () => {
     await ready("/ocorrencias", "Ocorrências");
-    await page.getByRole("textbox", { name: "Buscar ID, RA ou natureza" }).fill("REGISTRO-INEXISTENTE");
+    await page.getByRole("textbox", { name: "Buscar ID, RA, natureza ou localização" }).fill("REGISTRO-INEXISTENTE");
     await page.getByText("Nenhum registro encontrado com os filtros aplicados.").waitFor();
     await ready("/mapa-criminal", "Mapa Criminal");
     await page.getByRole("combobox", { name: "Natureza criminal", exact: true }).selectOption("Furto");

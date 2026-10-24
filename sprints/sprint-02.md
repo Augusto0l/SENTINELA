@@ -67,15 +67,46 @@ Os responsáveis pelas novas PBIs e Tasks não foram definidos nos arquivos orig
 
 ## Issues concluídas
 
+Implementação e verificação técnica local realizadas em **20/10/2026**, preservando o período original e os responsáveis do planejamento. As quatro Features estão implementadas no escopo demonstrativo:
+
+| Feature | PBIs/Tasks cobertos | Entrega |
+| --- | --- | --- |
+| #6 | #35–#40 | Consulta paginada, ordenação, busca normalizada, filtros/limpeza e detalhes acessíveis |
+| #7 | #41–#46 | Formulário compartilhado React Hook Form/Zod, datas e horários brasileiros, cadastro/edição em memória e inativação com confirmação/motivo |
+| #8 | #47–#52 | Contexto dos três perfis, ações e navegação condicionais, bloqueio de URL direta na interface e acesso negado |
+| #9 | #54–#59 | Geocodificação simulada com feedback, Leaflet/OpenStreetMap sem SSR, clique/arraste e coordenadas sincronizadas |
+
+Isso não encerra issues no GitHub nem constitui aceite acadêmico. A inativação fica restrita ao Administrador: a autorização do Operador continua pendente de homologação no contrato da Sprint 1. Analista somente consulta; Operador cadastra/edita e não gerencia usuários. Não há autorização no servidor/RLS.
+
 ## Pull requests aceitos
+
+Nenhum PR da Sprint 2 criado ou aceite remoto verificado nesta execução. Não houve commit, push ou publicação.
 
 ## Evidências
 
+* Node 22.23.2; instalação final congelada com `corepack pnpm@10.34.3 install --frozen-lockfile` aprovada. React Hook Form, Zod e resolver adicionados ao manifest/lockfile; a inclusão inicial usou o pnpm 12.9.1 encontrado no ambiente, seguida da instalação com a versão declarada.
+* TypeScript, lint, 17 testes Node pelo comando padrão, contratos, oito rotas/111 imports e CSS sem avisos aprovados. Runner e Chrome executados fora do sandbox após `spawn EPERM`.
+* Build de produção Next.js 16.3.6/Turbopack aprovado. Um cache anterior omitia o CSS novo; o diretório `.next` foi preservado em `.tmp-sprint02-build-cache-backup` e o build limpo incluiu os estilos. O roteiro agora verifica explicitamente os estilos computados do formulário e da barra de perfil.
+* `pnpm check:occurrences`: Chrome, temas claro/escuro, filtros, ordenação, paginação, detalhes, Enter/Tab/Escape/retorno de foco; modal em 1366×768, 768×1024 e 390×844. Base original de 790 registros consistente na listagem, dashboard e mapa.
+* `pnpm check:sprint2`: Chrome contra o build de produção; três perfis, URLs diretas, cadastro, datas/horários inválidos, geocodificação, clique/arraste, ajuste manual, edição, descarte/cancelamento, motivo de inativação e restauração ao recarregar aprovados. Temas claro/escuro em 390×844, 768×844 e 1366×844, sem overflow horizontal da página e com o pino dentro do mapa. Zero erros JavaScript de página capturados.
+* Resultados e capturas selecionadas: [evidências da Sprint 2](../docs/evidencias/sprint-02/README.md). Relatório e limites: [implementação da Sprint 2](../docs/implementacao-sprint-02.md). Capturas adicionais em `tmp/sprint-02-evidence/` são locais e não garantidas pelo clone.
+
 ## Impedimentos
+
+Nenhum impedimento técnico identificado para a entrega demonstrativa nos fluxos verificados. Autenticação, banco, RLS, auditoria real e geocodificação real permanecem fora do escopo. O fundo OpenStreetMap depende de conexão; coordenadas podem ser ajustadas pelos campos mesmo sem tiles.
+
+O cenário de cadastro/edição/inativação pertence à listagem e vive somente em memória. Dashboard e mapa analítico preservam a base fictícia original; a listagem informa essa diferença quando há alterações. O perfil simulado permanece apenas na sessão da aba (`sessionStorage`) e não é identidade autenticada.
 
 ## Retrospectiva
 
+* Formulário e regras compartilhados evitam divergência entre cadastro e edição.
+* Testes funcionais não detectaram sozinhos a ausência do CSS no build em cache; inspeção das capturas e verificações de estilos complementaram a validação.
+* O mapa recebeu `ResizeObserver`/`invalidateSize` para preservar o pino após redimensionamento. O roteiro aguarda estabilidade antes de arrastar.
+
 ## Próximas ações
+* Submeter as entregas e evidências à revisão do grupo/professor; aceite e alterações no GitHub permanecem ações separadas.
+* Homologar permissões institucionais e catálogos antes de qualquer implementação operacional.
+
 Preparação para a execução da Sprint 3 (Semanas 3 e 4), focada em Importação, Analytics e Contratos API (EP03, EP04 e EP05):
 * **Feature [#10](https://github.com/CAMPUSCEUB/Sentinela/issues/10)** — Interface de Importação de Arquivos em Lote; PBIs: [#60](https://github.com/CAMPUSCEUB/Sentinela/issues/60) (`EP03-PBI-03`), [#63](https://github.com/CAMPUSCEUB/Sentinela/issues/63) (`EP03-PBI-04`), [#66](https://github.com/CAMPUSCEUB/Sentinela/issues/66) (`EP03-PBI-05`), [#69](https://github.com/CAMPUSCEUB/Sentinela/issues/69) (`EP03-PBI-06`).
 * **Feature [#11](https://github.com/CAMPUSCEUB/Sentinela/issues/11)** — Mapa Criminal do DF — Camadas, Pontos e Calor; PBIs: [#73](https://github.com/CAMPUSCEUB/Sentinela/issues/73) (`EP04-PBI-01`), [#76](https://github.com/CAMPUSCEUB/Sentinela/issues/76) (`EP04-PBI-02`), [#79](https://github.com/CAMPUSCEUB/Sentinela/issues/79) (`EP04-PBI-03`), [#82](https://github.com/CAMPUSCEUB/Sentinela/issues/82) (`EP04-PBI-04`).

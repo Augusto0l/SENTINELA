@@ -45,7 +45,7 @@ try {
       await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 600)));
       await page.screenshot({ path: `.next/theme-evidence/${theme}-${route.slice(1).replaceAll("/", "-")}.png`, fullPage: true });
       if (route === "/ocorrencias") {
-        await page.getByPlaceholder(/Buscar ID, RA ou natureza/).fill("DEMO-000001");
+        await page.getByPlaceholder(/Buscar ID, RA, natureza ou localização/).fill("DEMO-000001");
         await page.waitForFunction(() => document.querySelectorAll("tbody tr").length === 1);
         assert.match(await page.locator("tbody").innerText(), /DEMO-000001/);
       }

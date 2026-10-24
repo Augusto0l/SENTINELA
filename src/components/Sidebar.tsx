@@ -1,4 +1,6 @@
 import { SentinelaIcon, SentinelaBrand } from "./SentinelaLogo";
+import { useOperations } from "@/components/OperationalProvider";
+import { canVisit } from "@/data/demoPermissions";
 
 interface SidebarProps {
   currentPage: string;
@@ -34,6 +36,7 @@ const navGroups = [
 ];
 
 export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }: SidebarProps) {
+  const { role } = useOperations();
   return (
     <aside className={`system-sidebar ${collapsed ? "is-collapsed" : ""}`}
       style={{
@@ -79,7 +82,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
                 {group.label}
               </div>
             )}
-            {group.items.map((item) => {
+            {group.items.filter(item => canVisit(role, ({ new: "/ocorrencias/nova", import: "/importar", users: "/usuarios" } as Record<string, string>)[item.key] ?? "/dashboard")).map((item) => {
               const active = currentPage === item.key;
               return (
                 <button
@@ -154,7 +157,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               Pedro Augusto
             </div>
-            <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Administrador</div>
+            <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{role} · demonstração</div>
           </div>
         )}
       </div>
