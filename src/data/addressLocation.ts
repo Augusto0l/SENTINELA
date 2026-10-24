@@ -8,6 +8,105 @@ export interface AddressLocation {
   approximate: boolean
 }
 
+export interface PostalAddress {
+  query: string
+  label: string
+  street: string
+  district: string
+}
+
+export function postalAddressFrom(
+  payload: Record<string, unknown>,
+): PostalAddress {
+  if (payload.erro)
+    throw new Error(
+      "CEP não encontrado. As coordenadas anteriores foram mantidas.",
+    )
+  if (payload.uf !== "DF")
+    throw new Error(
+      "O CEP informado não pertence ao Distrito Federal. As coordenadas foram mantidas.",
+    )
+  const field = (name: string) =>
+    typeof payload[name] === "string"
+      ? payload[name].trim().replace(/\s+/g, " ")
+      : ""
+  const street = field("logradouro")
+  const district = field("bairro")
+  const city = field("localidade")
+  return {
+    street,
+    district,
+    label: [street, district, city, "DF", field("cep")]
+      .filter(Boolean)
+      .join(", "),
+    query: [street || district, city, "Distrito Federal", "Brasil"]
+      .filter(Boolean)
+      .join(", "),
+  }
+}
+
+function normalizedReference(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+}
+
+export function postalSearches(
+  query: string,
+  street: string,
+  district: string,
+) {
+  // Keep the postal street intact: dropping quadra numbers can find unrelated places.
+  const searches = street ? [{ query, reference: street }] : []
+  if (street && district)
+    searches.push({
+      query: `${street}, ${district}, Distrito Federal, Brasil`,
+      reference: street,
+    })
+  if (district)
+    searches.push({
+      query: `${district}, Distrito Federal, Brasil`,
+      reference: district,
+    })
+  return searches.filter(
+    (item, index) =>
+      searches.findIndex((other) => other.query === item.query) === index,
+  )
+}
+
+export function parsePostalLocations(
+  payload: unknown,
+  reference: string,
+): AddressLocation[] {
+  const locations = parseLocations(payload)
+  // Nominatim can silently discard unmatched terms. Require the actual street/region
+  // in a returned name/address field rather than accepting any point within the DF.
+  const matchingIds = new Set(
+    (payload as Record<string, unknown>[])
+      .filter((row) => {
+        if (!row || typeof row !== "object") return false
+        const address =
+          row.address && typeof row.address === "object"
+            ? Object.values(row.address)
+            : []
+        const normalize = (value: string) =>
+          normalizedReference(value).replace(/^quadra /, "")
+        return [row.name, ...address].some(
+          (value) =>
+            typeof value === "string" &&
+            normalize(value) === normalize(reference),
+        )
+      })
+      .map((row) => String(row.place_id)),
+  )
+  return locations
+    .filter((location) => matchingIds.has(location.id))
+    .map((location) => ({ ...location, approximate: true }))
+}
+
 export function completeCep(value: string): string | null {
   const text = value.trim()
   return /^\d{5}-?\d{3}$/.test(text) ? text.replace("-", "") : null

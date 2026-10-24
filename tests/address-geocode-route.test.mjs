@@ -62,4 +62,21 @@ test("proxy valida entrada, identifica aplicação, limita consultas, usa cache 
   assert.deepEqual(await (await request("Endereço inexistente")).json(), {
     results: [],
   })
+
+  clock += 1200
+  const queries = []
+  upstream.mock.mockImplementation(async (url) => {
+    const query = url.searchParams.get("q")
+    queries.push(query)
+    if (query.startsWith("Quadra")) return Response.json([])
+    return Response.json([{ place_id: 2, lat: "-15.63", lon: "-47.83", name: "Setor de Mansões de Sobradinho", display_name: "Setor de Mansões de Sobradinho, DF", address: { state: "Distrito Federal", country_code: "br", suburb: "Setor de Mansões de Sobradinho" } }])
+  })
+  const postal = new URLSearchParams({ q: "Quadra QMS 29C Módulo A, Brasília, Distrito Federal, Brasil", cep: "73081140", street: "Quadra QMS 29C Módulo A", district: "Setor de Mansões de Sobradinho" })
+  const postalRequest = () => GET(new Request(`http://localhost/api/ocorrencias/geocode?${postal}`))
+  const locations = await (await postalRequest()).json()
+  assert.equal(queries.length, 3)
+  assert.equal(queries[2], "Setor de Mansões de Sobradinho, Distrito Federal, Brasil")
+  assert.equal(locations.results[0].approximate, true)
+  assert.equal((await postalRequest()).status, 200)
+  assert.equal(queries.length, 3)
 })

@@ -5,7 +5,33 @@ import {
   looksLikeCep,
   parseLocations,
   locationRa,
+  postalAddressFrom,
+  postalSearches,
+  parsePostalLocations,
 } from "../src/data/addressLocation.ts"
+
+test("dados postais preservam bairro e oferecem referência regional sem inventar coordenadas", () => {
+  const postal = postalAddressFrom({ cep: "73081-140", logradouro: "Quadra QMS 29C Módulo A", bairro: "Setor de Mansões de Sobradinho", localidade: "Brasília", uf: "DF" })
+  const searches = postalSearches(postal.query, postal.street, postal.district)
+  assert.equal(searches.length, 3)
+  assert.equal(searches[2].query, "Setor de Mansões de Sobradinho, Distrito Federal, Brasil")
+  assert.equal(searches[2].reference, postal.district)
+  const broad = postalAddressFrom({ uf: "DF", localidade: "Brasília", bairro: "Asa Norte" })
+  assert.equal(postalSearches(broad.query, broad.street, broad.district).length, 1)
+  assert.deepEqual(postalSearches("Brasília, DF, Brasil", "", ""), [])
+  assert.throws(() => postalAddressFrom({ erro: true }), /CEP não encontrado/)
+  assert.throws(() => postalAddressFrom({ uf: "GO" }), /não pertence/)
+})
+
+test("referências postais rejeitam correspondência frouxa e pontos fora do DF", () => {
+  const region = { place_id: 10, lat: "-15.63", lon: "-47.83", name: "Setor de Mansões de Sobradinho", display_name: "Setor de Mansões de Sobradinho, DF", address: { state: "Distrito Federal", country_code: "br", suburb: "Setor de Mansões de Sobradinho", house_number: "10" }, addresstype: "house" }
+  const results = parsePostalLocations([region, { ...region, place_id: 11 }], "Setor de Mansoes de Sobradinho")
+  assert.equal(results.length, 2)
+  assert.ok(results.every((result) => result.approximate))
+  assert.deepEqual(parsePostalLocations([region], "QMS 29C"), [])
+  assert.deepEqual(parsePostalLocations([{ ...region, lat: "-17" }], region.name), [])
+  assert.deepEqual(parsePostalLocations([{ ...region, address: { ...region.address, state: "Goiás" } }], region.name), [])
+})
 
 test("CEP só é consultado automaticamente quando completo, com ou sem hífen", () => {
   assert.equal(completeCep(" 70790-075 "), "70790075")

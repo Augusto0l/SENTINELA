@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/button"
 import {
   completeCep,
+  postalAddressFrom,
+  type PostalAddress,
   looksLikeCep,
   locationRa,
   type AddressLocation,
@@ -11,10 +13,6 @@ import type { RaGeoJSON } from "@/data/geoLoader"
 import { RA_LIST } from "@/data/mockData"
 import styles from "@/components/occurrences/NewOccurrenceLocation.module.css"
 
-interface PostalAddress {
-  query: string
-  label: string
-}
 const postalCache = new Map<string, PostalAddress>()
 async function lookupCep(
   cep: string,
@@ -28,39 +26,7 @@ async function lookupCep(
   if (!response.ok)
     throw new Error("Consulta de CEP indisponível. Tente novamente.")
   const data = await response.json()
-  if (data.erro)
-    throw new Error(
-      "CEP não encontrado. As coordenadas anteriores foram mantidas.",
-    )
-  if (data.uf !== "DF")
-    throw new Error(
-      "O CEP informado não pertence ao Distrito Federal. As coordenadas foram mantidas.",
-    )
-  if (!data.logradouro)
-    throw new Error(
-      "CEP de área ampla, sem logradouro. Informe um endereço completo para localizar o ponto.",
-    )
-  const label = [
-    data.logradouro,
-    data.bairro,
-    data.localidade,
-    data.uf,
-    data.cep,
-  ]
-    .filter(Boolean)
-    .join(", ")
-  const result = {
-    label,
-    // Postal bairro names can differ from OSM; do not turn them into a hard match.
-    query: [
-      data.logradouro,
-      data.localidade,
-      "Distrito Federal",
-      "Brasil",
-    ]
-      .filter(Boolean)
-      .join(", "),
-  }
+  const result = postalAddressFrom(data)
   if (postalCache.size >= 100)
     postalCache.delete(postalCache.keys().next().value!)
   postalCache.set(cep, result)
@@ -136,7 +102,7 @@ export default function AddressLocationSearch({
         setPostal(found)
         onPostalAddress?.(found.label)
         setMessage(
-          "CEP consultado. Use Buscar localização para obter uma referência aproximada da rua; o CEP não identifica um imóvel.",
+          "CEP consultado. Use Buscar localização para obter uma referência aproximada da rua ou região; confirme e refine o ponto no mapa.",
         )
       } catch (error) {
         if (!controller.signal.aborted)
@@ -217,12 +183,18 @@ export default function AddressLocationSearch({
         onPostalAddress?.(postalAddress.label)
       }
       const query = postalAddress?.query ?? address.trim()
+      const params = new URLSearchParams({ q: query })
+      if (cep && postalAddress) {
+        params.set("cep", cep)
+        params.set("street", postalAddress.street)
+        params.set("district", postalAddress.district)
+      }
       const response = await fetch(
-        `/api/ocorrencias/geocode?${new URLSearchParams({ q: query })}`,
+        `/api/ocorrencias/geocode?${params}`,
         {
           signal: AbortSignal.any([
             controller.signal,
-            AbortSignal.timeout(12000),
+            AbortSignal.timeout(cep ? 35000 : 12000),
           ]),
         },
       )
@@ -244,7 +216,9 @@ export default function AddressLocationSearch({
       )
       if (!matches.length) {
         setMessage(
-          "Localização não encontrada na área demonstrativa do DF. O mapa e as coordenadas anteriores foram mantidos.",
+          postalAddress
+            ? "Endereço postal encontrado, mas a localização geográfica não pôde ser determinada com confiança no DF. O mapa e as coordenadas anteriores foram mantidos. Informe mais detalhes ou ajuste o marcador manualmente."
+            : "Localização não encontrada na área demonstrativa do DF. O mapa e as coordenadas anteriores foram mantidos.",
         )
       } else if (matches.length === 1 && !matches[0].approximate) {
         await select(matches[0])
