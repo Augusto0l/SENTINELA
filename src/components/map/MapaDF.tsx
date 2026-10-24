@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import SatelliteBoundary from "@/components/map/SatelliteBoundary";
 import {
   MAP_VIEWBOX,
   MAP_WIDTH,
@@ -12,7 +14,12 @@ import type { MockOccurrence } from "../../data/mockOccurrences";
 import { createDensityField, HEAT_GRADIENT, projectHeatRecords } from "@/components/map/heatmapDensity";
 import { renderDensityHeatmap } from "@/components/map/heatmapCanvas";
 
-export type MapMode = "heat" | "points" | "clusters";
+export type MapMode = "heat" | "points" | "clusters" | "satellite";
+
+const SatelliteMap = dynamic(() => import("@/components/map/SatelliteMap"), {
+  ssr: false,
+  loading: () => <p role="status" style={{ padding: 24, color: "var(--theme-94a3b8)", fontSize: 12 }}>Carregando visualização de satélite…</p>,
+});
 
 type OccurrencePoint = {
   id: string | number;
@@ -179,6 +186,12 @@ export default function MapaDF({
     const { lat, lon } = svgToLatLon(svgX, svgY);
     onClickPoint(svgX, svgY, lat, lon);
   };
+
+  if (mapMode === "satellite") return (
+    <SatelliteBoundary>
+      <SatelliteMap selectedRaCode={selectedRaCode} onSelectRa={onSelectRa} occurrencesByRa={occurrencesByRa} />
+    </SatelliteBoundary>
+  );
 
   return (
     <div

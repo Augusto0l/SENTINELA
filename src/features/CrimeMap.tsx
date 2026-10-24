@@ -185,7 +185,7 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
       <div className="map-panels crime-panels" style={{ flex: 1, display: "flex", overflow: "auto" }}>
         {/* Map area */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: "12px 0 12px 16px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, paddingRight: 16 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, paddingRight: 16, flexWrap: "wrap", gap: 10 }}>
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.02em" }}>
                 {raInfo ? raInfo.nomeDisplay : "Mapa Criminal"}
@@ -196,16 +196,16 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
                   : "Explore a distribuição espacial das ocorrências e identifique padrões por região."}
               </p>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              {(["heat", "points", "clusters"] as MapMode[]).map((m) => (
-                <button key={m} onClick={() => setMapMode(m)} style={{
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: "100%" }}>
+              {(["heat", "points", "clusters", "satellite"] as MapMode[]).map((m) => (
+                <button key={m} onClick={() => setMapMode(m)} aria-pressed={mapMode === m} style={{
                   background: mapMode === m ? "#2563eb" : "transparent",
                   border: mapMode === m ? "none" : "1px solid var(--theme-1e3a5f)",
                   borderRadius: 5, color: mapMode === m ? "#fff" : "var(--theme-64748b)",
                   fontSize: 11, fontWeight: mapMode === m ? 600 : 400,
                   padding: "4px 10px", cursor: "pointer",
                 }}>
-                  {m === "heat" ? "Calor" : m === "points" ? "Pontos" : "Clusters"}
+                  {m === "heat" ? "Calor" : m === "points" ? "Pontos" : m === "satellite" ? "Satélite" : "Clusters"}
                 </button>
               ))}
             </div>

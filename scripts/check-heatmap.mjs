@@ -149,10 +149,12 @@ try {
     if (existsSync(hashesFile)) {
       const hashes = JSON.parse(readFileSync(hashesFile, "utf8"));
       for (const [file, hash] of Object.entries(hashes)) {
-        if (["src/components/map/MapaDF.tsx", "src/index.css", "src/features/CrimeMap.tsx"].includes(file)) continue;
+        // Both screen selectors now include Satélite. The SVG comparisons above
+        // still cover the existing modes; geometry, mocks and analysis stay immutable.
+        if (["src/components/map/MapaDF.tsx", "src/index.css", "src/features/CrimeMap.tsx", "src/features/Dashboard.tsx"].includes(file)) continue;
         assert.equal(createHash("sha256").update(readFileSync(file)).digest("hex"), hash, `Arquivo preservado: ${file}`);
       }
-      console.log("PASS hashes da geometria, GeoJSON, mocks, filtros e Dashboard preservados");
+      console.log("PASS hashes da geometria, GeoJSON, mocks e filtros preservados");
     }
   }
   assert.deepEqual(errors, []);

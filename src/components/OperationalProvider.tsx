@@ -19,6 +19,8 @@ import type { MockOccurrence } from "@/data/mockOccurrences"
 
 interface Operations {
   role: DemoRole
+  hydrated: boolean
+  setRole: (value: DemoRole) => void
   records: Record<string, MockOccurrence>
   inactive: Record<string, string>
   save: (record: MockOccurrence) => boolean
@@ -45,6 +47,21 @@ export function useOperations() {
   const context = useContext(Context)
   if (!context) throw new Error("OperationalProvider ausente")
   return context
+}
+
+export function DemoProfileSelect({ className = "" }: { className?: string }) {
+  const { role, hydrated, setRole } = useOperations()
+  return (
+    <div className={`demo-profile-bar ${className}`}>
+      <label>
+        <span>Simular perfil</span>
+        <select disabled={!hydrated} value={role}
+          onChange={(event) => setRole(event.target.value as DemoRole)}>
+          {DEMO_ROLES.map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+    </div>
+  )
 }
 export default function OperationalProvider({
   children,
@@ -80,6 +97,8 @@ export default function OperationalProvider({
     <Context.Provider
       value={{
         role,
+        hydrated,
+        setRole,
         records,
         inactive,
         save: (record) => {
@@ -103,24 +122,13 @@ export default function OperationalProvider({
           overflow: "hidden",
         }}
       >
-        <div className="demo-profile-bar">
+        {(!hydrated || !canVisit(role, pathname)) && <div className="demo-profile-bar">
           <span>
             Demonstração · alterações somente em memória, perdidas ao
             recarregar.
           </span>
-          <label>
-            Simular perfil{" "}
-            <select
-              disabled={!hydrated}
-              value={role}
-              onChange={(event) => setRole(event.target.value as DemoRole)}
-            >
-              {DEMO_ROLES.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+          <DemoProfileSelect />
+        </div>}
         {roleError && <p role="alert">{roleError}</p>}
         {!hydrated ? (
           <p role="status">Carregando demonstração…</p>
