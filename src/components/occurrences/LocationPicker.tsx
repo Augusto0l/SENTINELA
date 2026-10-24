@@ -1,6 +1,7 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { divIcon } from "leaflet"
+import styles from "@/components/occurrences/NewOccurrenceLocation.module.css"
 import {
   MapContainer,
   Marker,
@@ -10,6 +11,8 @@ import {
 } from "react-leaflet"
 
 interface Props {
+  expanded?: boolean
+  searchSelection?: number
   latitude: number
   longitude: number
   onChange: (latitude: number, longitude: number) => void
@@ -20,15 +23,21 @@ const icon = divIcon({
   iconSize: [28, 28],
   iconAnchor: [14, 14],
 })
-function LocationEvents({ latitude, longitude, onChange }: Props) {
+function LocationEvents({ latitude, longitude, onChange, searchSelection = 0 }: Props) {
   const [tileError, setTileError] = useState(false)
   const map = useMap()
+  const lastSelection = useRef(0)
   useMapEvents({
     click: (event) => onChange(event.latlng.lat, event.latlng.lng),
   })
   useEffect(() => {
-    map.panTo([latitude, longitude], { animate: false })
-  }, [map, latitude, longitude])
+    if (searchSelection !== lastSelection.current) {
+      lastSelection.current = searchSelection
+      map.setView([latitude, longitude], 16, { animate: false })
+    } else {
+      map.panTo([latitude, longitude], { animate: false })
+    }
+  }, [map, latitude, longitude, searchSelection])
   useEffect(() => {
     const observer = new ResizeObserver(() => map.invalidateSize())
     observer.observe(map.getContainer())
@@ -66,7 +75,8 @@ export default function LocationPicker(props: Props) {
     <div
       role="region"
       aria-label="Mapa de ajuste da localização"
-      style={{ height: 300, position: "relative" }}
+      className={props.expanded ? `occurrence-location-map ${styles.map}` : undefined}
+      style={{ height: props.expanded ? undefined : 300, position: "relative", width: "100%", flexShrink: 0 }}
     >
       <MapContainer
         center={[props.latitude, props.longitude]}

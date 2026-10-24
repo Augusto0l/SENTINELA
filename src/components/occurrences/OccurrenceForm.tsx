@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,6 +15,7 @@ import { canWrite } from "@/data/demoPermissions"
 import { useDemoToast } from "@/components/DemoProvider"
 import Button from "@/components/ui/button"
 import Dialog from "@/components/ui/dialog"
+import AddressLocationSearch from "@/components/occurrences/AddressLocationSearch"
 const LocationPicker = dynamic(() => import("./LocationPicker"), {
   ssr: false,
   loading: () => <p>Carregando mapa…</p>,
@@ -31,6 +32,10 @@ export default function OccurrenceForm({
   const notify = useDemoToast()
   const [cancel, setCancel] = useState(false)
   const [geoMessage, setGeoMessage] = useState("")
+  const [cep, setCep] = useState("")
+  const [searchByCep, setSearchByCep] = useState(false)
+  const [searchSelection, setSearchSelection] = useState(0)
+  const postalAddress = useRef("")
   const {
     register,
     handleSubmit,
@@ -51,6 +56,13 @@ export default function OccurrenceForm({
     },
   })
   const values = useWatch({ control })
+  const fillPostalAddress = useCallback((address: string) => {
+    const current = getValues("local")
+    if (!current.trim() || current === postalAddress.current) {
+      postalAddress.current = address
+      setValue("local", address, { shouldDirty: true, shouldValidate: true })
+    }
+  }, [getValues, setValue])
   const latitude = Number(values.latitude),
     longitude = Number(values.longitude)
   const hasPoint =
@@ -146,7 +158,9 @@ export default function OccurrenceForm({
             ) : (
               <input
                 id={`occ-${name}`}
-                {...register(name)}
+                {...register(name, name === "local" ? {
+                  onChange: () => setSearchByCep(false),
+                } : undefined)}
                 aria-required="true"
                 aria-invalid={!!errors[name]}
                 aria-describedby={errors[name] ? `error-${name}` : undefined}
@@ -166,7 +180,36 @@ export default function OccurrenceForm({
             )}
           </div>
         ))}
+        {!initial && <div>
+          <label htmlFor="occ-cep">CEP (opcional)</label>
+          <input
+            id="occ-cep"
+            value={cep}
+            onChange={(event) => {
+              setCep(event.target.value)
+              setSearchByCep(Boolean(event.target.value.trim()))
+            }}
+            inputMode="numeric"
+            autoComplete="postal-code"
+            placeholder="00000-000"
+            maxLength={9}
+            aria-describedby="occ-cep-help"
+          />
+          <p id="occ-cep-help">Use oito dígitos, com ou sem hífen, para consultar o endereço.</p>
+        </div>}
       </div>
+      {!initial && <AddressLocationSearch
+        address={searchByCep ? cep : values.local ?? ""}
+        searchByCep={searchByCep}
+        raCode={values.raCode ?? ""}
+        latitude={values.latitude ?? ""}
+        longitude={values.longitude ?? ""}
+        onPostalAddress={fillPostalAddress}
+        onSelect={(lat, lng) => {
+          updatePoint(lat, lng)
+          setSearchSelection((previous) => previous + 1)
+        }}
+      />}
       <Button
         type="button"
         variant="outline"
@@ -201,6 +244,8 @@ export default function OccurrenceForm({
         </p>
       )}
       <LocationPicker
+        expanded={!initial}
+        searchSelection={searchSelection}
         latitude={hasPoint ? latitude : -15.79}
         longitude={hasPoint ? longitude : -47.88}
         onChange={updatePoint}
@@ -214,7 +259,7 @@ export default function OccurrenceForm({
         <Button
           type="button"
           variant="outline"
-          onClick={() => (isDirty ? setCancel(true) : onDone())}
+          onClick={() => (isDirty || cep.trim() ? setCancel(true) : onDone())}
         >
           Cancelar
         </Button>
