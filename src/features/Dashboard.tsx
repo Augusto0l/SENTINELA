@@ -47,6 +47,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
     heat: "Mapa de calor",
     points: "Pontos",
     clusters: "Clusters",
+    satellite: "Satélite",
   };
 
   return (
@@ -162,6 +163,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                flexWrap: "wrap", gap: 10,
                 flexShrink: 0,
                 background: "var(--theme-map-control)",
               }}>
@@ -178,11 +180,13 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   display: "flex", alignItems: "center",
                   background: "var(--theme-map-control)", border: "1px solid var(--theme-1e3a5f)",
                   borderRadius: 7, padding: 3, gap: 2,
+                  flexWrap: "wrap", maxWidth: "100%",
                 }}>
-                  {(["heat", "points", "clusters"] as MapMode[]).map((m) => (
+                  {(["heat", "points", "clusters", "satellite"] as MapMode[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => setMapMode(m)}
+                      aria-pressed={mapMode === m}
                       style={{
                         background: mapMode === m ? "#2563eb" : "transparent",
                         border: "none", borderRadius: 5,
@@ -210,10 +214,10 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   onSelectRa={(raCode) => onNavigateToCrimeMap(raCode)}
                 />
 
-                {/* Map controls */}
-                <div style={{
+                {/* The satellite layer has working Leaflet controls of its own. */}
+                <div hidden={mapMode === "satellite"} style={{
                   position: "absolute", right: 12, bottom: 64,
-                  display: "flex", flexDirection: "column", gap: 3,
+                  display: mapMode === "satellite" ? "none" : "flex", flexDirection: "column", gap: 3,
                 }}>
                   {[
                     { title: "Resetar visão", svg: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
@@ -241,7 +245,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                   position: "absolute",
                   bottom: 14,
                   right: 14,
-                  display: "flex",
+                  display: mapMode === "satellite" ? "none" : "flex",
                   flexDirection: "column",
                   alignItems: "flex-end",
                   pointerEvents: "none",

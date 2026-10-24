@@ -1,109 +1,60 @@
-"use client";
+"use client"
 
-import { useTheme } from "@/components/ThemeProvider";
-import { useRouter } from "next/navigation";
-import { useDemoToast } from "./DemoProvider";
+import { usePathname, useRouter } from "next/navigation"
+import { useTheme } from "@/components/ThemeProvider"
+import { useDemoToast } from "@/components/DemoProvider"
+import { DemoProfileSelect } from "@/components/OperationalProvider"
+import NavigationIcon from "@/components/NavigationIcon"
+import styles from "@/components/Navigation.module.css"
 
 interface HeaderProps {
-  title: string;
-  subtitle?: string;
+  title: string
+  subtitle?: string
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
-  const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
-  const notify = useDemoToast();
+  const router = useRouter()
+  const pathname = usePathname()
+  const { resolvedTheme, setTheme } = useTheme()
+  const notify = useDemoToast()
+  const group = pathname.startsWith("/ocorrencias") || pathname === "/importar"
+    ? "Ocorrências" : pathname === "/usuarios" || pathname === "/configuracoes" ? "Gestão" : "Visão Geral"
   return (
-    <header className="system-topbar"
-      style={{
-        height: 56,
-        background: "var(--theme-0d1626)",
-        borderBottom: "1px solid var(--theme-1e3a5f)",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 24px",
-        gap: 16,
-        flexShrink: 0,
-      }}
-    >
-      {/* Page title on left for context */}
-      <div style={{ flex: "0 0 auto", marginRight: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-94a3b8)" }}>{title}</span>
-        {subtitle && <span className="topbar-subtitle" style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginLeft: 8 }}>{subtitle}</span>}
+    <header className={`system-topbar ${styles.header}`}>
+      <div className={styles.pageContext}>
+        <div className={styles.breadcrumb}>
+          <span className={styles.breadcrumbBrand}>SENTINELA</span>
+          <NavigationIcon name="chevron" size={11} />
+          <span>{group}</span>
+          <span className={styles.demoBadge} title="Dados fictícios. Alterações somente em memória, perdidas ao recarregar.">Demonstração · sem persistência</span>
+        </div>
+        <div className={styles.pageTitleRow}>
+          <span className={styles.pageTitle}>{title}</span>
+          {subtitle && <span className={`topbar-subtitle ${styles.subtitle}`}>{subtitle}</span>}
+        </div>
       </div>
 
-      <div style={{ flex: 1 }} />
-
-      {/* Notifications */}
-      <button
-        title="Notificações"
-        aria-label="Notificações demonstrativas"
-        onClick={() => notify("Notificações ilustrativas. Não há alertas de ocorrências reais.")}
-        style={{
-          position: "relative",
-          background: "transparent",
-          border: "none",
-          color: "var(--color-text-muted)",
-          cursor: "pointer",
-          fontSize: 18,
-          padding: "4px 8px",
-          lineHeight: 1,
-        }}
-      >
-        🔔
-        <span
-          style={{
-            position: "absolute",
-            top: 2,
-            right: 4,
-            width: 8,
-            height: 8,
-            background: "#ef4444",
-            borderRadius: "50%",
-            border: "2px solid var(--theme-0d1626)",
-          }}
-        />
-      </button>
-
-      {/* Theme toggle */}
-      <button
-        title="Alternar tema"
-        aria-label={resolvedTheme === "escuro" ? "Ativar tema claro" : "Ativar tema escuro"}
-        aria-pressed={resolvedTheme === "escuro"}
-        onClick={() => setTheme(resolvedTheme === "escuro" ? "claro" : "escuro")}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "var(--color-text-muted)",
-          cursor: "pointer",
-          fontSize: 16,
-          padding: "4px 8px",
-        }}
-      >
-        {resolvedTheme === "escuro" ? "☀" : "☾"}
-      </button>
-
-      {/* User */}
-      <button className="topbar-user" aria-label="Abrir configurações do usuário demonstrativo" onClick={() => router.push("/configuracoes")} style={{ background: "none", border: "none", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#fff",
-          }}
-        >
-          PA
+      <div className={styles.headerActions}>
+        <div className={styles.utilityActions}>
+          <button className={styles.iconButton} type="button" title="Notificações demonstrativas" aria-label="Notificações demonstrativas"
+            onClick={() => notify("Notificações ilustrativas. Não há alertas de ocorrências reais.")}>
+            <NavigationIcon name="bell" />
+          </button>
+          <button className={styles.iconButton} type="button" title="Alternar tema"
+            aria-label={resolvedTheme === "escuro" ? "Ativar tema claro" : "Ativar tema escuro"}
+            aria-pressed={resolvedTheme === "escuro"}
+            onClick={() => setTheme(resolvedTheme === "escuro" ? "claro" : "escuro")}>
+            <NavigationIcon name={resolvedTheme === "escuro" ? "sun" : "moon"} />
+          </button>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--theme-94a3b8)" }}>Pedro Augusto</span>
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>▾</span>
-      </button>
+        <DemoProfileSelect className={styles.profile} />
+        <button className={`topbar-user ${styles.headerUser}`} type="button" aria-label="Abrir configurações do usuário demonstrativo"
+          title="Configurações de Pedro Augusto" onClick={() => router.push("/configuracoes")}>
+          <span className={styles.avatar}>PA</span>
+          <span className={styles.headerUserName}>Pedro Augusto<small>Conta demonstrativa</small></span>
+          <NavigationIcon name="chevron" size={14} />
+        </button>
+      </div>
     </header>
-  );
+  )
 }

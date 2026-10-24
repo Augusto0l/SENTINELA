@@ -68,30 +68,17 @@ table { min-width: 640px; }
   .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .users-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .two-column-grid { grid-template-columns: minmax(0, 1fr); }
-  .system-topbar { padding: 0 16px !important; gap: 8px !important; }
-  .topbar-subtitle { display: none; }
 }
 @media (max-width: 1023px) {
-  .system-sidebar { width: 72px !important; min-width: 72px !important; }
-  .system-sidebar nav > div > div, .sidebar-text { display: none; }
-  .system-sidebar nav button { justify-content: center !important; padding: 12px 0 !important; }
-  .system-sidebar > div:first-child { padding: 16px 4px !important; justify-content: center !important; }
-  .system-sidebar .brand-text { display: none; }
-  .system-sidebar .brand-lockup { gap: 0 !important; }
-  .system-sidebar > div:not(:first-child) { padding: 14px 0 !important; justify-content: center !important; }
-  .system-sidebar > button { display: none; }
   .map-panels { flex-direction: column; }
   .crime-panels > div:first-child { flex: none !important; min-height: 420px; }
   .map-panels > div:first-child { min-height: 420px; }
   .map-side-panel { width: 100% !important; flex-shrink: 0; overflow: visible !important; }
-  .topbar-user > span { display: none; }
 }
 @media (max-width: 639px) {
-  .system-sidebar { width: 56px !important; min-width: 56px !important; }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form-grid { grid-template-columns: minmax(0, 1fr) !important; }
   .field-row { grid-template-columns: minmax(0, 1fr) !important; gap: 6px !important; }
-  .system-topbar { padding: 0 8px !important; }
   .demo-dialog { padding: 20px 16px; }
   .demo-drawer { padding: 0; }
 }
