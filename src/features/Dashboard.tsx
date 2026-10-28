@@ -1,47 +1,40 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Header from "../components/Header";
 import MapaDF, { type MapMode } from "../components/map/MapaDF";
 import DonutChart from "../components/DonutChart";
 import { useDemoToast } from "../components/DemoProvider";
-import { DEMO_RA_LIST as RA_LIST } from "../data/demoStats";
-import { DEMO_PERIOD_LABEL } from "../data/demoAnalytics";
+import { RA_LIST } from "@/data/mockData";
+import { demoPeriodLabel, emptyDemoFilters, queryDemoAnalytics, type DemoFilters } from "@/data/demoAnalytics";
+import AnalyticFilters from "@/components/analytics/AnalyticFilters";
+import PeriodTrend from "@/components/analytics/PeriodTrend";
+import analyticsStyles from "@/components/analytics/Analytics.module.css";
 import { MOCK_OCCURRENCES } from "../data/mockOccurrences";
 
 interface DashboardProps {
-  onNavigateToCrimeMap: (raCode?: string) => void;
+  onNavigateToCrimeMap: (raCode?: string, filters?: DemoFilters) => void;
 }
-
-const OCCURRENCES_BY_RA: Record<string, number> = Object.fromEntries(
-  RA_LIST.map((ra) => [ra.codigo, ra.occurrence_count])
-);
-
-const sparkData = [60, 72, 65, 80, 78, 95, 88, 100, 92, 108, 112, 124];
 
 export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
   const notify = useDemoToast();
   const [mapMode, setMapMode] = useState<MapMode>("heat");
+  const [filters, setFilters] = useState(emptyDemoFilters);
+  const { mapRecords, mapSummary, summary } = useMemo(() => queryDemoAnalytics(MOCK_OCCURRENCES, filters), [filters]);
 
-  const total = RA_LIST.reduce((s, r) => s + r.occurrence_count, 0);
-  const topRA = [...RA_LIST].sort((a, b) => b.occurrence_count - a.occurrence_count)[0];
-  const maxGrowth = [...RA_LIST].sort((a, b) => b.variation - a.variation)[0];
-  const maxDrop = [...RA_LIST].sort((a, b) => a.variation - b.variation)[0];
+  const total = summary.total;
+  const ranking = RA_LIST.map(ra => ({ ...ra, occurrence_count: summary.byRa[ra.codigo] ?? 0 })).filter(ra => ra.occurrence_count > 0).sort((a, b) => b.occurrence_count - a.occurrence_count);
+  const topRA = ranking[0];
+  const sparkData = summary.timeline.map(item => item.count);
 
-  const natureMap: Record<string, number> = {};
-  RA_LIST.forEach((ra) => {
-    Object.entries(ra.crimes_by_nature).forEach(([k, v]) => {
-      natureMap[k] = (natureMap[k] ?? 0) + v;
-    });
-  });
+  const natureMap = summary.byNature;
   const topNature = Object.entries(natureMap).sort((a, b) => b[1] - a[1])[0];
   const donutData = Object.entries(natureMap)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
     .map(([name, value]) => ({ name, value }));
 
-  const topFiveRAs = [...RA_LIST].sort((a, b) => b.occurrence_count - a.occurrence_count).slice(0, 5);
+  const topFiveRAs = ranking.slice(0, 5);
   const rankingMax = topFiveRAs[0]?.occurrence_count ?? 1;
 
-  const updatedLabel = `Base fictícia · ${DEMO_PERIOD_LABEL}`;
+  const updatedLabel = `Base fictícia · ${demoPeriodLabel(filters)}`;
 
   const MODE_LABELS: Record<MapMode, string> = {
     heat: "Mapa de calor",
@@ -69,15 +62,18 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontStyle: "italic" }}>{updatedLabel}</span>
         </div>
 
+        <AnalyticFilters filters={filters} onChange={setFilters} />
+        {total === 0 && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
+
         {/* KPI Cards */}
         <div className="kpi-grid" style={{ display: "grid", gap: 10 }}>
           {/* Ocorrências no período */}
           <div style={kpiCard}>
             <div style={kpiLabel}>OCORRÊNCIAS NO PERÍODO</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1, margin: "6px 0 4px" }}>
+            <div data-testid="analytics-total" data-count={total} style={{ fontSize: 28, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1, margin: "6px 0 4px" }}>
               {total.toLocaleString("pt-BR")}
             </div>
-            <div style={kpiSub}>Total em todas as RAs</div>
+            <div style={kpiSub}>Ocorrências únicas no recorte aplicado</div>
             <div style={{ marginTop: 8, height: 28 }}>
               <SparklineInline data={sparkData} color="#2563eb" />
             </div>
@@ -88,43 +84,41 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             <div style={kpiLabel}>RA COM MAIOR INCIDÊNCIA</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", lineHeight: 1.2 }}>
-                {topRA.nomeDisplay}
+                {topRA?.nomeDisplay ?? "—"}
               </div>
               <span style={{ fontSize: 20, opacity: 0.5 }}>🛡</span>
             </div>
             <div style={{ ...kpiSub, marginTop: 4 }}>
-              {topRA.occurrence_count.toLocaleString("pt-BR")} ocorrências ({((topRA.occurrence_count / total) * 100).toFixed(1)}% do total)
+              {(topRA?.occurrence_count ?? 0).toLocaleString("pt-BR")} ocorrências ({(total ? ((topRA?.occurrence_count ?? 0) / total) * 100 : 0).toFixed(1)}% do total)
             </div>
           </div>
 
-          {/* Maior crescimento */}
+          {/* RAs representadas no recorte */}
           <div style={kpiCard}>
-            <div style={kpiLabel}>MAIOR CRESCIMENTO</div>
+            <div style={kpiLabel}>RAS COM OCORRÊNCIAS</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-22c55e)", lineHeight: 1.2 }}>
-                {maxGrowth.nomeDisplay}
+                {ranking.length}
               </div>
-              <span style={{ fontSize: 18, color: "var(--theme-22c55e)" }}>↗</span>
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--theme-22c55e)", marginTop: 2 }}>
-              +{maxGrowth.variation.toFixed(1)}%
+              {RA_LIST.length} áreas no catálogo demonstrativo
             </div>
-            <div style={kpiSub}>comparação fictícia ilustrativa</div>
+            <div style={kpiSub}>Contagem de áreas com registros no recorte</div>
           </div>
 
-          {/* Maior redução */}
+          {/* Dia e hora de pico no recorte */}
           <div style={kpiCard}>
-            <div style={kpiLabel}>MAIOR REDUÇÃO</div>
+            <div style={kpiLabel}>DIA CRÍTICO</div>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: 6 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-60a5fa)", lineHeight: 1.2 }}>
-                {maxDrop.nomeDisplay}
+                {summary.peakDay}
               </div>
-              <span style={{ fontSize: 18, color: "var(--theme-60a5fa)" }}>↘</span>
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--theme-60a5fa)", marginTop: 2 }}>
-              {maxDrop.variation.toFixed(1)}%
+              {summary.peakHour}
             </div>
-            <div style={kpiSub}>comparação fictícia ilustrativa</div>
+            <div style={kpiSub}>Dia e hora com mais registros no recorte</div>
           </div>
 
           {/* Natureza em destaque */}
@@ -137,7 +131,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
               <span style={{ fontSize: 18, opacity: 0.5 }}>🍩</span>
             </div>
             <div style={kpiSub}>
-              {topNature?.[1]?.toLocaleString("pt-BR")} ocorrências ({((topNature?.[1] / total) * 100).toFixed(1)}%)
+              {(topNature?.[1] ?? 0).toLocaleString("pt-BR")} ocorrências ({(total ? ((topNature?.[1] ?? 0) / total) * 100 : 0).toFixed(1)}%)
             </div>
           </div>
         </div>
@@ -172,7 +166,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                     Ocorrências por Região Administrativa
                   </div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>
-                    Distribuição da base fictícia; contagens iguais à listagem
+                    Distribuição da base fictícia no recorte aplicado
                   </div>
                 </div>
                 {/* Segmented mode selector */}
@@ -207,11 +201,13 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
               {/* Map */}
               <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
                 <MapaDF
-                  occurrencesByRa={OCCURRENCES_BY_RA}
+                  occurrencesByRa={mapSummary.byRa}
+                  selectedRaCode={filters.ra || null}
                   showPoints={false}
                   mapMode={mapMode}
-                  mockOccurrences={MOCK_OCCURRENCES}
-                  onSelectRa={(raCode) => onNavigateToCrimeMap(raCode)}
+                  mockOccurrences={mapRecords}
+                  heatReferenceOccurrences={MOCK_OCCURRENCES}
+                  onSelectRa={(raCode) => onNavigateToCrimeMap(raCode, filters)}
                 />
 
                 {/* The satellite layer has working Leaflet controls of its own. */}
@@ -267,7 +263,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             <div style={panel}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <div style={panelLabel}>Ranking das RAs por ocorrências</div>
-                <button onClick={() => onNavigateToCrimeMap()} style={{ background: "none", border: "none", fontSize: 11, color: "var(--theme-60a5fa)", cursor: "pointer" }}>Ver todas</button>
+                <button onClick={() => onNavigateToCrimeMap(undefined, { ...filters, ra: "" })} style={{ background: "none", border: "none", fontSize: 11, color: "var(--theme-60a5fa)", cursor: "pointer" }}>Ver todas</button>
               </div>
               {topFiveRAs.map((ra, i) => {
                 const pct = (ra.occurrence_count / rankingMax) * 100;
@@ -299,17 +295,13 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             <div style={panel}>
               <div style={panelLabel}>Natureza criminal mais frequente</div>
               <DonutChart data={donutData} size={150} />
+              <p style={kpiSub}>Vínculos por natureza; uma ocorrência pode ter várias naturezas.</p>
             </div>
 
             {/* Variation */}
             <div style={{ ...panel, padding: "12px 14px" }}>
-              <div style={panelLabel}>Variação ilustrativa</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f97316)", marginTop: 6 }}>+8,4%</div>
-              <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>comparação fictícia ilustrativa</div>
-              <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>Período anterior: {(total / 1.084).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ocorrências</div>
-              <div style={{ marginTop: 8, height: 32 }}>
-                <SparklineInline data={sparkData} color="var(--theme-60a5fa)" />
-              </div>
+              <div style={panelLabel}>Evolução temporal do recorte</div>
+              <PeriodTrend timeline={summary.timeline} />
             </div>
 
             {/* Info */}
@@ -337,7 +329,7 @@ function SparklineInline({ data, color }: { data: number[]; color: string }) {
   const h = 28;
   const w = 100;
   const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
+    const x = data.length === 1 ? w / 2 : (i / (data.length - 1)) * w;
     const y = h - ((v - min) / (max - min || 1)) * h;
     return `${x},${y}`;
   }).join(" ");

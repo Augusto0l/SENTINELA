@@ -1,8 +1,10 @@
 import CrimeMapEntry from "@/features/CrimeMapEntry";
+import { demoFiltersFromSearch } from "@/data/demoAnalytics";
 
 export default async function Page({ searchParams }: {
-  searchParams: Promise<{ ra?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { ra } = await searchParams;
-  return <CrimeMapEntry initialRaCode={typeof ra === "string" ? ra : undefined} />;
+  const params = await searchParams;
+  const filters = demoFiltersFromSearch({ get: name => typeof params[name] === "string" ? params[name] : null });
+  return <CrimeMapEntry initialFilters={filters} />;
 }

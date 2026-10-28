@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "escuro /dashboard: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.88 px",
+    "escuro /mapa-criminal: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.13 px",
+    "claro /dashboard: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.88 px",
+    "claro /mapa-criminal: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.13 px",
+    "Filtros de natureza, horário, período, RA e vazio; quantitativos iguais ao Calor; seleção por teclado",
+    "Clique na RA do Dashboard navega corretamente; escolhas de modo independentes",
+    "Dashboard e Mapa Criminal em desktop, tablet e celulares (1440, 820, 390 e 320 px)",
+    "Erros 403/429/503, offline, nova tentativa e falha do GeoJSON com retorno aos modos existentes",
+    "Falha de carregamento do componente isolada pelo boundary, com retorno ao Calor"
+  ],
+  "errors": [],
+  "realTiles": 54
+}

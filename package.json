@@ -15,7 +15,8 @@
     "check:routes": "node scripts/check-routes.mjs",
     "check:styles": "node scripts/check-styles.mjs",
     "check:occurrences": "node scripts/check-occurrences.mjs",
-    "check:sprint2": "node scripts/check-sprint2.mjs"
+    "check:sprint2": "node scripts/check-sprint2.mjs",
+    "check:import": "node scripts/check-import.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",
@@ -37,6 +38,7 @@
     "react-leaflet": "^5.0.0",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.6.7"
   },
   "devDependencies": {

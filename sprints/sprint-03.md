@@ -90,6 +90,40 @@ Os responsáveis pelas novas PBIs e Tasks não foram definidos nos arquivos orig
 
 ## Evidências
 
+### Fluxo de importação demonstrativa — 28/10/2026
+
+Leitura real de CSV/XLSX, seleção de planilha, cabeçalhos, mapeamento automático/manual, validação por linha/coluna, múltiplas naturezas, prévia paginada e confirmação em memória implementadas para a Feature #10 (PBIs #60/#63/#66/#69). A seleção inicial abaixo foi reaproveitada; o novo fluxo substitui os exemplos fixos na rota ativa. Modelos CSV/XLSX demonstrativos disponíveis, sem declaração de homologação institucional.
+
+Detalhes, regras e limites: [relatório da importação](../docs/importacao-demonstrativa.md). Decisão: [ADR do processamento local](../docs/decisoes/adr-importacao-demonstrativa-local.md). Não representa encerramento remoto de issues, aceite acadêmico ou conclusão integral da Sprint 3.
+
+Validação final: instalação congelada com pnpm 10.34.3, TypeScript, ESLint, 46 testes Node, contratos, rotas e build aprovados. Chrome verificou o fluxo completo nos dois temas e larguras de 1366, 768, 390 e 320 px, incluindo prévia, correção de mapeamento, confirmação, troca de planilha, paginação, drag-and-drop e foco visível. [Resultados e capturas preservados](../docs/evidencias/importacao/README.md). Sem persistência, commit, push ou publicação.
+
+### Seleção inicial de arquivos — 28/10/2026
+
+Implementada validação compartilhada para seleção pelo botão e drag-and-drop na tela de importação (PBIs #60, tasks #61/#62): um arquivo CSV/XLSX, extensão sem distinção de caixa, não vazio e até 50 MB (52.428.800 bytes). Seleções inválidas limpam o nome anterior e apresentam mensagem acessível; cancelar restaura o estado vazio. A seleção do mesmo arquivo pode ser repetida.
+
+TypeScript e lint aprovados. Suíte Node com 30 testes aprovada, incluindo dois testes novos de seleção e limites. O comando padrão de testes encontrou `spawn EPERM` no sandbox; a execução direta do mesmo runner fora do sandbox passou. O pnpm disponível era 12.9.1, divergente do 10.34.3 declarado, e tentou verificar dependências sem acesso ao lock do store; nenhuma dependência foi adicionada nesta entrega.
+
+Build Next.js aprovado fora do sandbox após a tentativa restrita compilar e falhar com `spawn EPERM` na etapa seguinte.
+
+Esta etapa valida somente metadados: não lê CSV/XLSX, não comprova o formato interno e não envia ou grava dados. Prévia, mapeamento e histórico continuam fictícios. Leitura de cabeçalhos, mapeamento real, processamento e modelos permanecem pendentes. Não houve homologação visual desta alteração, fechamento de issues, commit ou publicação.
+
+### Correção final da contagem CSV — 28/10/2026
+
+Corrigida a falha identificada na auditoria: linhas vazias antes do cabeçalho não consomem mais o limite de 10.000 registros, mantendo os contadores de células/texto e as posições originais. Linhas vazias após o cabeçalho continuam contando e sendo inválidas. Aceitação de 10.000 e rejeição de 10.001 registros verificadas; comportamento XLSX preservado e testado na mesma fronteira.
+
+TypeScript, ESLint, suíte completa com **51 testes Node** (cinco regressões novas) e build de produção aprovados com pnpm 10.34.3. As evidências visuais anteriores permanecem históricas; não houve nova rodada no navegador. Escopo restrito ao parser CSV, testes e documentação da importação. Sem commit, push, alteração de autoria ou aceite acadêmico. Detalhes: [relatório da importação](../docs/importacao-demonstrativa.md).
+
+### Etapa 2 — Mapas e Analytics — 28/10/2026
+
+Implementado intervalo personalizado inclusivo no Dashboard e no Mapa Criminal, com datas civis independentes do fuso, validação acessível, preservação dos atalhos existentes e limpeza para restaurar a base fictícia. Período, RA, natureza e horário compartilham controles e consulta analítica. Cards, ranking, distribuições e série mensal respondem ao mesmo recorte; a navegação Dashboard → Mapa transporta os filtros aplicados.
+
+As variações fixas foram substituídas por indicadores calculados e série mensal real dos mocks. Uma ocorrência com múltiplas naturezas continua única no total; vínculos são contabilizados na distribuição. A intensidade de calor mantém a referência integral. Geometria, dados, marcadores, clusters e implementação do Satélite preservados; nenhuma alteração na importação da Etapa 1.
+
+Critérios locais atendidos: intervalo válido/invertido/incompleto, primeiro e último dia incluídos, período vazio, limpeza/restauração, combinação dos filtros, coerência dos totais, datas bissextas/inválidas, quatro fusos e regressões cartográficas. TypeScript, ESLint, **62 testes Node** (11 novos), build e roteiros de Chrome aprovados. Temas claro/escuro, desktop/tablet/celular e teclado verificados. Detalhamento: [filtros e analytics](../docs/filtros-analytics.md), [ADR](../docs/decisoes/adr-periodo-civil-analytics.md) e [evidências](../docs/evidencias/analytics/README.md).
+
+Relaciona-se aos PBIs #82/#85/#88/#91 e respectivas tasks de filtros/agregações/gráficos. Sem fechamento remoto de issues, atribuição individual de autoria, commit, push ou aceite acadêmico. A integração persistida dos dados e os contratos de timestamp do futuro backend permanecem para outras etapas; a Sprint 3 não está integralmente concluída.
+
 ## Impedimentos
 
 ## Retrospectiva
