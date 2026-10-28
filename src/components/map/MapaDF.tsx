@@ -13,6 +13,7 @@ import {
 import type { MockOccurrence } from "../../data/mockOccurrences";
 import { createDensityField, HEAT_GRADIENT, projectHeatRecords } from "@/components/map/heatmapDensity";
 import { renderDensityHeatmap } from "@/components/map/heatmapCanvas";
+import styles from "@/components/map/AnalyticMap.module.css";
 
 export type MapMode = "heat" | "points" | "clusters" | "satellite";
 
@@ -105,13 +106,29 @@ export default function MapaDF({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const heatCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [symbolScale, setSymbolScale] = useState(1);
 
   const selectedRA = selectedRaCode ? RA_BY_CODE[selectedRaCode] : undefined;
   const visibleRAs = selectedRA ? [selectedRA] : RAS;
   const viewBox = selectedRA ? selectedRA.viewBox : MAP_VIEWBOX;
   // The location picker also uses this component; preserve its existing appearance.
   const heatmapActive = mapMode === "heat" && !onClickPoint;
+  const analyticMap = !onClickPoint;
   const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(" ").map(Number);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || (mapMode !== "points" && mapMode !== "clusters")) return;
+    const update = () => {
+      const matrix = svg.getScreenCTM();
+      const scale = matrix ? Math.hypot(matrix.a, matrix.b) : 1;
+      if (Number.isFinite(scale) && scale > 0) setSymbolScale(scale);
+    };
+    const frame = requestAnimationFrame(update);
+    const observer = new ResizeObserver(update);
+    observer.observe(svg);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
+  }, [mapMode, viewBox]);
 
   const values = RAS.map((ra) => occurrencesByRa[ra.code] ?? 0);
   const minValue = Math.min(...values);
@@ -196,6 +213,7 @@ export default function MapaDF({
   return (
     <div
       ref={containerRef}
+      className={analyticMap ? styles.map : undefined}
       style={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
       onMouseMove={handleMouseMove}
     >
@@ -205,7 +223,7 @@ export default function MapaDF({
         width="100%"
         height="100%"
         preserveAspectRatio="xMidYMid meet"
-        style={{ display: "block", background: heatmapActive ? "var(--heatmap-bg)" : "#07111f", cursor: onClickPoint ? "crosshair" : "default" }}
+        style={{ display: "block", background: analyticMap ? "var(--heatmap-bg)" : "#07111f", cursor: onClickPoint ? "crosshair" : "default" }}
         onClick={handleSvgClick}
       >
         {/* RA polygons */}
@@ -228,10 +246,10 @@ export default function MapaDF({
                 }}
                 id={ra.id}
                 d={ra.path}
-                fill={heatmapActive ? "var(--heatmap-ra-fill)" : selectedRA ? "#1d4ed8" : colorFor(count, minValue, maxValue)}
-                fillOpacity={heatmapActive ? 1 : hovered ? 0.95 : mapMode === "heat" ? 0.42 : 0.82}
+                fill={analyticMap ? "var(--heatmap-ra-fill)" : selectedRA ? "#1d4ed8" : colorFor(count, minValue, maxValue)}
+                fillOpacity={analyticMap ? 1 : hovered ? 0.95 : mapMode === "heat" ? 0.42 : 0.82}
                 fillRule="evenodd"
-                stroke={heatmapActive ? (hovered ? "var(--heatmap-border-hover)" : "var(--heatmap-border)") : hovered ? "#ffffff" : "#60a5fa"}
+                stroke={analyticMap ? (hovered ? "var(--heatmap-border-hover)" : "var(--heatmap-border)") : hovered ? "#ffffff" : "#60a5fa"}
                 strokeWidth={hovered ? 2.6 : 0.9}
                 vectorEffect="non-scaling-stroke"
                 style={{ cursor: "pointer", transition: "fill-opacity .15s, stroke .15s" }}
@@ -256,8 +274,8 @@ export default function MapaDF({
         )}
 
         {/* RA labels when showing all RAs */}
-        {!selectedRA && mapMode !== "points" && (
-          <g pointerEvents="none">
+        {!selectedRA && (analyticMap ? mapMode === "heat" : mapMode !== "points") && (
+          <g pointerEvents="none" data-testid="ra-count-labels">
             {RAS.map((ra) => {
               const count = occurrencesByRa[ra.code];
               if (!count) return null;
@@ -311,19 +329,19 @@ export default function MapaDF({
 
         {/* Points mode */}
         {mapMode === "points" && (
-          <g>
+          <g data-testid="occurrence-points">
             {visibleOccs.map((p) => (
               <g key={p.id}>
-                {/* outer glow */}
-                <circle cx={p.x} cy={p.y} r={7} fill="#f97316" opacity={0.07} pointerEvents="none" />
-                <circle cx={p.x} cy={p.y} r={4.5} fill="#fbbf24" opacity={0.16} pointerEvents="none" />
-                {/* core dot */}
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r={2.2}
-                  fill="#fb923c"
-                  opacity={0.92}
+                  r={Math.max(2.4, 1.2 / symbolScale)}
+                  fill="#ef4444"
+                  opacity={0.95}
+                  stroke="#fecaca"
+                  strokeOpacity={0.65}
+                  strokeWidth={0.6}
+                  vectorEffect="non-scaling-stroke"
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(e) => {
                     setHoveredOcc(p);
@@ -334,8 +352,6 @@ export default function MapaDF({
                   }}
                   onMouseLeave={() => { setHoveredOcc(null); setTooltipPos(null); }}
                 />
-                {/* bright center spark */}
-                <circle cx={p.x} cy={p.y} r={0.9} fill="#fef08a" opacity={0.85} pointerEvents="none" />
               </g>
             ))}
           </g>
@@ -343,18 +359,20 @@ export default function MapaDF({
 
         {/* Clusters mode */}
         {mapMode === "clusters" && (
-          <g pointerEvents="none">
+          <g pointerEvents="none" data-testid="occurrence-clusters">
             {clusters.map((c, i) => {
-              const r = Math.max(14, Math.min(32, 10 + Math.sqrt(c.count) * 2.5));
+              const baseRadius = Math.max(12, Math.min(27, 8 + Math.sqrt(c.count) * 2.4));
+              // Screen minima keep the counts readable without moving cluster centers.
+              const r = Math.max(baseRadius, (6 + Math.sqrt(c.count) * 0.35) / symbolScale);
               return (
                 <g key={i}>
-                  <circle cx={c.x} cy={c.y} r={r + 4} fill="rgba(37,99,235,0.15)" />
-                  <circle cx={c.x} cy={c.y} r={r} fill="rgba(37,99,235,0.75)" />
+                  <circle cx={c.x} cy={c.y} r={r} fill="#2563eb" fillOpacity={0.94} stroke="#b4d1ff" strokeWidth={1.1} vectorEffect="non-scaling-stroke" />
                   <text
                     x={c.x}
-                    y={c.y + 4}
+                    y={c.y}
                     textAnchor="middle"
-                    fontSize={Math.max(8, Math.min(12, r * 0.8))}
+                    dominantBaseline="central"
+                    fontSize={Math.max(r < 18 ? 11 : 12, 9 / symbolScale)}
                     fill="#fff"
                     fontFamily="sans-serif"
                     fontWeight="700"
@@ -395,7 +413,19 @@ export default function MapaDF({
       </svg>
 
       {/* Legend */}
-      {!selectedRA && (
+      {!selectedRA && analyticMap && (
+        <div className={styles.legend} style={{ position: "absolute", bottom: 14, left: 16, pointerEvents: "none", background: "rgba(7,17,31,.94)", border: "1px solid #354d69", borderRadius: 7, padding: "8px 10px", fontSize: 10 }}>
+          {mapMode === "heat" ? <>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 24, fontSize: 9, marginBottom: 5 }}><span>Menor densidade</span><span>Maior densidade</span></div>
+            <div style={{ width: 168, maxWidth: "100%", height: 7, borderRadius: 4, background: HEAT_GRADIENT }} />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 8 }}><span>Baixa</span><span>Média</span><span>Alta</span></div>
+          </> : <>
+            <span className={`${styles.legendSymbol} ${mapMode === "points" ? styles.pointSymbol : styles.clusterSymbol}`} />
+            {mapMode === "points" ? "Ocorrência individual" : "Quantidade de ocorrências agrupadas"}
+          </>}
+        </div>
+      )}
+      {!selectedRA && !analyticMap && (
         <div style={{
           position: "absolute", bottom: 14, left: 16, pointerEvents: "none",
           background: "var(--theme-map-control)", backdropFilter: "blur(6px)",

@@ -1,0 +1,15 @@
+.map {
+  /* A stable navy cartographic surface in both application themes. */
+  --heatmap-bg: #07111f;
+  --heatmap-ra-fill: #11243a;
+  --heatmap-border: #718ba8;
+  --heatmap-border-hover: #e3efff;
+  --heatmap-label: #f1f5f9;
+  --heatmap-label-shadow: 0 1px 3px #07111f;
+  --heatmap-badge: rgba(7, 17, 31, .9);
+  --heatmap-count: #c8e0ff;
+}
+.legend { color: #c3d2e5; max-width: calc(100% - 32px); line-height: 1.5; }
+.legendSymbol { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; vertical-align: middle; border: 1px solid #c6ddff; }
+.pointSymbol { background: #ef4444; border-color: #fecaca; }
+.clusterSymbol { background: #2563eb; }
