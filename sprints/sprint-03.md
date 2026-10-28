@@ -124,6 +124,18 @@ Critérios locais atendidos: intervalo válido/invertido/incompleto, primeiro e 
 
 Relaciona-se aos PBIs #82/#85/#88/#91 e respectivas tasks de filtros/agregações/gráficos. Sem fechamento remoto de issues, atribuição individual de autoria, commit, push ou aceite acadêmico. A integração persistida dos dados e os contratos de timestamp do futuro backend permanecem para outras etapas; a Sprint 3 não está integralmente concluída.
 
+### Etapa 3 — Contratos de API — 28/10/2026
+
+Contratos TypeScript/Zod implementados para ocorrências (cadastro, PATCH, detalhes, inativação, consulta/paginação/ordenação), importação (arquivo, lote, mapeamento, prévia, erros, pendências, possíveis duplicatas, estados e resultado simulado) e analytics/mapas (filtros combinados, indicadores, séries, distribuições, pontos e referência integral de calor). Tipos inferidos, múltiplas naturezas e adaptadores explícitos preservam a compatibilidade com as Etapas 1 e 2, sem modificar suas telas ou parsers.
+
+OpenAPI 3.1.1 gerado dos schemas e exemplos: 11 caminhos, 13 operações planejadas e 23 modelos. Todas as rotas versionadas estão marcadas como propostas, sem implementação/persistência. O proxy existente de geocodificação mantém seu formato anterior. Validação automatizada de sincronização, Swagger Parser, AJV e Zod integrada a `pnpm validate:contracts` e à suíte de testes. Detalhes: [documentação técnica](../docs/contratos/api-v0.1.0.md), [OpenAPI](../docs/contratos/openapi-v0.1.0.json), [ADR](../docs/decisoes/adr-contratos-executaveis-api.md) e [evidências](../docs/evidencias/contratos-api/README.md).
+
+Validação local: TypeScript, ESLint, **83 testes Node** (21 novos), build de produção, instalação congelada, sincronização OpenAPI, Swagger Parser, AJV/Zod e `git diff --check` aprovados. Sem nova homologação visual, pois nenhuma interface foi alterada.
+
+Branch exclusiva `feat/sprint3-contratos-api`, criada a partir de `integracao-pedro`/`626ab00` enquanto o PR #219 estava aberto. Posteriormente, o usuário integrou #219: fetch confirmou `ceub/main` em `2739dbb`, contendo a Etapa 2. O futuro PR da Etapa 3 passa a ter **main institucional** como destino, sem merge/rebase local. Responsável **planejado**: Pedro Felizardo Barbosa, conforme solicitação; este planejamento não atribui autoria de commits ou comprova participação individual.
+
+Rastreabilidade local: Feature #14, PBIs #107/#110, tasks #108/#109/#111/#112. Critérios remotos não foram confirmados; não há fechamento de issues ou aceite acadêmico. Homologação dos catálogos, regras históricas, autorização, deduplicação, upload, políticas de consolidação e integração Supabase/PostgreSQL/PostGIS permanecem pendentes. Sem commit, tag, merge, rebase, push ou alteração de autoria Git.
+
 ## Impedimentos
 
 ## Retrospectiva
