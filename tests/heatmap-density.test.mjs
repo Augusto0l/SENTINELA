@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDensityField, densityColor, HEAT_COLORS, HEAT_RADIUS, sampleDensity, projectHeatRecords } from "../src/components/map/heatmapDensity.ts";
+import { createDensityField, densityColor, HEAT_COLORS, HEAT_RADIUS, HEAT_MAX_OPACITY, sampleDensity, projectHeatRecords } from "../src/components/map/heatmapDensity.ts";
 
 test("calor usa longitude/latitude válidas; não substitui coordenadas ausentes por x/y ou centroides", () => {
   const records = [{ latitude: 20, longitude: 30, x: 99, y: 99 }, { latitude: NaN, longitude: 30, x: 99, y: 99 }, { latitude: 91, longitude: 30 }, { latitude: 20, longitude: Infinity }, { latitude: 20, longitude: 181 }, { latitude: 20, longitude: 50 }];
@@ -41,4 +41,15 @@ test("campo vazio é transparente e o pico de referência respeita a máscara ge
   assert.equal(sampleDensity(field, 50, 50), 0);
   const masked = createDensityField([{ x: 20, y: 20 }, { x: 20, y: 20 }, { x: 80, y: 80 }], 100, 100, (x, y) => x > 50 && y > 50);
   assert.equal(masked.peak, 1);
+});
+
+test("ocorrência isolada fica visível sem receber a cor de um hotspot", () => {
+  const reference = createDensityField(Array.from({ length: 6 }, () => ({ x: 40, y: 40 })), 100, 100);
+  const isolated = createDensityField([{ x: 40, y: 40 }], 100, 100);
+  const color = densityColor(sampleDensity(isolated, 40, 40), reference.peak);
+  assert.ok(color[3] > 0.76 * 255 / 6, "Mais visível que a opacidade linear anterior");
+  assert.ok(color[3] < 255 * HEAT_MAX_OPACITY / 2, "Um ponto isolado não deve saturar");
+  assert.notDeepEqual(color.slice(0, 3), [...HEAT_COLORS.at(-1)]);
+  assert.ok(color[2] > color[0], "Baixa densidade permanece no segmento azul/verde");
+  assert.equal(sampleDensity(reference, 40, 40), 6, "Cada registro mantém peso unitário");
 });

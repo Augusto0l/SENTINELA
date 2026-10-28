@@ -1,8 +1,9 @@
 /** Visual density of fictitious records; does not change counts or geographic data. */
-export const HEAT_RADIUS = 18; // Existing SVG projection units, independent of viewport/zoom.
-export const HEAT_SIGMA = 6; // Gaussian smoothing; truncated at three standard deviations.
+export const HEAT_RADIUS = 24; // Existing SVG projection units, independent of viewport/zoom.
+export const HEAT_SIGMA = 8; // Gaussian smoothing; truncated at three standard deviations.
 export const HEAT_GRID_STEP = 2;
-export const HEAT_MAX_OPACITY = 0.76;
+export const HEAT_MAX_OPACITY = 0.88;
+export const HEAT_OPACITY_EXPONENT = 0.6; // Improve visibility without changing the linear color scale.
 export const HEAT_COLORS = [[37, 99, 235], [34, 197, 94], [250, 204, 21], [249, 115, 22], [239, 68, 68]] as const;
 export const HEAT_GRADIENT = "linear-gradient(to right, #2563eb, #22c55e, #facc15, #f97316, #ef4444)";
 
@@ -79,6 +80,6 @@ export function densityColor(density: number, referencePeak: number): [number, n
     Math.round(start[0] + (end[0] - start[0]) * fraction),
     Math.round(start[1] + (end[1] - start[1]) * fraction),
     Math.round(start[2] + (end[2] - start[2]) * fraction),
-    Math.round(255 * HEAT_MAX_OPACITY * intensity),
+    Math.round(255 * HEAT_MAX_OPACITY * intensity ** HEAT_OPACITY_EXPONENT),
   ];
 }
