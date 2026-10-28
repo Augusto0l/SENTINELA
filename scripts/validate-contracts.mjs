@@ -20,3 +20,5 @@ for (const file of ["../components.json", "../package.json", "../tsconfig.json",
   JSON.parse(readFileSync(new URL(file, import.meta.url), "utf8"));
 }
 console.log("JSONs válidos; catálogo v0.1.0: 37 áreas, 8 naturezas, IDs únicos e homologação pendente explícita.");
+const { validateApiContracts } = await import("./validate-api-contracts.mjs");
+console.log("Contratos e OpenAPI válidos:", await validateApiContracts());
