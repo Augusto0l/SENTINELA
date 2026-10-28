@@ -114,6 +114,16 @@ Corrigida a falha identificada na auditoria: linhas vazias antes do cabeçalho n
 
 TypeScript, ESLint, suíte completa com **51 testes Node** (cinco regressões novas) e build de produção aprovados com pnpm 10.34.3. As evidências visuais anteriores permanecem históricas; não houve nova rodada no navegador. Escopo restrito ao parser CSV, testes e documentação da importação. Sem commit, push, alteração de autoria ou aceite acadêmico. Detalhes: [relatório da importação](../docs/importacao-demonstrativa.md).
 
+### Etapa 2 — Mapas e Analytics — 28/10/2026
+
+Implementado intervalo personalizado inclusivo no Dashboard e no Mapa Criminal, com datas civis independentes do fuso, validação acessível, preservação dos atalhos existentes e limpeza para restaurar a base fictícia. Período, RA, natureza e horário compartilham controles e consulta analítica. Cards, ranking, distribuições e série mensal respondem ao mesmo recorte; a navegação Dashboard → Mapa transporta os filtros aplicados.
+
+As variações fixas foram substituídas por indicadores calculados e série mensal real dos mocks. Uma ocorrência com múltiplas naturezas continua única no total; vínculos são contabilizados na distribuição. A intensidade de calor mantém a referência integral. Geometria, dados, marcadores, clusters e implementação do Satélite preservados; nenhuma alteração na importação da Etapa 1.
+
+Critérios locais atendidos: intervalo válido/invertido/incompleto, primeiro e último dia incluídos, período vazio, limpeza/restauração, combinação dos filtros, coerência dos totais, datas bissextas/inválidas, quatro fusos e regressões cartográficas. TypeScript, ESLint, **62 testes Node** (11 novos), build e roteiros de Chrome aprovados. Temas claro/escuro, desktop/tablet/celular e teclado verificados. Detalhamento: [filtros e analytics](../docs/filtros-analytics.md), [ADR](../docs/decisoes/adr-periodo-civil-analytics.md) e [evidências](../docs/evidencias/analytics/README.md).
+
+Relaciona-se aos PBIs #82/#85/#88/#91 e respectivas tasks de filtros/agregações/gráficos. Sem fechamento remoto de issues, atribuição individual de autoria, commit, push ou aceite acadêmico. A integração persistida dos dados e os contratos de timestamp do futuro backend permanecem para outras etapas; a Sprint 3 não está integralmente concluída.
+
 ## Impedimentos
 
 ## Retrospectiva
