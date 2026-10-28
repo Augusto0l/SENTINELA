@@ -8,6 +8,8 @@ await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ channel: "chrome", headless: true })
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" })
 const page = await context.newPage()
+await page.route("https://fonts.googleapis.com/**", route => route.abort())
+await page.route("https://fonts.gstatic.com/**", route => route.abort())
 const errors = []
 const checks = []
 page.on("pageerror", (error) => errors.push(error.message))

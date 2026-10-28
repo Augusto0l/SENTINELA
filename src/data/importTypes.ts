@@ -37,3 +37,5 @@ export type ImportWorkerResponse =
   | { type: "table"; table: Omit<ImportTable, "rows"> & { rowCount: number } }
   | { type: "analysis"; analysis: ImportAnalysis }
   | { type: "error"; message: string };
+export interface ImportWorkerJob { id: number; request: ImportWorkerRequest }
+export interface ImportWorkerReply { id: number; response: ImportWorkerResponse }

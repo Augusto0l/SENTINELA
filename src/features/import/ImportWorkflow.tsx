@@ -6,8 +6,9 @@ import Button from "@/components/ui/button";
 import { CRIME_NATURES, RA_LIST } from "@/data/mockData";
 import { validateImportFiles } from "@/data/importFile";
 import { autoMapImport, importMappingErrors, simulateImportConfirmation } from "@/data/importValidation";
-import { IMPORT_FIELDS, IMPORT_LABELS, IMPORT_LIMITS, REQUIRED_IMPORT_FIELDS } from "@/data/importTypes";
-import type { ImportAnalysis, ImportMapping, ImportResult, ImportTable, ImportWorkerRequest, ImportWorkerResponse } from "@/data/importTypes";
+import { IMPORT_FIELDS, IMPORT_LABELS, REQUIRED_IMPORT_FIELDS } from "@/data/importTypes";
+import type { ImportAnalysis, ImportMapping, ImportResult, ImportTable, ImportWorkerRequest } from "@/data/importTypes";
+import { createImportWorkerClient, type ImportWorkerClient } from "@/features/import/importWorkerClient";
 import styles from "@/features/import/ImportWorkflow.module.css";
 
 type TableMetadata = Omit<ImportTable, "rows"> & { rowCount: number };
@@ -26,19 +27,15 @@ export default function ImportWorkflow() {
   const [dragging, setDragging] = useState(false);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState("todos");
-  const worker = useRef<Worker | null>(null);
-  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const client = useRef<ImportWorkerClient | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const stageHeading = useRef<HTMLHeadingElement>(null);
 
   function stopWorker() {
-    worker.current?.terminate(); worker.current = null;
-    if (timeout.current) clearTimeout(timeout.current);
-    timeout.current = null;
+    client.current?.cancel();
   }
   useEffect(() => () => {
-    worker.current?.terminate();
-    if (timeout.current) clearTimeout(timeout.current);
+    client.current?.cancel();
   }, []);
   useEffect(() => { if (analysis || result || table) stageHeading.current?.focus(); }, [stage, analysis, result, table]);
 
@@ -51,35 +48,29 @@ export default function ImportWorkflow() {
     stopWorker(); setBusy(""); setAnalysis(null); setResult(null); setTable(null); setStage("mapping"); setError(message);
   }
   function send(message: ImportWorkerRequest, label: string) {
-    if (!worker.current) { fail("O processamento foi encerrado. Selecione o arquivo novamente."); return; }
-    setBusy(label); setError("");
-    if (timeout.current) clearTimeout(timeout.current);
-    timeout.current = setTimeout(() => fail("O processamento excedeu 60 segundos. Divida o arquivo e tente novamente."), IMPORT_LIMITS.timeout);
-    worker.current.postMessage(message);
+    setError("");
+    if (!client.current) { fail("O processamento foi encerrado. Selecione o arquivo novamente."); return; }
+    client.current.send(message, label);
   }
   function selectFiles(files: File[]) {
     reset();
     const invalid = validateImportFiles(files);
     if (invalid) { setError(invalid); return; }
     setFile(files[0]);
-    try {
-      const next = new Worker(new URL("./import.worker.ts", import.meta.url));
-      worker.current = next;
-      next.onmessage = (event: MessageEvent<ImportWorkerResponse>) => {
-        if (worker.current !== next) return;
-        if (timeout.current) clearTimeout(timeout.current);
-        setBusy("");
-        const message = event.data;
-        if (message.type === "error") { fail(message.message); return; }
+    if (!client.current) client.current = createImportWorkerClient({
+      createWorker: () => new Worker(new URL("./import.worker.ts", import.meta.url)),
+      onBusy: setBusy,
+      onError: fail,
+      onResponse: message => {
         if (message.type === "table") {
           setTable(message.table); setMapping(autoMapImport(message.table.headers)); setAnalysis(null); setResult(null); setStage("mapping");
         } else {
           setAnalysis(message.analysis); setPage(1); setFilter("todos"); setStage("preview");
         }
-      };
-      next.onerror = (event) => { event.preventDefault(); if (worker.current === next) fail("Não foi possível processar o arquivo. Verifique a integridade, divida arquivos grandes e tente novamente."); };
-      send({ type: "load", file: files[0] }, "Lendo arquivo e identificando colunas…");
-    } catch { fail("O navegador não conseguiu iniciar o processamento. Tente novamente em um navegador com suporte a Web Workers."); }
+      },
+    });
+    setError("");
+    client.current.start({ type: "load", file: files[0] }, "Lendo arquivo e identificando colunas…");
   }
   const mappingErrors = table?.headers.length ? importMappingErrors(table.headers, mapping) : [];
   const visibleRows = analysis?.rows.filter(row => filter === "todos" || row.status === filter) ?? [];

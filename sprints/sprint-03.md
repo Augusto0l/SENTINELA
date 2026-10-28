@@ -136,6 +136,16 @@ Branch exclusiva `feat/sprint3-contratos-api`, criada a partir de `integracao-pe
 
 Rastreabilidade local: Feature #14, PBIs #107/#110, tasks #108/#109/#111/#112. Critérios remotos não foram confirmados; não há fechamento de issues ou aceite acadêmico. Homologação dos catálogos, regras históricas, autorização, deduplicação, upload, políticas de consolidação e integração Supabase/PostgreSQL/PostGIS permanecem pendentes. Sem commit, tag, merge, rebase, push ou alteração de autoria Git.
 
+### Etapa 4 — Testes e homologação integrada — 28/10/2026
+
+Criada `test/sprint3-homologacao` a partir de `feat/sprint3-contratos-api`/`33f6bf5`: o fetch inicial confirmou que `ceub/main` (`2739dbb`) ainda não contém a Etapa 3. PR temporariamente direcionado à branch da Etapa 3, evitando reapresentar commits anteriores. Responsável **planejado**: João Pedro Roriz Costa, sem atribuição automática de autoria.
+
+Implementada robustez do Worker: correlação por operação, bloqueio de sobreposição, proteção contra respostas/timers obsoletos, falhas de envio/desserialização/execução, cleanup e recuperação. Extraídos controlador e processador testáveis, mantendo o prazo existente de 60 segundos por operação, o parser e os limites de segurança. Acrescentados 13 testes Node e roteiro Chrome com Worker nativo e falhas controladas; automação registra cada rodada em pasta única, inclusive reprovações e repetições.
+
+Validação atual: instalação congelada, TypeScript, ESLint, **96 testes Node**, build, contratos/OpenAPI e `git diff --check` aprovados. Nove grupos finais de navegador aprovados: Worker, importação, analytics, ocorrências, Sprint 2/perfis, Satélite com 54 tiles reais, localização com serviços reais, localização com fixtures identificadas e navegação. Temas claro/escuro, desktop/tablet/celular e teclado verificados. Falhas iniciais de seletores/rede/fontes foram registradas e repetidas; não foram contadas como aprovação.
+
+Relatório, critérios, problemas, limites e evidências: [homologação da Sprint 3](../docs/homologacao-sprint-03.md) e [evidências desta rodada](../docs/evidencias/sprint-03/README.md). Parecer técnico local: apto para revisão e commit da Etapa 4. **Não declara encerramento formal da sprint**, homologação institucional, persistência, autenticação, transações ou deduplicação definitiva. Sem commit, tag, merge, rebase, push ou alteração de identidade Git pelo agente.
+
 ## Impedimentos
 
 ## Retrospectiva
