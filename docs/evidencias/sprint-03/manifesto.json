@@ -1,0 +1,200 @@
+{
+  "generatedAt": "2026-10-28T17:50:21.686Z",
+  "files": [
+    {
+      "path": "capturas/cadastro-escuro-768.png",
+      "bytes": 97586,
+      "sha256": "dcf393b0025d5b5831c666209a1d6d3bdaf551c18cf9d325b1b4c848cfe835cd"
+    },
+    {
+      "path": "capturas/dashboard-escuro-1366.png",
+      "bytes": 260210,
+      "sha256": "30c32bfe86506227e0355ffb943fde35b77132207f81902f93b18b0404e1c7e6"
+    },
+    {
+      "path": "capturas/importacao-claro-390.png",
+      "bytes": 56664,
+      "sha256": "1359bab15b140431408a69e662470352819d2f8dfcb90b7507ba41a69f1a6f31"
+    },
+    {
+      "path": "capturas/importacao-previa-escuro-1366.png",
+      "bytes": 40972,
+      "sha256": "80f824ba635877a06ca2331995adce3d92d85aa5161d7b893d6211865ece996a"
+    },
+    {
+      "path": "capturas/mapa-claro-390.png",
+      "bytes": 91160,
+      "sha256": "9fb6c1b5b08f0d54f63007bbca4a4920177c3e7985d06ff79514ad9b93735d5b"
+    },
+    {
+      "path": "capturas/navegacao-escuro-390.png",
+      "bytes": 53241,
+      "sha256": "1719a2d87d190a42b16a307b820424201cd7a15839e33af508fff64ee2bd225d"
+    },
+    {
+      "path": "capturas/satelite-claro-desktop.png",
+      "bytes": 645778,
+      "sha256": "9fd646813324e1bcf726ffdf6eedb09773dfca291762cf95dabf2b3aba6df28e"
+    },
+    {
+      "path": "capturas/worker-carregamento-claro-320.png",
+      "bytes": 53261,
+      "sha256": "d353491b99fbdae7b4b0fdce405e0b58a29aa45ef5dc34ceba569c2b8551705d"
+    },
+    {
+      "path": "capturas/worker-timeout-1366.png",
+      "bytes": 121252,
+      "sha256": "397b4686191e2b326339a9f61936940f8e19bd5f32b89c3c7594cc5b5cbf8e56"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7061,
+      "sha256": "f973dfcbaffde368c8f6b3eed8d92d4d1dd749aefab25f6bad35d81376c73fac"
+    },
+    {
+      "path": "registros/analytics.txt",
+      "bytes": 763,
+      "sha256": "6e10dd1fdd15e70ab3616d37046b9641a5b7e40c8bdc6f9cb1d84b07b2e5463c"
+    },
+    {
+      "path": "registros/import.txt",
+      "bytes": 841,
+      "sha256": "10393022cc9b74e9336def5f03d8c7e8e7c7eb63453bdf54094a3c6ad4616323"
+    },
+    {
+      "path": "registros/location-ui.txt",
+      "bytes": 583,
+      "sha256": "c4aabf427e0c967cbae198fc1d024ad113c79b318b0236cbaa56ddce9d023c99"
+    },
+    {
+      "path": "registros/location.txt",
+      "bytes": 683,
+      "sha256": "80a44d742512e8177be6ce351c4b8879b8db620f2212e8736c5fec4888c33e11"
+    },
+    {
+      "path": "registros/navigation.txt",
+      "bytes": 590,
+      "sha256": "d753a27d67ce57b119676d80d4dcf04a621f11c675674769c8e7d208a6725958"
+    },
+    {
+      "path": "registros/occurrences.txt",
+      "bytes": 309,
+      "sha256": "0cde637605e39c6577d193c62647eefe0289b2e3519d3e46d5ed10df76e503be"
+    },
+    {
+      "path": "registros/satellite.txt",
+      "bytes": 933,
+      "sha256": "13c2defbd01f5b0224bb033336d48c198beb97221b93845d12ce407cbaf82f16"
+    },
+    {
+      "path": "registros/sprint2.txt",
+      "bytes": 464,
+      "sha256": "151768491c6c21ba3fb47f89e6dd63ad6415dc15a46be38fb287bb5a5d245804"
+    },
+    {
+      "path": "registros/tentativas/r01-location.txt",
+      "bytes": 315,
+      "sha256": "9b8495412a6b40ea8a3f9bb20fb3ea69de43dbbc359efacb968d9d38a9e96c9a"
+    },
+    {
+      "path": "registros/tentativas/r01-navigation.txt",
+      "bytes": 630,
+      "sha256": "9f20d0edf95473d67ad4e9cf2ad2e4561767d7d2a6fe05d0cb92c5245a473a55"
+    },
+    {
+      "path": "registros/tentativas/r01-satellite.txt",
+      "bytes": 1526,
+      "sha256": "701763df97099f76e81588665997819f4006f7b302142cf19c1b60d9787884d4"
+    },
+    {
+      "path": "registros/tentativas/r01-worker.txt",
+      "bytes": 551,
+      "sha256": "4feb91ac397142d23bccfb942a9000acbdfa885b4b7d0fa69bdd289c9ac853ca"
+    },
+    {
+      "path": "registros/tentativas/r02-worker.txt",
+      "bytes": 1001,
+      "sha256": "7622537306d784391dfab15ad0a49b781bf9f82453529818a3b32160431ada1a"
+    },
+    {
+      "path": "registros/testes-node.txt",
+      "bytes": 22722,
+      "sha256": "47a8a15aca1382c50b2b1ac4e6a55fc22d51fccaabf3aa41361929e1c168bb35"
+    },
+    {
+      "path": "registros/worker.txt",
+      "bytes": 616,
+      "sha256": "faa3d1d12f9ca8877b8623201a3239f79adf458b0d49c09f43033ef3fdd1bd29"
+    },
+    {
+      "path": "resultados/analytics.json",
+      "bytes": 1404,
+      "sha256": "09587f770a871aac4f8979fc87cd60bdcc074c94694e19ca308e82436c98a2ba"
+    },
+    {
+      "path": "resultados/importacao.json",
+      "bytes": 1191,
+      "sha256": "2dc990437bb8a7339acdf2a1dc25d4f34674af21e605d08b8c429cfc635fbe07"
+    },
+    {
+      "path": "resultados/localizacao-fixtures.json",
+      "bytes": 403,
+      "sha256": "1fd3f14314f628cac4a4c7c57fb5b3ade644e06aa2e3bdfa70363b300b399d5b"
+    },
+    {
+      "path": "resultados/localizacao-real.json",
+      "bytes": 395,
+      "sha256": "07b27c22bfdc646e98d64d565c6ae921a25cf154b10d2d09eb40e07c7c8f1995"
+    },
+    {
+      "path": "resultados/navegacao.json",
+      "bytes": 644,
+      "sha256": "ed2939d5511a67b303f169143b4e96bc6c70a13ad35802629dc15202367492e6"
+    },
+    {
+      "path": "resultados/satelite.json",
+      "bytes": 1006,
+      "sha256": "931cf6737d94e4f848826b2cee957ceb902bce5c56c7472820fcd54333c928f3"
+    },
+    {
+      "path": "resultados/sprint2.json",
+      "bytes": 638,
+      "sha256": "d29395f80d5b6a687c19a76819fb8197521d3d1396a144ea80548f93551bcc40"
+    },
+    {
+      "path": "resultados/worker.json",
+      "bytes": 1091,
+      "sha256": "6324b8cd51031fb54f7782b728a0570c31b6edfc30f58c6e74f518333d9be37c"
+    },
+    {
+      "path": "rodadas/r01.json",
+      "bytes": 5086,
+      "sha256": "22ab861f62a98ca29f0230a85d872ad679620a7aae76a8eb8689a9c07806463c"
+    },
+    {
+      "path": "rodadas/r02.json",
+      "bytes": 494,
+      "sha256": "ff841ed1b14157a9cf091918a840b1ce3e5b3fd18eb988eb1e9df826e2332a90"
+    },
+    {
+      "path": "rodadas/r03.json",
+      "bytes": 927,
+      "sha256": "513ec9222521eeaa50cd2c989bce4a477c25298758140e3b525e7f797451f588"
+    },
+    {
+      "path": "rodadas/r04.json",
+      "bytes": 1891,
+      "sha256": "47bd5d0b95ac25415fbde9f981fc2776b5db3672a0c09805b3d1ee4fc2437755"
+    },
+    {
+      "path": "rodadas/r05.json",
+      "bytes": 497,
+      "sha256": "41adf105aa1e279bf58a640ae54b9eb48e081f2e0c2b4509b1596fedbbc8c53b"
+    },
+    {
+      "path": "validacao.json",
+      "bytes": 4859,
+      "sha256": "096827f563cdb58c6bd9ea608809d370615fd6991f113ba707be6dfc312f3a83"
+    }
+  ]
+}

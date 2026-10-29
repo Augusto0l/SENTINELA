@@ -41,6 +41,12 @@ O parsing e a validação são executados em um Worker; o thread principal receb
 
 Cancelar, substituir o arquivo ou desmontar a tela encerra o Worker e libera suas referências. Operações acima de 60 segundos também o encerram. O arquivo pode ser menor que 50 MB e ainda exceder limites de conteúdo. Esses controles não constituem garantia formal de consumo máximo de heap para arquivos hostis; uma futura API precisa de controles próprios.
 
+Na Etapa 4, o ciclo de vida foi isolado em `importWorkerClient` e o processamento em `importWorkerProcessor`, mantendo o empacotamento pelo Next.js e o parsing fora da thread principal. Cada operação recebe um ID interno; somente a resposta do Worker e da operação atuais pode atualizar a tela. Há no máximo uma tarefa pendente por Worker. Uma leitura assíncrona ultrapassada não substitui a tabela atual. O protocolo é interno, sem mudança nos contratos HTTP da Etapa 3.
+
+O watchdog mantém exatamente `IMPORT_LIMITS.timeout` (60.000 ms) por operação de leitura/planilha/validação; uma nova operação tem seu próprio prazo. Esse é um limite demonstrativo já existente, não uma estimativa de duração por tamanho. Não houve redução arbitrária nem novos timeouts no parser. Falha explícita de execução, envio ou desserialização encerra imediatamente os recursos e apresenta erro recuperável. Workers silenciosamente encerrados são detectados pelo watchdog, pois não há evento de encerramento equivalente ao do Node no cliente implementado. Cancelamento invalida a operação antes de remover handlers/timer e chamar terminate; não atualiza estado no cleanup de desmontagem.
+
+Novos testes usam relógio controlado para verificar a fronteira de 60 segundos sem esperar esse tempo real; o Chrome executa o Worker nativo com CSV real, controlando somente entrega/falhas. Não é benchmark ou medição de heap. Resultados atuais, distintos das evidências históricas abaixo: [homologação da Etapa 4](homologacao-sprint-03.md).
+
 ## Isolamento e preservação
 
 Nenhum arquivo da PCDF foi alterado. Não foram modificados Dashboard, mapas, autenticação ou banco. A seleção inicial não commitada foi reaproveitada (`validateImportFiles` e seus testes). O componente antigo permanece como `LegacyImportarDados`; a rota ativa usa `ImportWorkflow`. Históricos e prévias fixas do componente antigo não aparecem no novo fluxo.

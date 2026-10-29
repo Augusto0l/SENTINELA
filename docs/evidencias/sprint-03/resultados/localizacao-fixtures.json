@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-28T17:39:51.215Z",
+  "base": "http://127.0.0.1:3000",
+  "browser": "156.0.8078.48",
+  "mode": "synthetic-ui-fixtures",
+  "errors": [],
+  "checks": [
+    "CEP completo/incompleto/inexistente",
+    "resposta vazia e falha preservam coordenadas",
+    "ajuste manual durante busca preservado",
+    "seleção de referência exige ação explícita",
+    "busca por endereço"
+  ]
+}

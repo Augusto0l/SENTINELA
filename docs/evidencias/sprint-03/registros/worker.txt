@@ -1,0 +1,6 @@
+Cancelar durante processamento limpa seleção, timer, handlers e Worker; resposta já enfileirada é ignorada.
+Arquivo novo mantém seus próprios metadados após resposta antiga de outro Worker.
+Resposta duplicada da leitura no mesmo Worker não interrompe validação nem substitui a prévia.
+postMessage, messageerror, falha de execução e encerramento silencioso recuperam a UI; watchdog exercitado sem esperar 60s reais.
+Carregamento e cancelamento por teclado nos dois temas e quatro larguras, sem overflow horizontal.
+Sair da tela desmonta o processamento; mensagens pendentes não alteram a rota seguinte.

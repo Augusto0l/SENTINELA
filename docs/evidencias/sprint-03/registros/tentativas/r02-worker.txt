@@ -1,0 +1,19 @@
+Cancelar durante processamento limpa seleção, timer, handlers e Worker; resposta já enfileirada é ignorada.
+Arquivo novo mantém seus próprios metadados após resposta antiga de outro Worker.
+Resposta duplicada da leitura no mesmo Worker não interrompe validação nem substitui a prévia.
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+locator.waitFor: Error: strict mode violation: getByRole('alert') resolved to 2 elements:
+    1) <p role="alert" class="ImportWorkflow-module__rPs_Ta__error">Não foi possível processar o arquivo. Verifique a…</p> aka getByText('Não foi possível processar o')
+    2) <div role="alert" aria-live="assertive" id="__next-route-announcer__"></div> aka locator('[id="__next-route-announcer__"]')
+
+Call log:
+[2m  - waiting for getByRole('alert') to be visible[22m
+
+    at D:\Projetos\SENTINELA\scripts\check-import-worker.mjs:92:35 {
+  log: [ "  - waiting for getByRole('alert') to be visible" ]
+}
+
+Node.js v22.23.2

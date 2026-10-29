@@ -1,0 +1,590 @@
+
+> figma-make-app@1.0.0 test D:\Projetos\SENTINELA
+> node --experimental-strip-types --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: proxy valida entrada, identifica aplicação, limita consultas, usa cache e trata falhas
+ok 1 - proxy valida entrada, identifica aplicação, limita consultas, usa cache e trata falhas
+  ---
+  duration_ms: 2442.9291
+  type: 'test'
+  ...
+# Subtest: dados postais preservam bairro e oferecem referência regional sem inventar coordenadas
+ok 2 - dados postais preservam bairro e oferecem referência regional sem inventar coordenadas
+  ---
+  duration_ms: 4.0127
+  type: 'test'
+  ...
+# Subtest: referências postais rejeitam correspondência frouxa e pontos fora do DF
+ok 3 - referências postais rejeitam correspondência frouxa e pontos fora do DF
+  ---
+  duration_ms: 6.2065
+  type: 'test'
+  ...
+# Subtest: CEP só é consultado automaticamente quando completo, com ou sem hífen
+ok 4 - CEP só é consultado automaticamente quando completo, com ou sem hífen
+  ---
+  duration_ms: 1.5613
+  type: 'test'
+  ...
+# Subtest: resultados respeitam DF, limites existentes e distinguem imóvel de referência aproximada
+ok 5 - resultados respeitam DF, limites existentes e distinguem imóvel de referência aproximada
+  ---
+  duration_ms: 4.3645
+  type: 'test'
+  ...
+# Subtest: conferência de RA considera Polygon, MultiPolygon e buracos sem usar os retângulos dos mocks
+ok 6 - conferência de RA considera Polygon, MultiPolygon e buracos sem usar os retângulos dos mocks
+  ---
+  duration_ms: 0.8576
+  type: 'test'
+  ...
+# Subtest: contratos: cadastro válido, atributos obrigatórios, opcionais e anuláveis
+ok 7 - contratos: cadastro válido, atributos obrigatórios, opcionais e anuláveis
+  ---
+  duration_ms: 7.9168
+  type: 'test'
+  ...
+# Subtest: contratos: datas civis, bissextos e horários não aceitam rollover ou timezone implícito
+ok 8 - contratos: datas civis, bissextos e horários não aceitam rollover ou timezone implícito
+  ---
+  duration_ms: 0.9458
+  type: 'test'
+  ...
+# Subtest: contratos: WGS84 exige números finitos e um par completo
+ok 9 - contratos: WGS84 exige números finitos e um par completo
+  ---
+  duration_ms: 4.8752
+  type: 'test'
+  ...
+# Subtest: contratos: IDs opacos, catálogos internos e múltiplas naturezas
+ok 10 - contratos: IDs opacos, catálogos internos e múltiplas naturezas
+  ---
+  duration_ms: 3.2551
+  type: 'test'
+  ...
+# Subtest: contratos: PATCH parcial não aceita vazio, autoria, ID ou natureza nula
+ok 11 - contratos: PATCH parcial não aceita vazio, autoria, ID ou natureza nula
+  ---
+  duration_ms: 2.3563
+  type: 'test'
+  ...
+# Subtest: contratos: inativação lógica exige motivo, sem DELETE físico
+ok 12 - contratos: inativação lógica exige motivo, sem DELETE físico
+  ---
+  duration_ms: 1.1003
+  type: 'test'
+  ...
+# Subtest: contratos: paginação, ordenação e HTTP não fazem coerção silenciosa
+ok 13 - contratos: paginação, ordenação e HTTP não fazem coerção silenciosa
+  ---
+  duration_ms: 15.0522
+  type: 'test'
+  ...
+# Subtest: contratos: filtros combinados aceitam o mesmo período inclusivo da Etapa 2
+ok 14 - contratos: filtros combinados aceitam o mesmo período inclusivo da Etapa 2
+  ---
+  duration_ms: 1.0979
+  type: 'test'
+  ...
+# Subtest: contratos: adaptadores de formulário preservam campos e rejeitam conversão com perda
+ok 15 - contratos: adaptadores de formulário preservam campos e rejeitam conversão com perda
+  ---
+  duration_ms: 10.2733
+  type: 'test'
+  ...
+# Subtest: contratos: filtros vazios de UI são adaptados sem alterar os originais
+ok 16 - contratos: filtros vazios de UI são adaptados sem alterar os originais
+  ---
+  duration_ms: 1.1991
+  type: 'test'
+  ...
+# Subtest: contratos: metadados de lote, arquivo vazio, limite de 50 MB e formato
+ok 17 - contratos: metadados de lote, arquivo vazio, limite de 50 MB e formato
+  ---
+  duration_ms: 2.013
+  type: 'test'
+  ...
+# Subtest: contratos: mapeamento obrigatório, único e limitado aos cabeçalhos/planilhas
+ok 18 - contratos: mapeamento obrigatório, único e limitado aos cabeçalhos/planilhas
+  ---
+  duration_ms: 5.2276
+  type: 'test'
+  ...
+# Subtest: contratos: análise real da Etapa 1 preserva originais, erros, pendências e duplicatas
+ok 19 - contratos: análise real da Etapa 1 preserva originais, erros, pendências e duplicatas
+  ---
+  duration_ms: 31.0258
+  type: 'test'
+  ...
+# Subtest: contratos: diagnóstico inválido não precisa fingir ocorrência válida
+ok 20 - contratos: diagnóstico inválido não precisa fingir ocorrência válida
+  ---
+  duration_ms: 57.4805
+  type: 'test'
+  ...
+# Subtest: contratos: prévia XLSX e erro global de mapeamento mantêm os tipos da Etapa 1
+ok 21 - contratos: prévia XLSX e erro global de mapeamento mantêm os tipos da Etapa 1
+  ---
+  duration_ms: 4.6471
+  type: 'test'
+  ...
+# Subtest: contratos: resultado demonstração nunca afirma persistência e estados são coerentes
+ok 22 - contratos: resultado demonstração nunca afirma persistência e estados são coerentes
+  ---
+  duration_ms: 3.19
+  type: 'test'
+  ...
+# Subtest: contratos: analytics reutiliza regras da Etapa 2 e conta múltiplas naturezas sem inflar total
+ok 23 - contratos: analytics reutiliza regras da Etapa 2 e conta múltiplas naturezas sem inflar total
+  ---
+  duration_ms: 1.4995
+  type: 'test'
+  ...
+# Subtest: contratos: analytics vazio, limites de dia, inativas e conservação de contagens
+ok 24 - contratos: analytics vazio, limites de dia, inativas e conservação de contagens
+  ---
+  duration_ms: 2.1557
+  type: 'test'
+  ...
+# Subtest: contratos: pontos, calor e clusters preservam IDs, pendências e referência integral
+ok 25 - contratos: pontos, calor e clusters preservam IDs, pendências e referência integral
+  ---
+  duration_ms: 6.0656
+  type: 'test'
+  ...
+# Subtest: contratos: códigos HTTP e erros de validação são padronizados
+ok 26 - contratos: códigos HTTP e erros de validação são padronizados
+  ---
+  duration_ms: 6.1801
+  type: 'test'
+  ...
+# Subtest: contratos: OpenAPI válido, sincronizado e todos os exemplos aceitos por Zod e AJV
+ok 27 - contratos: OpenAPI válido, sincronizado e todos os exemplos aceitos por Zod e AJV
+  ---
+  duration_ms: 2480.0863
+  type: 'test'
+  ...
+# Subtest: últimos sete dias usa referência fixa e inclui limites
+ok 28 - últimos sete dias usa referência fixa e inclui limites
+  ---
+  duration_ms: 3.1119
+  type: 'test'
+  ...
+# Subtest: combinação de RA, natureza e horário não inclui outros registros
+ok 29 - combinação de RA, natureza e horário não inclui outros registros
+  ---
+  duration_ms: 0.6188
+  type: 'test'
+  ...
+# Subtest: agregações conservam a contagem da base visualizada
+ok 30 - agregações conservam a contagem da base visualizada
+  ---
+  duration_ms: 55.0515
+  type: 'test'
+  ...
+# Subtest: resultado vazio não apresenta indicador inválido
+ok 31 - resultado vazio não apresenta indicador inválido
+  ---
+  duration_ms: 1.57
+  type: 'test'
+  ...
+# Subtest: intervalo personalizado inclui primeiro e último dia, da meia-noite às 23:59
+ok 32 - intervalo personalizado inclui primeiro e último dia, da meia-noite às 23:59
+  ---
+  duration_ms: 0.9378
+  type: 'test'
+  ...
+# Subtest: intervalos invertidos, incompletos e datas impossíveis são recusados sem ampliar o recorte
+ok 33 - intervalos invertidos, incompletos e datas impossíveis são recusados sem ampliar o recorte
+  ---
+  duration_ms: 0.7573
+  type: 'test'
+  ...
+# Subtest: customização não é limitada artificialmente à referência dos atalhos
+ok 34 - customização não é limitada artificialmente à referência dos atalhos
+  ---
+  duration_ms: 0.6593
+  type: 'test'
+  ...
+# Subtest: intervalo sem registros produz agregações vazias e indicadores seguros
+ok 35 - intervalo sem registros produz agregações vazias e indicadores seguros
+  ---
+  duration_ms: 0.3882
+  type: 'test'
+  ...
+# Subtest: período combina com RA, natureza e horário sem modificar os registros
+ok 36 - período combina com RA, natureza e horário sem modificar os registros
+  ---
+  duration_ms: 1.1401
+  type: 'test'
+  ...
+# Subtest: resumo, série mensal e contagens territoriais conservam o total filtrado
+ok 37 - resumo, série mensal e contagens territoriais conservam o total filtrado
+  ---
+  duration_ms: 10.792
+  type: 'test'
+  ...
+# Subtest: limpeza restaura toda a base e os atalhos mantêm os limites existentes
+ok 38 - limpeza restaura toda a base e os atalhos mantêm os limites existentes
+  ---
+  duration_ms: 0.8978
+  type: 'test'
+  ...
+# Subtest: navegação ao mapa preserva critérios e não envia datas de um rascunho
+ok 39 - navegação ao mapa preserva critérios e não envia datas de um rascunho
+  ---
+  duration_ms: 0.8251
+  type: 'test'
+  ...
+# Subtest: múltiplas naturezas não multiplicam ocorrências nem a série temporal
+ok 40 - múltiplas naturezas não multiplicam ocorrências nem a série temporal
+  ---
+  duration_ms: 0.4216
+  type: 'test'
+  ...
+# Subtest: datas civis e limites são invariantes ao fuso do processo
+ok 41 - datas civis e limites são invariantes ao fuso do processo
+  ---
+  duration_ms: 3020.1836
+  type: 'test'
+  ...
+# Subtest: datas inválidas das ocorrências não são normalizadas para outro dia
+ok 42 - datas inválidas das ocorrências não são normalizadas para outro dia
+  ---
+  duration_ms: 0.3025
+  type: 'test'
+  ...
+# Subtest: calor usa longitude/latitude válidas; não substitui coordenadas ausentes por x/y ou centroides
+ok 43 - calor usa longitude/latitude válidas; não substitui coordenadas ausentes por x/y ou centroides
+  ---
+  duration_ms: 3.2018
+  type: 'test'
+  ...
+# Subtest: concentração aumenta com registros próximos e não cria calor entre pontos afastados
+ok 44 - concentração aumenta com registros próximos e não cria calor entre pontos afastados
+  ---
+  duration_ms: 3.358
+  type: 'test'
+  ...
+# Subtest: filtrar registros reduz a intensidade sem renormalizar cada subconjunto para vermelho
+ok 45 - filtrar registros reduz a intensidade sem renormalizar cada subconjunto para vermelho
+  ---
+  duration_ms: 4.9246
+  type: 'test'
+  ...
+# Subtest: cores contínuas seguem azul, verde, amarelo, laranja e vermelho com opacidade limitada
+ok 46 - cores contínuas seguem azul, verde, amarelo, laranja e vermelho com opacidade limitada
+  ---
+  duration_ms: 0.6689
+  type: 'test'
+  ...
+# Subtest: campo vazio é transparente e o pico de referência respeita a máscara geográfica
+ok 47 - campo vazio é transparente e o pico de referência respeita a máscara geográfica
+  ---
+  duration_ms: 48.5027
+  type: 'test'
+  ...
+# Subtest: ocorrência isolada fica visível sem receber a cor de um hotspot
+ok 48 - ocorrência isolada fica visível sem receber a cor de um hotspot
+  ---
+  duration_ms: 27.8304
+  type: 'test'
+  ...
+# Subtest: seleção aceita CSV/XLSX sem depender do MIME e inclui o limite de 50 MB
+ok 49 - seleção aceita CSV/XLSX sem depender do MIME e inclui o limite de 50 MB
+  ---
+  duration_ms: 3.6991
+  type: 'test'
+  ...
+# Subtest: seleção rejeita extensão inválida, vazio, excesso de tamanho e múltiplos arquivos
+ok 50 - seleção rejeita extensão inválida, vazio, excesso de tamanho e múltiplos arquivos
+  ---
+  duration_ms: 0.4245
+  type: 'test'
+  ...
+# Subtest: Worker: cancelar durante leitura termina o Worker e libera timer/handlers sem atualizar a tela
+ok 51 - Worker: cancelar durante leitura termina o Worker e libera timer/handlers sem atualizar a tela
+  ---
+  duration_ms: 8.5974
+  type: 'test'
+  ...
+# Subtest: Worker: substituição de arquivo ignora resposta, erro e timeout já enfileirados da seleção antiga
+ok 52 - Worker: substituição de arquivo ignora resposta, erro e timeout já enfileirados da seleção antiga
+  ---
+  duration_ms: 1.032
+  type: 'test'
+  ...
+# Subtest: Worker: respostas antigas no mesmo Worker não substituem a operação atual nem cancelam seu watchdog
+ok 53 - Worker: respostas antigas no mesmo Worker não substituem a operação atual nem cancelam seu watchdog
+  ---
+  duration_ms: 1.5907
+  type: 'test'
+  ...
+# Subtest: Worker: timeout segue exatamente os 60 segundos existentes e encerra processamento silencioso
+ok 54 - Worker: timeout segue exatamente os 60 segundos existentes e encerra processamento silencioso
+  ---
+  duration_ms: 0.8158
+  type: 'test'
+  ...
+# Subtest: Worker: cada operação possui prazo próprio e timers vencidos não derrubam validação posterior
+ok 55 - Worker: cada operação possui prazo próprio e timers vencidos não derrubam validação posterior
+  ---
+  duration_ms: 1.3375
+  type: 'test'
+  ...
+# Subtest: Worker: criação indisponível, postMessage com falha, erro de execução e messageerror são recuperáveis
+ok 56 - Worker: criação indisponível, postMessage com falha, erro de execução e messageerror são recuperáveis
+  ---
+  duration_ms: 1.9546
+  type: 'test'
+  ...
+# Subtest: Worker: impede sobreposição de tarefas e rejeita resposta incompatível com a operação
+ok 57 - Worker: impede sobreposição de tarefas e rejeita resposta incompatível com a operação
+  ---
+  duration_ms: 0.5672
+  type: 'test'
+  ...
+# Subtest: Worker: limpeza no unmount ignora todos os callbacks posteriores e permite novo ciclo
+ok 58 - Worker: limpeza no unmount ignora todos os callbacks posteriores e permite novo ciclo
+  ---
+  duration_ms: 0.3553
+  type: 'test'
+  ...
+# Subtest: Processor: CSV real mantém múltiplas naturezas, duplicatas, erros e pendências no protocolo
+ok 59 - Processor: CSV real mantém múltiplas naturezas, duplicatas, erros e pendências no protocolo
+  ---
+  duration_ms: 14.3738
+  type: 'test'
+  ...
+# Subtest: Processor: XLSX permite trocar planilhas e recuperar seleção vazia
+ok 60 - Processor: XLSX permite trocar planilhas e recuperar seleção vazia
+  ---
+  duration_ms: 66.998
+  type: 'test'
+  ...
+# Subtest: Processor: leitura assíncrona antiga concluída após arquivo novo não substitui seu conteúdo
+ok 61 - Processor: leitura assíncrona antiga concluída após arquivo novo não substitui seu conteúdo
+  ---
+  duration_ms: 4.9234
+  type: 'test'
+  ...
+# Subtest: Processor: erro tardio de leitura antiga não elimina a seleção atual
+ok 62 - Processor: erro tardio de leitura antiga não elimina a seleção atual
+  ---
+  duration_ms: 1.5373
+  type: 'test'
+  ...
+# Subtest: Processor: erros de leitura, arquivo corrompido e operação sem tabela retornam diagnóstico
+ok 63 - Processor: erros de leitura, arquivo corrompido e operação sem tabela retornam diagnóstico
+  ---
+  duration_ms: 1.2337
+  type: 'test'
+  ...
+# Subtest: regressão do limite: CSV aceita 10 mil registros sem contar linhas vazias iniciais
+ok 64 - regressão do limite: CSV aceita 10 mil registros sem contar linhas vazias iniciais
+  ---
+  duration_ms: 1515.9016
+  type: 'test'
+  ...
+# Subtest: regressão do limite: CSV rejeita 10.001 registros com ou sem linhas vazias iniciais
+ok 65 - regressão do limite: CSV rejeita 10.001 registros com ou sem linhas vazias iniciais
+  ---
+  duration_ms: 378.1937
+  type: 'test'
+  ...
+# Subtest: regressão do limite: linhas vazias depois do cabeçalho continuam contando e gerando erro
+ok 66 - regressão do limite: linhas vazias depois do cabeçalho continuam contando e gerando erro
+  ---
+  duration_ms: 607.9638
+  type: 'test'
+  ...
+# Subtest: regressão do limite: prefixo vazio respeita os controles de colunas e células
+ok 67 - regressão do limite: prefixo vazio respeita os controles de colunas e células
+  ---
+  duration_ms: 144.5068
+  type: 'test'
+  ...
+# Subtest: regressão do limite: XLSX mantém a fronteira de 10 mil registros
+ok 68 - regressão do limite: XLSX mantém a fronteira de 10 mil registros
+  ---
+  duration_ms: 2287.3186
+  type: 'test'
+  ...
+# Subtest: CSV real reconhece cabeçalhos equivalentes, normaliza sem alterar os originais
+ok 69 - CSV real reconhece cabeçalhos equivalentes, normaliza sem alterar os originais
+  ---
+  duration_ms: 15.4052
+  type: 'test'
+  ...
+# Subtest: CSV aceita BOM, ponto e vírgula, tabulação, aspas escapadas e endereço multilinha
+ok 70 - CSV aceita BOM, ponto e vírgula, tabulação, aspas escapadas e endereço multilinha
+  ---
+  duration_ms: 2.9758
+  type: 'test'
+  ...
+# Subtest: CSV inválido, vazio, só cabeçalho, binário e aspas malformadas são rejeitados
+ok 71 - CSV inválido, vazio, só cabeçalho, binário e aspas malformadas são rejeitados
+  ---
+  duration_ms: 0.6934
+  type: 'test'
+  ...
+# Subtest: linhas vazias internas e quantidade de colunas incorreta geram erros com posição original
+ok 72 - linhas vazias internas e quantidade de colunas incorreta geram erros com posição original
+  ---
+  duration_ms: 3.1655
+  type: 'test'
+  ...
+# Subtest: mapeamento manual resolve cabeçalhos desconhecidos e impede coluna reutilizada
+ok 73 - mapeamento manual resolve cabeçalhos desconhecidos e impede coluna reutilizada
+  ---
+  duration_ms: 2.1082
+  type: 'test'
+  ...
+# Subtest: campos obrigatórios, data, hora, RA, natureza e endereço registram erro por coluna
+ok 74 - campos obrigatórios, data, hora, RA, natureza e endereço registram erro por coluna
+  ---
+  duration_ms: 11.0773
+  type: 'test'
+  ...
+# Subtest: coordenadas ausentes são pendências; fornecidas inválidas são erros
+ok 75 - coordenadas ausentes são pendências; fornecidas inválidas são erros
+  ---
+  duration_ms: 6.3652
+  type: 'test'
+  ...
+# Subtest: múltiplas naturezas não multiplicam ocorrências e não ocultam natureza inválida
+ok 76 - múltiplas naturezas não multiplicam ocorrências e não ocultam natureza inválida
+  ---
+  duration_ms: 2.1195
+  type: 'test'
+  ...
+# Subtest: possíveis duplicatas apenas sinalizam e são mantidas na confirmação
+ok 77 - possíveis duplicatas apenas sinalizam e são mantidas na confirmação
+  ---
+  duration_ms: 0.7917
+  type: 'test'
+  ...
+# Subtest: confirmação usa o resultado da prévia e rejeita lotes sem registros aptos ou pendentes
+ok 78 - confirmação usa o resultado da prévia e rejeita lotes sem registros aptos ou pendentes
+  ---
+  duration_ms: 2.1643
+  type: 'test'
+  ...
+# Subtest: XLSX real identifica planilhas e permite selecionar os dados corretos
+ok 79 - XLSX real identifica planilhas e permite selecionar os dados corretos
+  ---
+  duration_ms: 14.584
+  type: 'test'
+  ...
+# Subtest: XLSX interpreta data/horário numéricos e preserva números originais
+ok 80 - XLSX interpreta data/horário numéricos e preserva números originais
+  ---
+  duration_ms: 8.1736
+  type: 'test'
+  ...
+# Subtest: XLSX não executa fórmulas e aponta células com erros
+ok 81 - XLSX não executa fórmulas e aponta células com erros
+  ---
+  duration_ms: 24.8873
+  type: 'test'
+  ...
+# Subtest: XLSX inválido, truncado, arquivo renomeado e ZIP não Excel são rejeitados
+ok 82 - XLSX inválido, truncado, arquivo renomeado e ZIP não Excel são rejeitados
+  ---
+  duration_ms: 17.0168
+  type: 'test'
+  ...
+# Subtest: limites recusam conteúdo excessivo sem truncar registros
+ok 83 - limites recusam conteúdo excessivo sem truncar registros
+  ---
+  duration_ms: 108.8999
+  type: 'test'
+  ...
+# Subtest: decodificação CSV suporta UTF-8, UTF-16 e Windows-1252 sem substituir acentos
+ok 84 - decodificação CSV suporta UTF-8, UTF-16 e Windows-1252 sem substituir acentos
+  ---
+  duration_ms: 2.5791
+  type: 'test'
+  ...
+# Subtest: busca parcial por ID, RA, código, natureza e local normaliza caixa, acentos e espaços
+ok 85 - busca parcial por ID, RA, código, natureza e local normaliza caixa, acentos e espaços
+  ---
+  duration_ms: 8.9849
+  type: 'test'
+  ...
+# Subtest: combina filtros e limpeza restaura a base sem alterar sua ordem
+ok 86 - combina filtros e limpeza restaura a base sem alterar sua ordem
+  ---
+  duration_ms: 0.6996
+  type: 'test'
+  ...
+# Subtest: ordena datas e horários cronologicamente nas duas direções
+ok 87 - ordena datas e horários cronologicamente nas duas direções
+  ---
+  duration_ms: 0.7684
+  type: 'test'
+  ...
+# Subtest: ordena textos e desempata por identificador sem mutar a entrada
+ok 88 - ordena textos e desempata por identificador sem mutar a entrada
+  ---
+  duration_ms: 1.114
+  type: 'test'
+  ...
+# Subtest: pagina depois de filtrar e ordenar; limita páginas e trata resultado vazio
+ok 89 - pagina depois de filtrar e ordenar; limita páginas e trata resultado vazio
+  ---
+  duration_ms: 1.3351
+  type: 'test'
+  ...
+# Subtest: formulário aceita data bissexta e rejeita datas, horários, catálogos e coordenadas inválidos
+ok 90 - formulário aceita data bissexta e rejeita datas, horários, catálogos e coordenadas inválidos
+  ---
+  duration_ms: 11.1105
+  type: 'test'
+  ...
+# Subtest: geocodificação simulada rejeita endereço/RA inválidos e devolve referência declaradamente sintética
+ok 91 - geocodificação simulada rejeita endereço/RA inválidos e devolve referência declaradamente sintética
+  ---
+  duration_ms: 1.2593
+  type: 'test'
+  ...
+# Subtest: matriz distingue consulta, escrita, gestão e inativação nos três perfis
+ok 92 - matriz distingue consulta, escrita, gestão e inativação nos três perfis
+  ---
+  duration_ms: 0.4934
+  type: 'test'
+  ...
+# Subtest: satélite preserva as geometrias e os identificadores locais ao selecionar RAs
+ok 93 - satélite preserva as geometrias e os identificadores locais ao selecionar RAs
+  ---
+  duration_ms: 46.1265
+  type: 'test'
+  ...
+# Subtest: âncoras dos quantitativos mantêm a posição geográfica do mapa atual
+ok 94 - âncoras dos quantitativos mantêm a posição geográfica do mapa atual
+  ---
+  duration_ms: 0.7964
+  type: 'test'
+  ...
+# Subtest: máscara respeita Polygon, MultiPolygon, anéis interiores e ordem latitude/longitude do Leaflet
+ok 95 - máscara respeita Polygon, MultiPolygon, anéis interiores e ordem latitude/longitude do Leaflet
+  ---
+  duration_ms: 2.2283
+  type: 'test'
+  ...
+# Subtest: rótulos sobrepostos são omitidos visualmente sem somar ou alterar quantitativos
+ok 96 - rótulos sobrepostos são omitidos visualmente sem somar ou alterar quantitativos
+  ---
+  duration_ms: 0.5758
+  type: 'test'
+  ...
+1..96
+# tests 96
+# suites 0
+# pass 96
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 23278.7947

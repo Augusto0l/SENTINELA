@@ -1,0 +1,66 @@
+{
+  "startedAt": "2026-10-28T17:38:20.944Z",
+  "base": "http://127.0.0.1:3000",
+  "buildId": "ZegOWoXQpLl_y15v4YfR1",
+  "results": [
+    {
+      "name": "satellite",
+      "command": "node --experimental-strip-types scripts/check-satellite.mjs",
+      "startedAt": "2026-10-28T17:38:21.043Z",
+      "finishedAt": "2026-10-28T17:39:37.257Z",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "satellite.log",
+      "artifacts": [
+        "claro-dashboard.png",
+        "claro-mapa-criminal.png",
+        "dashboard-1440.png",
+        "dashboard-320.png",
+        "dashboard-390.png",
+        "dashboard-820.png",
+        "escuro-dashboard.png",
+        "escuro-mapa-criminal.png",
+        "mapa-criminal-1440.png",
+        "mapa-criminal-320.png",
+        "mapa-criminal-390.png",
+        "mapa-criminal-820.png",
+        "report.json"
+      ]
+    },
+    {
+      "name": "location-ui",
+      "command": "node --experimental-strip-types scripts/check-cep-location.mjs --fixtures",
+      "startedAt": "2026-10-28T17:39:37.259Z",
+      "finishedAt": "2026-10-28T17:39:51.643Z",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "location-ui.log",
+      "artifacts": [
+        "fixtures-results.json"
+      ]
+    },
+    {
+      "name": "navigation",
+      "command": "node --experimental-strip-types scripts/check-navigation.mjs",
+      "startedAt": "2026-10-28T17:39:51.645Z",
+      "finishedAt": "2026-10-28T17:42:09.227Z",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "navigation.log",
+      "artifacts": [
+        "claro-1366.png",
+        "claro-320.png",
+        "claro-390.png",
+        "claro-820.png",
+        "claro-desktop.png",
+        "escuro-1366.png",
+        "escuro-320.png",
+        "escuro-390.png",
+        "escuro-820.png",
+        "escuro-desktop.png",
+        "report.json"
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-28T17:42:09.228Z"
+}

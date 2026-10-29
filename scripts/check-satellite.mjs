@@ -9,6 +9,8 @@ const geo = JSON.parse(await readFile("public/data/ras-df.geojson", "utf8"))
 const browser = await chromium.launch({ channel: "chrome", headless: true })
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" })
 const page = await context.newPage()
+await page.route("https://fonts.googleapis.com/**", route => route.abort())
+await page.route("https://fonts.gstatic.com/**", route => route.abort())
 const errors = [], checks = [], imagery = new Map()
 let failureStatus = 0
 page.on("pageerror", (error) => errors.push(error.message))
@@ -18,9 +20,14 @@ await page.route("https://tiles.maps.eox.at/**", async (route) => {
   const url = route.request().url()
   const cached = imagery.get(url)
   if (cached) return route.fulfill({ contentType: "image/jpeg", body: cached })
-  const response = await route.fetch()
-  if (response.ok()) imagery.set(url, await response.body())
-  return route.fulfill({ response })
+  try {
+    const response = await route.fetch({ maxRetries: 2, timeout: 15000 })
+    if (response.ok()) imagery.set(url, await response.body())
+    return await route.fulfill({ response })
+  } catch (error) {
+    console.error(`Tile real indisponível: ${error.message.split("\n")[0]}`)
+    await route.fulfill({ status: 503, body: "Provider unavailable during test" }).catch(() => {})
+  }
 })
 const satellite = () => page.getByTestId("satellite-map")
 const polygons = () => satellite().locator("path[data-ra-code]")

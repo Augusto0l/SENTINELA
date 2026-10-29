@@ -1,0 +1,7 @@
+FIXTURES: validação determinística da interface, sem comprovar serviços externos
+FIXTURES: referência por endereço definida
+PASS navegador: 73081140, opção clicável, centralização, zoom 16, coordenadas e arraste
+PASS navegador: 70790-075, opção clicável, centralização, zoom 16, coordenadas e arraste
+PASS navegador: 70390100, opção clicável, centralização, zoom 16, coordenadas e arraste
+PASS CEP incompleto/inexistente, respostas vazias, falha e ajuste durante busca preservam coordenadas
+PASS navegador: busca por endereço preservada; nenhum erro JavaScript
