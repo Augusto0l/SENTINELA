@@ -1,0 +1,290 @@
+{
+  "records": [
+    {
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scroll": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bounds": [
+        {
+          "tag": "SECTION",
+          "left": 241.1415252685547,
+          "right": 817.5946502685547
+        },
+        {
+          "tag": "SECTION",
+          "left": 1024.2821044921875,
+          "right": 1660.4696044921875
+        },
+        {
+          "tag": "INPUT",
+          "left": 1080.3914794921875,
+          "right": 1604.3602294921875
+        },
+        {
+          "tag": "INPUT",
+          "left": 1080.3914794921875,
+          "right": 1604.3602294921875
+        },
+        {
+          "tag": "BUTTON",
+          "left": 1551.6414794921875,
+          "right": 1592.8914794921875
+        },
+        {
+          "tag": "INPUT",
+          "left": 1080.3914794921875,
+          "right": 1107.9383544921875
+        },
+        {
+          "tag": "A",
+          "left": 1435.3133544921875,
+          "right": 1604.3602294921875
+        },
+        {
+          "tag": "BUTTON",
+          "left": 1080.3914794921875,
+          "right": 1604.3602294921875
+        }
+      ],
+      "logos": [
+        {
+          "centerX": 18,
+          "centerY": 22.5
+        },
+        {
+          "centerX": 17.999999046325684,
+          "centerY": 22.499999046325684
+        }
+      ],
+      "title": "Acesse sua conta"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scroll": 1440,
+      "width": 1440,
+      "height": 900,
+      "bounds": [
+        {
+          "tag": "SECTION",
+          "left": 180.86004638671875,
+          "right": 613.1881713867188
+        },
+        {
+          "tag": "SECTION",
+          "left": 768.2037963867188,
+          "right": 1245.344482421875
+        },
+        {
+          "tag": "INPUT",
+          "left": 810.5319213867188,
+          "right": 1203.016357421875
+        },
+        {
+          "tag": "INPUT",
+          "left": 810.5319213867188,
+          "right": 1203.016357421875
+        },
+        {
+          "tag": "BUTTON",
+          "left": 1154.406982421875,
+          "right": 1194.406982421875
+        },
+        {
+          "tag": "INPUT",
+          "left": 810.5319213867188,
+          "right": 831.5319213867188
+        },
+        {
+          "tag": "A",
+          "left": 1076.250732421875,
+          "right": 1203.016357421875
+        },
+        {
+          "tag": "BUTTON",
+          "left": 810.5319213867188,
+          "right": 1203.016357421875
+        }
+      ],
+      "logos": [
+        {
+          "centerX": 18.000000476837158,
+          "centerY": 22.499999046325684
+        },
+        {
+          "centerX": 18.128677368164062,
+          "centerY": 22.5
+        }
+      ],
+      "title": "Acesse sua conta"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scroll": 768,
+      "width": 768,
+      "height": 1024,
+      "bounds": [
+        {
+          "tag": "SECTION",
+          "left": 107,
+          "right": 661
+        },
+        {
+          "tag": "INPUT",
+          "left": 156,
+          "right": 612
+        },
+        {
+          "tag": "INPUT",
+          "left": 156,
+          "right": 612
+        },
+        {
+          "tag": "BUTTON",
+          "left": 562,
+          "right": 602
+        },
+        {
+          "tag": "INPUT",
+          "left": 156,
+          "right": 180
+        },
+        {
+          "tag": "A",
+          "left": 464.71875,
+          "right": 612
+        },
+        {
+          "tag": "BUTTON",
+          "left": 156,
+          "right": 612
+        }
+      ],
+      "logos": [
+        {
+          "centerX": 18.012784957885742,
+          "centerY": 22.500000953674316
+        }
+      ],
+      "title": "Acesse sua conta"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll": 390,
+      "width": 390,
+      "height": 844,
+      "bounds": [
+        {
+          "tag": "SECTION",
+          "left": 16,
+          "right": 374
+        },
+        {
+          "tag": "INPUT",
+          "left": 41,
+          "right": 349
+        },
+        {
+          "tag": "INPUT",
+          "left": 41,
+          "right": 349
+        },
+        {
+          "tag": "BUTTON",
+          "left": 299,
+          "right": 339
+        },
+        {
+          "tag": "INPUT",
+          "left": 41,
+          "right": 65
+        },
+        {
+          "tag": "A",
+          "left": 222.765625,
+          "right": 349
+        },
+        {
+          "tag": "BUTTON",
+          "left": 41,
+          "right": 349
+        }
+      ],
+      "logos": [
+        {
+          "centerX": 18.000000953674316,
+          "centerY": 22.500000953674316
+        }
+      ],
+      "title": "Acesse sua conta"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "scroll": 320,
+      "width": 320,
+      "height": 827,
+      "bounds": [
+        {
+          "tag": "SECTION",
+          "left": 12,
+          "right": 308
+        },
+        {
+          "tag": "INPUT",
+          "left": 33,
+          "right": 287
+        },
+        {
+          "tag": "INPUT",
+          "left": 33,
+          "right": 287
+        },
+        {
+          "tag": "BUTTON",
+          "left": 237,
+          "right": 277
+        },
+        {
+          "tag": "INPUT",
+          "left": 33,
+          "right": 57
+        },
+        {
+          "tag": "A",
+          "left": 166.015625,
+          "right": 287
+        },
+        {
+          "tag": "BUTTON",
+          "left": 33,
+          "right": 287
+        }
+      ],
+      "logos": [
+        {
+          "centerX": 18.175000190734863,
+          "centerY": 22.500000953674316
+        }
+      ],
+      "title": "Acesse sua conta"
+    }
+  ],
+  "interactions": "passed",
+  "configured": false,
+  "realAuthTested": false
+}

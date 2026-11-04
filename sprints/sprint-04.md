@@ -81,6 +81,9 @@ O foco e objetivo principal da sprint é executar o QA do front-end, implementar
 
 ## Evidências
 
+* Etapa 2.1: [homologação local das duas baselines](../docs/banco/preparacao-baseline-supabase-etapa2-1.md), com regressões SQL e equivalência integral dos catálogos aprovadas; Supabase remoto não homologado.
+* Etapa 2.2: [Auth inicial, testes e bloqueios](../docs/banco/autenticacao-supabase-etapa2-2.md) e [ADR de acesso fechado](../docs/decisoes/adr-auth-inicial-acesso-fechado.md). Integração SDK/SSR, vínculo próprio e autorização preparados; 111 testes, TypeScript, lint e build aprovados localmente. Auth hospedado/SMTP, provisionamento e escopo de dados ainda dependem de aprovação e integração real. Esta evidência não conclui toda a sprint nem fecha issues automaticamente.
+
 ## Impedimentos
 
 ## Retrospectiva

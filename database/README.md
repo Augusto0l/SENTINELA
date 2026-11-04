@@ -1,5 +1,7 @@
 # Banco local — Sprint 4, Etapa 1
 
+Para a preparação da instalação inicial com PostGIS em `extensions`, consultar a [baseline Supabase separada](supabase/README.md) e seu [ADR](../docs/decisoes/adr-baselines-local-supabase.md). Escolher somente um caminho de instalação; não combinar com as migrations locais abaixo. Os arquivos 0001–0005 permanecem inalterados.
+
 Baseline SQL **0001–0004** com correção incremental **0005**, de 29/10/2026. Modelo para revisão e execução local descartável, sem homologação de servidor, conexão Supabase, API, carga PCDF ou alteração do frontend. Leia a [modelagem](../docs/banco/modelagem-postgresql-postgis-v1.0.md), o [contrato PCDF](../docs/contratos/importacao-pcdf-v1.0.md) e a [Central](../docs/funcionalidades/central-revisao-ocorrencias-v1.0.md).
 
 ## Pré-requisitos e isolamento

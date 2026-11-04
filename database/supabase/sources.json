@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "baseline": "supabase-baseline-v1",
+  "checksum_encoding": "UTF-8, LF (CRLF normalized)",
+  "sources": {
+    "migrations/0001_base_catalogos.sql": "6f5691ceeca8e7b3841f0aafb8a4e9d611443bf4eb6fd028e7f26bda0541e2e7",
+    "migrations/0002_origem_importacoes.sql": "eda88c135800955f5a178e18a548749826e54eec890a06d7225d0d535064c188",
+    "migrations/0003_ocorrencias_revisao.sql": "d86e24128b0c2504a624a35ee71c27f8bb4cdeead2a93b2c03df0369e69d78f9",
+    "migrations/0004_integridade_protecao.sql": "21144f5dcfe448c3c3dc97f3e412f3439995e41bf56908e5983c6024edadc8d6",
+    "migrations/0005_integridade_revisao_seguranca.sql": "152f2106b37ff1ebb19ce7458e856701a40b89d8111b347cc561f2502a9a78ce"
+  },
+  "artifact": {
+    "supabase/baseline/0001_modelo_inicial.sql": "01617b34fc5d2e90aaecf2060210f13b17bb9c63aac51fd7c0f5f8df97ba82bd"
+  },
+  "logical_versions": [
+    "0001",
+    "0002",
+    "0003",
+    "0004",
+    "0005"
+  ]
+}

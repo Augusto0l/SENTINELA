@@ -6,5 +6,5 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
   { rules: { "jsx-a11y/label-has-associated-control": "error" } },
-  globalIgnores([".next/**", "node_modules/**", "src/imports/**", "next-env.d.ts", ".figma/**", ".tmp-*", "out/**"]),
+  globalIgnores([".next/**", "node_modules/**", "src/imports/**", "next-env.d.ts", ".figma/**", ".tmp-*", "tmp/**", "temp/**", "out/**"]),
 ]);
