@@ -1,7 +1,8 @@
+import { localSelected, localAllowed, localSession, LOCAL_COOKIE } from "@/lib/auth/local-provider"
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { publicSupabaseConfig } from "@/lib/supabase/config"
-import { isProtectedPath } from "@/lib/auth/policy"
+import { hasPermission, isProtectedPath, routePermission } from "@/lib/auth/policy"
 import { localDemoEnabled } from "@/lib/auth/local-demo"
 
 export async function proxy(request: NextRequest) {
@@ -15,6 +16,15 @@ export async function proxy(request: NextRequest) {
     result.headers.set("Referrer-Policy", "no-referrer")
     for (const [name, cookie] of refreshed) result.cookies.set(name, cookie.value, cookie.options)
     return result
+  }
+  if (localSelected()) {
+    const principal = await localSession(request.cookies.get(LOCAL_COOKIE)?.value, request.headers.get("host"))
+    if (request.nextUrl.pathname.startsWith("/api/")) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
+    if (isProtectedPath(request.nextUrl.pathname) && !principal) return noStore(NextResponse.redirect(new URL("/login?erro=sessao", process.env.SENTINELA_APP_ORIGIN && localAllowed(request.headers.get("host")) ? process.env.SENTINELA_APP_ORIGIN : request.url)))
+    if (principal && isProtectedPath(request.nextUrl.pathname) && !hasPermission(principal.role, routePermission(request.nextUrl.pathname))) {
+      return noStore(NextResponse.redirect(new URL("/acesso-negado", process.env.SENTINELA_APP_ORIGIN)))
+    }
+    return noStore(response)
   }
   let valid = false
   if (!request.nextUrl.pathname.startsWith("/api/") && localDemoEnabled(request.headers.get("host"))) {
@@ -51,5 +61,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/mapa-criminal/:path*", "/ocorrencias/:path*", "/importar/:path*", "/usuarios/:path*", "/configuracoes/:path*", "/central-revisao/:path*", "/api/ocorrencias/:path*", "/auth/:path*", "/atualizar-senha", "/acesso-pendente", "/acesso-negado"],
+  matcher: ["/dashboard/:path*", "/mapa-criminal/:path*", "/ocorrencias/:path*", "/importar/:path*", "/usuarios/:path*", "/configuracoes/:path*", "/central-revisao/:path*", "/api/:path*", "/auth/:path*", "/atualizar-senha", "/acesso-pendente", "/acesso-negado"],
 }

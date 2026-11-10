@@ -10,6 +10,17 @@ const nextPackage = require.resolve("next/package.json");
 const nextRequire = createRequire(nextPackage);
 const nextRoot = dirname(nextPackage);
 const [command, ...args] = process.argv.slice(2);
+// Load private configuration before selecting the listener. Never trust Host alone.
+nextRequire("@next/env").loadEnvConfig(projectRoot, command === "dev", { info() {}, error() {} });
+delete process.env.SENTINELA_LOCAL_BIND;
+if (process.env.SENTINELA_AUTH_PROVIDER === "local" && command === "dev") {
+  for (let i = args.length - 1; i >= 0; i--) {
+    if (args[i] === "--hostname" || args[i] === "-H") args.splice(i, 2);
+    else if (args[i].startsWith("--hostname=")) args.splice(i, 1);
+  }
+  args.push("--hostname", "127.0.0.1");
+  process.env.SENTINELA_LOCAL_BIND = "127.0.0.1";
+}
 if (!["build", "dev"].includes(command)) throw new Error("Use build ou dev.");
 
 // Preserve Turbopack on platforms where the native compiler works.

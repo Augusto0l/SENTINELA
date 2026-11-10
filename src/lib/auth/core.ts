@@ -24,7 +24,7 @@ export async function resolveAccess(gateway: AuthGateway): Promise<AccessResult>
         !ROLES.includes(row.perfil) || typeof row.nome_exibicao !== "string" || !row.nome_exibicao.trim()) {
       return { status: "unlinked" }
     }
-    return { status: "allowed", principal: { id: row.usuario_id, authUserId: identity.id, name: row.nome_exibicao, role: row.perfil } }
+    return { status: "allowed", principal: { source: "supabase", id: row.usuario_id, authUserId: identity.id, name: row.nome_exibicao, role: row.perfil } }
   } catch {
     return { status: "unavailable" }
   }
@@ -32,6 +32,7 @@ export async function resolveAccess(gateway: AuthGateway): Promise<AccessResult>
 
 export type AuthAction = "login" | "logout" | "recuperar" | "senha"
 const messages: Record<string, string> = {
+  local_reinicio: "Para ativar o acesso local, encerre o servidor deste projeto e execute pnpm dev novamente. A conexão deve ficar restrita ao loopback.",
   configuracao: "Autenticação indisponível neste ambiente. Contate a administração.",
   credenciais: "Não foi possível entrar. Verifique suas credenciais e tente novamente.",
   acesso: "Sua conta ainda não possui acesso ativo ao SENTINELA.",

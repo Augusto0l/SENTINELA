@@ -1,3 +1,5 @@
+import { headers } from "next/headers"
+import { localSelected, localAllowed, localConfig } from "@/lib/auth/local-provider"
 import Link from "next/link"
 import { SentinelaBrand } from "@/components/SentinelaLogo"
 import Button from "@/components/ui/button"
@@ -7,12 +9,19 @@ import LoginScreen from "@/components/auth/LoginScreen"
 import { isLocalDemo } from "@/lib/auth/page-access"
 
 export default async function AuthPanel({ mode, error, state }: { mode: "login" | "recuperar" | "senha"; error?: string; state?: string }) {
-  const configured = Boolean(publicSupabaseConfig() && process.env.SENTINELA_APP_ORIGIN)
+  const local = localSelected()
+  let localReady = false
+  if (local && localAllowed((await headers()).get("host"))) {
+    try { await localConfig(); localReady = true } catch { /* Generic configuration message only. */ }
+  }
+  const configured = local ? localReady : Boolean(publicSupabaseConfig() && process.env.SENTINELA_APP_ORIGIN)
+  const needsLocalRestart = local && process.env.NODE_ENV === "development" && process.env.SENTINELA_LOCAL_BIND !== "127.0.0.1"
   const title = mode === "login" ? "Acesse o SENTINELA" : mode === "recuperar" ? "Recuperar acesso" : "Definir nova senha"
-  const message = authMessage(error) ?? (!configured ? authMessage("configuracao") : undefined)
+  const message = authMessage(error) ?? (!configured ? authMessage(needsLocalRestart ? "local_reinicio" : "configuracao") : undefined)
   const notice = state === "enviado" ? "Se houver uma conta elegível, você receberá as instruções de recuperação."
     : state === "senha" ? "Senha atualizada. Entre novamente." : state === "saiu" ? "Sessão encerrada." : undefined
-  if (mode === "login") return <LoginScreen configured={configured} message={message} notice={notice} localDemo={await isLocalDemo()} />
+  if (mode === "login") return <LoginScreen localProvider={local} configured={configured} message={message} notice={localReady ? "Acesso local de desenvolvimento. Sem acesso ao banco remoto; dados demonstrativos." : notice} localDemo={await isLocalDemo()} />
+  if (local) return <main><p>Recuperação e alteração de senha indisponíveis no provedor local.</p><Link href="/login">Voltar ao login</Link></main>
   return <main className="login-page"><section className="login-card" aria-labelledby="auth-title">
     <SentinelaBrand iconSize={48} /><h1 id="auth-title">{title}</h1>
     <p>Acesso restrito a contas autorizadas. O conteúdo das telas permanece demonstrativo, com dados fictícios.</p>

@@ -1,9 +1,11 @@
 import "server-only"
+import { localSelected } from "@/lib/auth/local-provider"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { publicSupabaseConfig } from "@/lib/supabase/config"
 
 export default async function createServerSupabaseClient({ writable = false }: { writable?: boolean } = {}) {
+  if (localSelected()) return null
   const config = publicSupabaseConfig()
   if (!config) return null
   const store = await cookies()

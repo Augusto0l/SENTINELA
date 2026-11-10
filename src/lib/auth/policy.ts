@@ -2,6 +2,7 @@ export const ROLES = ["Administrador", "Operador", "Analista"] as const
 export type Role = typeof ROLES[number]
 export type Permission = "analisar" | "consultar_central" | "cadastrar" | "importar" | "administrar" | "corrigir"
 export interface Principal {
+  source: "local" | "supabase" | "preview"
   id: string
   authUserId: string
   name: string
