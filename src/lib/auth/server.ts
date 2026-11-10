@@ -1,4 +1,6 @@
 import "server-only"
+import { localSelected } from "@/lib/auth/local-provider"
+import { getLocalPrincipal } from "@/lib/auth/local-server"
 import { redirect } from "next/navigation"
 import { connection } from "next/server"
 import createServerSupabaseClient from "@/lib/supabase/server"
@@ -8,6 +10,10 @@ import { hasPermission, type Permission } from "@/lib/auth/policy"
 
 export async function getAccess() {
   await connection()
+  if (localSelected()) {
+    const principal = await getLocalPrincipal()
+    return principal ? { status: "allowed", principal } as const : { status: "unauthenticated" } as const
+  }
   const client = await createServerSupabaseClient()
   if (!client) return { status: "unavailable" } as const
   return resolveAccess(authGateway(client))
@@ -24,6 +30,7 @@ export async function requirePrincipal(permission?: Permission) {
 }
 
 export async function requireIdentity() {
+  if (localSelected()) redirect("/login?erro=configuracao")
   await connection()
   const client = await createServerSupabaseClient()
   if (!client) redirect("/login?erro=configuracao")

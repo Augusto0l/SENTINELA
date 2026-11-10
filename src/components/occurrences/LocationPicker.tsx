@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react"
 import { divIcon } from "leaflet"
 import styles from "@/components/occurrences/NewOccurrenceLocation.module.css"
+import { TILE_REFERRER_POLICY } from "@/lib/maps/tile-policy"
 import {
   MapContainer,
   Marker,
@@ -46,8 +47,11 @@ function LocationEvents({ latitude, longitude, onChange, searchSelection = 0 }: 
   return (
     <>
       <TileLayer
+        referrerPolicy={TILE_REFERRER_POLICY}
+        updateWhenIdle
+        keepBuffer={1}
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         eventHandlers={{ tileerror: () => setTileError(true) }}
       />
       <Marker

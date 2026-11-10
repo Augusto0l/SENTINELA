@@ -1,8 +1,10 @@
+import { localSelected } from "@/lib/auth/local-provider"
 import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { AuthGateway } from "@/lib/auth/core"
 
 export default function authGateway(client: SupabaseClient): AuthGateway {
+  if (localSelected()) throw new Error("Remote Auth unavailable for local provider")
   return {
     async identity() {
       const { data, error } = await client.auth.getUser()

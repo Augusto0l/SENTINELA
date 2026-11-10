@@ -7,6 +7,7 @@ import type { RaGeoJSON } from "@/data/geoLoader"
 import { RA_BY_CODE } from "@/components/map/raMapData"
 import { SATELLITE_ATTRIBUTION, SATELLITE_TILES, satelliteFeatures, satelliteMaskRings } from "@/components/map/satelliteData"
 import styles from "@/components/map/SatelliteMap.module.css"
+import { TILE_REFERRER_POLICY } from "@/lib/maps/tile-policy"
 
 interface Props {
   selectedRaCode?: string | null
@@ -34,6 +35,7 @@ function MapFraming({ bounds }: { bounds: LatLngBounds }) {
 function SatelliteTiles({ attempt, onStatus }: { attempt: number; onStatus: (status: "loading" | "ready" | "error") => void }) {
   const failed = useRef(false)
   return <TileLayer key={attempt} url={SATELLITE_TILES} attribution={SATELLITE_ATTRIBUTION}
+    referrerPolicy={TILE_REFERRER_POLICY}
     maxNativeZoom={14} maxZoom={16} minZoom={8} noWrap updateWhenIdle keepBuffer={1} opacity={1}
     eventHandlers={{
       loading: () => { failed.current = false; onStatus("loading") },

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react"
 import LoginIcon from "@/components/auth/LoginIcon"
 import styles from "@/components/auth/LoginScreen.module.css"
 
-export default function LoginForm({ configured, message, notice }: { configured: boolean; message?: string; notice?: string }) {
+export default function LoginForm({ configured, message, notice, localProvider = false }: { configured: boolean; message?: string; notice?: string; localProvider?: boolean }) {
   const [visible, setVisible] = useState(false)
   const [pending, setPending] = useState(false)
   const [emailInvalid, setEmailInvalid] = useState(false)
@@ -38,11 +38,11 @@ export default function LoginForm({ configured, message, notice }: { configured:
       {passwordInvalid && <span id="login-password-error" className={styles.fieldError} role="alert">Informe sua senha.</span>}
     </div>
     <div className={styles.options}>
-      <label className={styles.remember} title="A duração da sessão é gerenciada pelo Supabase. Não é alterável nesta tela.">
+      <label className={styles.remember} title="A duração da sessão é definida pelo provedor. Não é alterável nesta tela.">
         <input type="checkbox" checked disabled aria-describedby="login-session-policy" /><span>Lembrar-me</span>
       </label>
-      <span id="login-session-policy" className={styles.srOnly}>A duração da sessão é gerenciada pelo Supabase. Esta opção não é alterável nesta tela.</span>
-      <Link href="/recuperar-senha">Esqueci minha senha?</Link>
+      <span id="login-session-policy" className={styles.srOnly}>A duração da sessão é definida pelo provedor. Esta opção não é alterável nesta tela.</span>
+      {!localProvider && <Link href="/recuperar-senha">Esqueci minha senha?</Link>}
     </div>
     <button className={styles.submit} type="submit" disabled={!configured || pending}>
       {pending && <span className={styles.spinner} aria-hidden="true" />}<span>{pending ? "Entrando…" : "Entrar"}</span><LoginIcon name="arrow" />

@@ -12,6 +12,7 @@ export default async function SystemLayout({ children }: { children: ReactNode }
       <a href="#main-content" className="skip-link">Ir para o conteúdo</a>
       <SystemSidebar />
       <main id="main-content" tabIndex={-1} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        {principal.source === "local" && <div role="status" style={{ padding: "8px 16px", background: "#102945", color: "#d6e9ff", fontSize: 13 }}>Desenvolvimento local · dados fictícios · sem acesso ao banco remoto.</div>}
         {demo && <div role="status" style={{ padding: "8px 16px", background: "#102945", color: "#d6e9ff", fontSize: 13 }}>Demonstração local temporária · dados fictícios · sem autenticação real ou acesso ao banco. <a href="/login" style={{ textDecoration: "underline" }}>Voltar ao login</a></div>}
         {children}
       </main>

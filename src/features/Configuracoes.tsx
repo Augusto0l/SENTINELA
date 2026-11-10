@@ -1,4 +1,5 @@
-"use client";
+"use client"
+import LogoutForm from "@/components/auth/LogoutForm";
 
 import { useTheme } from "@/components/ThemeProvider";
 import { useId, useState } from "react";
@@ -462,7 +463,7 @@ export default function Configuracoes() {
               <InfoRow label="Endereço IP"        value="Não consultado" />
               <InfoRow label="Sessão"             value="Identidade verificada no servidor" badge last />
 
-              <form action="/auth/logout" method="post" style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
+              <LogoutForm style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
                 <button type="submit"
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
@@ -478,7 +479,7 @@ export default function Configuracoes() {
                   <IcLogout />
                   Encerrar todas as sessões
                 </button>
-              </form>
+              </LogoutForm>
             </Card>
           </div>
         </div>
