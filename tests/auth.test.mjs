@@ -20,6 +20,13 @@ function request(action, fields = {}, headers = {}) {
 }
 const target = response => new URL(response.headers.get("location")).pathname
 
+test("logout mantém a rejeição de Origin null sem revogar a sessão Supabase", async () => {
+  let calls = 0
+  const result = await authPost("logout", request("logout", {}, { origin: "null" }), origin, gateway({ logout: async () => { calls++; return true } }))
+  assert.equal(result.status, 403)
+  assert.equal(calls, 0)
+})
+
 test("login real delega credenciais, usa vínculo ativo e ignora perfil enviado pelo formulário", async () => {
   let credentials
   const response = await authPost("login", request("login", { email: "teste@example.test", password: "senha-sintetica", perfil: "Administrador", next: "https://evil.invalid" }), origin,

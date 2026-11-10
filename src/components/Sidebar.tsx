@@ -3,6 +3,7 @@ import NavigationIcon, { type NavigationIconName } from "@/components/Navigation
 import { useOperations } from "@/components/OperationalProvider"
 import { canVisit } from "@/data/demoPermissions"
 import styles from "@/components/Navigation.module.css"
+import LogoutForm from "@/components/auth/LogoutForm"
 
 interface SidebarProps {
   currentPage: string
@@ -76,7 +77,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
           </div>
         ))}
       </nav>
-      <form action="/auth/logout" method="post"><button type="submit" className={styles.navItem} aria-label="Encerrar sessão" title="Encerrar sessão"><NavigationIcon name="logout" /><span className={styles.sidebarText}>Encerrar sessão</span></button></form>
+      <LogoutForm><button type="submit" className={styles.navItem} aria-label="Encerrar sessão" title="Encerrar sessão"><NavigationIcon name="logout" /><span className={styles.sidebarText}>Encerrar sessão</span></button></LogoutForm>
 
       <div className={styles.sidebarFooter}>
         <div className={styles.demoNote}>
