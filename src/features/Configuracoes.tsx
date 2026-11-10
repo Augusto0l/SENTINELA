@@ -4,6 +4,8 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useId, useState } from "react";
 import { useDemoToast } from "../components/DemoProvider";
 import Header from "../components/Header";
+import Link from "next/link";
+import { useOperations } from "@/components/OperationalProvider";
 
 // ─── Inline SVG icons ──────────────────────────────────────────────────────
 const IcPerfil = () => (
@@ -281,15 +283,13 @@ function ThemeCard({ label, selected, onSelect, preview }: {
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function Configuracoes() {
   const notify = useDemoToast();
+  const { principal } = useOperations();
   // Perfil
-  const [nome, setNome]         = useState("Pedro Augusto");
-  const [email, setEmail]       = useState("pedro.augusto@sentinela.gov.br");
-  const [cargo, setCargo]       = useState("Administrador do sistema");
+  const [nome, setNome]         = useState(principal.name);
+  const [email, setEmail]       = useState("");
+  const [cargo, setCargo]       = useState(principal.role as string);
 
   // Segurança
-  const [senhaAtual, setSenhaAtual]         = useState("");
-  const [novaSenha, setNovaSenha]           = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mfa, setMfa]                       = useState(false);
 
   // Preferências
@@ -369,7 +369,7 @@ export default function Configuracoes() {
           {/* ═══ LEFT COLUMN ═══ */}
           <div>
             {/* Perfil */}
-            <Card icon={<IcPerfil />} title="Perfil" subtitle="Informações pessoais e da conta">
+            <Card icon={<IcPerfil />} title="Perfil" subtitle="Prévia de edição; não altera sua conta ou suas permissões">
               <FieldRow label="Nome completo" value={nome} onChange={setNome} />
               <FieldRow label="E-mail"        value={email} onChange={setEmail} type="email" />
               <FieldRow label="Cargo / Função" value={cargo} onChange={setCargo} />
@@ -416,9 +416,7 @@ export default function Configuracoes() {
           <div>
             {/* Segurança */}
             <Card icon={<IcLock />} title="Segurança" subtitle="Gerencie sua senha e autenticação">
-              <FieldRow label="Senha atual"     value={senhaAtual}     onChange={setSenhaAtual}     type="password" />
-              <FieldRow label="Nova senha"      value={novaSenha}      onChange={setNovaSenha}      type="password" />
-              <FieldRow label="Confirmar senha" value={confirmarSenha} onChange={setConfirmarSenha} type="password" />
+              <p>Defina uma nova senha pelo fluxo autenticado. As preferências demonstrativas não alteram credenciais.</p>
 
               {/* MFA toggle row */}
               <div style={{
@@ -438,14 +436,14 @@ export default function Configuracoes() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
-                <button onClick={() => notify("Alteração de senha indisponível na demonstração. Não informe senhas reais.")} style={{
+                <Link href="/atualizar-senha" style={{
                   background: "#2563eb", border: "none", borderRadius: 7,
                   color: "#fff", fontSize: 13, fontWeight: 600,
                   padding: "8px 18px", cursor: "pointer",
                   boxShadow: "0 1px 6px rgba(37,99,235,0.3)",
                 }}>
                   Alterar senha
-                </button>
+                </Link>
               </div>
             </Card>
 
@@ -459,14 +457,13 @@ export default function Configuracoes() {
 
             {/* Sessão e acesso */}
             <Card icon={<IcShield />} title="Sessão e acesso" subtitle="Informações sobre sua sessão atual">
-              <InfoRow label="Último acesso"     value="24/05/2025 às 09:42" />
-              <InfoRow label="Dispositivo ativo" value="Windows • Chrome 124.0.6367.91" />
-              <InfoRow label="Endereço IP"        value="192.0.2.1 • Exemplo fictício" />
-              <InfoRow label="Sessão iniciada"    value="Demonstrativa" badge last />
+              <InfoRow label="Último acesso"     value="Não consultado" />
+              <InfoRow label="Dispositivo ativo" value="Não consultado" />
+              <InfoRow label="Endereço IP"        value="Não consultado" />
+              <InfoRow label="Sessão"             value="Identidade verificada no servidor" badge last />
 
-              <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
-                <button
-                  onClick={() => notify("Não existem sessões autenticadas para encerrar neste protótipo.")}
+              <form action="/auth/logout" method="post" style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
+                <button type="submit"
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
                     background: "transparent",
@@ -481,7 +478,7 @@ export default function Configuracoes() {
                   <IcLogout />
                   Encerrar todas as sessões
                 </button>
-              </div>
+              </form>
             </Card>
           </div>
         </div>

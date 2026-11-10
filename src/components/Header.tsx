@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "@/components/ThemeProvider"
 import { useDemoToast } from "@/components/DemoProvider"
-import { DemoProfileSelect } from "@/components/OperationalProvider"
+import { DemoProfileSelect, useOperations } from "@/components/OperationalProvider"
 import NavigationIcon from "@/components/NavigationIcon"
 import styles from "@/components/Navigation.module.css"
 
@@ -14,6 +14,7 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle }: HeaderProps) {
   const router = useRouter()
+  const { principal } = useOperations()
   const pathname = usePathname()
   const { resolvedTheme, setTheme } = useTheme()
   const notify = useDemoToast()
@@ -48,10 +49,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
           </button>
         </div>
         <DemoProfileSelect className={styles.profile} />
-        <button className={`topbar-user ${styles.headerUser}`} type="button" aria-label="Abrir configurações do usuário demonstrativo"
-          title="Configurações de Pedro Augusto" onClick={() => router.push("/configuracoes")}>
-          <span className={styles.avatar}>PA</span>
-          <span className={styles.headerUserName}>Pedro Augusto<small>Conta demonstrativa</small></span>
+        <button className={`topbar-user ${styles.headerUser}`} type="button" aria-label="Abrir configurações da conta"
+          title={`Configurações de ${principal.name}`} onClick={() => router.push("/configuracoes")}>
+          <span className={styles.avatar}>{principal.name.slice(0, 2).toLocaleUpperCase("pt-BR")}</span>
+          <span className={styles.headerUserName}>{principal.name}<small>{principal.role}</small></span>
           <NavigationIcon name="chevron" size={14} />
         </button>
       </div>

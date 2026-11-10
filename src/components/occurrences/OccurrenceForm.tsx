@@ -85,7 +85,7 @@ export default function OccurrenceForm({
     })
   }
   if (
-    !canWrite(operations.role) ||
+    !canWrite(operations.role) || (initial && !operations.correctionsEnabled) ||
     (initial && operations.inactive[initial.id])
   )
     return (

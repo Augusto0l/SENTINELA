@@ -1,151 +1,48 @@
-"use client"
-import {
-  createContext,
-  useContext,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react"
+﻿"use client"
+import { createContext, useContext, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  DEMO_ROLES,
-  canVisit,
-  canWrite,
-  canInactivate,
-  type DemoRole,
-} from "@/data/demoPermissions"
+import { hasPermission, routePermission, type Principal, type Role } from "@/lib/auth/policy"
 import type { MockOccurrence } from "@/data/mockOccurrences"
 
 interface Operations {
-  role: DemoRole
+  role: Role
+  principal: Principal
   hydrated: boolean
-  setRole: (value: DemoRole) => void
+  correctionsEnabled: boolean
   records: Record<string, MockOccurrence>
   inactive: Record<string, string>
   save: (record: MockOccurrence) => boolean
   inactivate: (id: string, reason: string) => boolean
 }
 const Context = createContext<Operations | null>(null)
-const roleKey = "sentinela-demo-role"
-function subscribeHydration() {
-  return () => {}
-}
-function subscribeRole(callback: () => void) {
-  window.addEventListener("sentinela-role", callback)
-  return () => window.removeEventListener("sentinela-role", callback)
-}
-function readRole(): DemoRole {
-  try {
-    const value = sessionStorage.getItem(roleKey)
-    return DEMO_ROLES.find((role) => role === value) ?? "Administrador"
-  } catch {
-    return "Administrador"
-  }
-}
 export function useOperations() {
   const context = useContext(Context)
   if (!context) throw new Error("OperationalProvider ausente")
   return context
 }
-
+// Retained export for existing headers; displays the verified role, never a selector.
 export function DemoProfileSelect({ className = "" }: { className?: string }) {
-  const { role, hydrated, setRole } = useOperations()
-  return (
-    <div className={`demo-profile-bar ${className}`}>
-      <label>
-        <span>Simular perfil</span>
-        <select disabled={!hydrated} value={role}
-          onChange={(event) => setRole(event.target.value as DemoRole)}>
-          {DEMO_ROLES.map((value) => <option key={value}>{value}</option>)}
-        </select>
-      </label>
-    </div>
-  )
+  const { role } = useOperations()
+  return <div className={`demo-profile-bar ${className}`}><span>Perfil: {role}</span></div>
 }
-export default function OperationalProvider({
-  children,
-}: {
-  children: ReactNode
-}) {
-  const hydrated = useSyncExternalStore(
-    subscribeHydration,
-    () => true,
-    () => false,
-  )
-  const role = useSyncExternalStore(
-    subscribeRole,
-    readRole,
-    () => "Administrador" as DemoRole,
-  )
-  function setRole(value: DemoRole) {
-    try {
-      sessionStorage.setItem(roleKey, value)
-      window.dispatchEvent(new Event("sentinela-role"))
-      setRoleError("")
-    } catch {
-      setRoleError(
-        "O navegador bloqueou o armazenamento da sessão; não foi possível trocar o perfil demonstrativo.",
-      )
-    }
-  }
+export default function OperationalProvider({ children, principal }: { children: ReactNode; principal: Principal }) {
   const [records, setRecords] = useState<Record<string, MockOccurrence>>({})
-  const [inactive, setInactive] = useState<Record<string, string>>({})
-  const [roleError, setRoleError] = useState("")
   const pathname = usePathname()
-  return (
-    <Context.Provider
-      value={{
-        role,
-        hydrated,
-        setRole,
-        records,
-        inactive,
-        save: (record) => {
-          if (!canWrite(role) || inactive[record.id]) return false
-          setRecords((previous) => ({ ...previous, [record.id]: record }))
-          return true
-        },
-        inactivate: (id, reason) => {
-          if (!canInactivate(role) || !reason.trim() || inactive[id])
-            return false
-          setInactive((previous) => ({ ...previous, [id]: reason.trim() }))
-          return true
-        },
-      }}
-    >
-      <div
-        style={{
-          height: "100dvh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {(!hydrated || !canVisit(role, pathname)) && <div className="demo-profile-bar">
-          <span>
-            Demonstração · alterações somente em memória, perdidas ao
-            recarregar.
-          </span>
-          <DemoProfileSelect />
-        </div>}
-        {roleError && <p role="alert">{roleError}</p>}
-        {!hydrated ? (
-          <p role="status">Carregando demonstração…</p>
-        ) : canVisit(role, pathname) ? (
-          children
-        ) : (
-          <div role="alert" style={{ padding: 32 }}>
-            <h1>Acesso negado na demonstração</h1>
-            <p>
-              O perfil {role} não pode acessar esta tela. Esta restrição é
-              apenas de interface; não há autenticação ou autorização no
-              servidor.
-            </p>
-            <Link href="/ocorrencias">Voltar às ocorrências</Link>
-          </div>
-        )}
-      </div>
-    </Context.Provider>
-  )
+  return <Context.Provider value={{
+    role: principal.role, principal, hydrated: true, correctionsEnabled: false, records, inactive: {},
+    save: record => {
+      // Drafts only. Existing occurrences/corrections stay blocked pending audited backend.
+      if (!hasPermission(principal.role, "cadastrar") || !record.id.startsWith("DEMO-")) return false
+      setRecords(previous => ({ ...previous, [record.id]: record }))
+      return true
+    },
+    inactivate: () => false,
+  }}>
+    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {hasPermission(principal.role, routePermission(pathname)) ? children : <div role="alert" style={{ padding: 32 }}>
+        <h1>Acesso negado</h1><p>Seu perfil não permite acessar esta tela.</p><Link href="/dashboard">Voltar ao Dashboard</Link>
+      </div>}
+    </div>
+  </Context.Provider>
 }

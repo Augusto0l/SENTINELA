@@ -32,13 +32,13 @@ const navGroups: { label: string; items: { key: string; label: string; icon: Nav
     items: [
       { key: "users", label: "Usuários", icon: "users" },
       { key: "settings", label: "Configurações", icon: "settings" },
-      { key: "login", label: "Voltar ao login demonstrativo", icon: "logout" },
+      { key: "login", label: "Encerrar sessão", icon: "logout" },
     ],
   },
 ]
 
 export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }: SidebarProps) {
-  const { role } = useOperations()
+  const { role, principal } = useOperations()
   return (
     <aside aria-label="Navegação do SENTINELA" className={`system-sidebar ${styles.sidebar} ${collapsed ? `${styles.collapsed} is-collapsed` : ""}`}>
       <div className={styles.brand}>
@@ -64,7 +64,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
         {navGroups.map((group) => (
           <div key={group.label} className={styles.navGroup}>
             <p className={styles.groupLabel}>{group.label}</p>
-            {group.items.filter((item) => canVisit(role, ({ new: "/ocorrencias/nova", import: "/importar", users: "/usuarios" } as Record<string, string>)[item.key] ?? "/dashboard")).map((item) => (
+            {group.items.filter((item) => item.key !== "login" && canVisit(role, ({ new: "/ocorrencias/nova", import: "/importar", users: "/usuarios" } as Record<string, string>)[item.key] ?? "/dashboard")).map((item) => (
               <button key={item.key} type="button" className={styles.navItem}
                 aria-label={item.label} aria-current={currentPage === item.key ? "page" : undefined}
                 title={item.label} onClick={() => onNavigate(item.key)}>
@@ -76,15 +76,16 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
           </div>
         ))}
       </nav>
+      <form action="/auth/logout" method="post"><button type="submit" className={styles.navItem} aria-label="Encerrar sessão" title="Encerrar sessão"><NavigationIcon name="logout" /><span className={styles.sidebarText}>Encerrar sessão</span></button></form>
 
       <div className={styles.sidebarFooter}>
         <div className={styles.demoNote}>
           <span className={styles.demoIndicator} aria-hidden="true" />
           <div><strong>Ambiente demonstrativo</strong><p>Alterações em memória, perdidas ao recarregar.</p></div>
         </div>
-        <div className={styles.userCard} title={`Pedro Augusto · ${role} · demonstração`}>
-          <span className={styles.avatar}>PA</span>
-          <div className={styles.sidebarText}><strong>Pedro Augusto</strong><span>{role} · demonstração</span></div>
+        <div className={styles.userCard} title={`${principal.name} · ${role}`}>
+          <span className={styles.avatar}>{principal.name.slice(0, 2).toLocaleUpperCase("pt-BR")}</span>
+          <div className={styles.sidebarText}><strong>{principal.name}</strong><span>{role}</span></div>
         </div>
       </div>
     </aside>

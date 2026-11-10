@@ -1,3 +1,4 @@
 import Screen from "@/features/Usuarios";
+import { requirePagePrincipal as requirePrincipal } from "@/lib/auth/page-access";
 
-export default function Page() { return <Screen />; }
+export default async function Page() { await requirePrincipal("administrar"); return <Screen />; }

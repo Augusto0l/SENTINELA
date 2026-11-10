@@ -11,7 +11,8 @@ registerHooks({
     return nextResolve(specifier, context)
   },
 })
-const { GET } = await import("../src/app/api/ocorrencias/geocode/route.ts")
+// Preserve coverage of the legacy geocoder independently of the closed authenticated API.
+const { GET } = await import("../src/lib/geocoding/handler.ts")
 
 test("proxy valida entrada, identifica aplicação, limita consultas, usa cache e trata falhas", async (t) => {
   let clock = 10000
