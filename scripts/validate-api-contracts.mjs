@@ -53,7 +53,7 @@ export async function validateApiContracts() {
     operations.length,
   )
   for (const operation of operations)
-    assert.equal(operation["x-implementation-status"], "planned")
+    assert.equal(operation["x-implementation-status"], ["getPersistentOccurrence", "listPersistentOccurrences"].includes(operation.operationId) ? "implemented-local-development" : "planned")
   return {
     schemas: Object.keys(contractModels).length,
     paths: Object.keys(document.paths).length,
