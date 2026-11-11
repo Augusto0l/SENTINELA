@@ -1,0 +1,26 @@
+.screen { display: flex; flex-direction: column; height: 100%; min-width: 0; overflow: hidden; }
+.content { flex: 1; min-height: 0; overflow: auto; padding: 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+.heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.heading h1 { font-size: 20px; font-weight: 800; margin: 0; }
+.heading p, .note { font-size: 12px; color: var(--color-text-muted); margin: 4px 0 0; }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); gap: 12px; }
+.filters label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; min-width: 0; }
+.filters input { min-width: 0; width: 100%; box-sizing: border-box; background: var(--theme-111d2e); color: var(--color-text-primary); border: 1px solid var(--theme-1e3a5f); border-radius: 6px; padding: 8px 10px; }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.actions button { max-width: 100%; }
+.panel { border: 1px solid var(--theme-1e3a5f); background: var(--theme-0d1a2d); border-radius: 10px; min-width: 0; }
+.tableWrap { overflow: auto; max-width: 100%; }
+.panel table { width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 12px; }
+.panel th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; background: var(--theme-0a1525); padding: 10px 12px; white-space: nowrap; }
+.panel th button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.panel td { padding: 10px 12px; border-top: 1px solid var(--theme-1e3a5f); vertical-align: top; }
+.panel small { display: block; color: var(--color-text-muted); margin-top: 4px; }
+.panel ul { margin: 0; padding-left: 16px; }
+.local { min-width: 180px; max-width: 320px; overflow-wrap: anywhere; }
+.id { border: 0; background: transparent; color: var(--theme-60a5fa); text-decoration: underline; cursor: pointer; font: inherit; font-family: monospace; }
+.message { padding: 20px; margin: 0; }
+.pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px; border-top: 1px solid var(--theme-1e3a5f); font-size: 12px; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.fields dt { color: var(--color-text-muted); font-size: 12px; }
+.fields dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .content { padding: 12px; } .fields { grid-template-columns: 1fr; } }

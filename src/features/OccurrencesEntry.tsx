@@ -1,8 +1,7 @@
-"use client";
-import dynamic from "next/dynamic";
-import PageSkeleton from "@/components/PageSkeleton";
+"use client"
 
-// Keep the existing Canvas-based mock generation exclusively in the browser.
-const Occurrences = dynamic(() => import("./Occurrences"), { ssr: false, loading: () => <PageSkeleton /> });
+import Occurrences from "@/features/Occurrences"
 
-export default function OccurrencesEntry() { return <Occurrences />; }
+export default function OccurrencesEntry() {
+  return <Occurrences />
+}
