@@ -4,6 +4,12 @@ Implementados somente GET /api/v1/ocorrencias e GET /api/v1/ocorrencias/{id}.
 As telas e os contratos demonstrativos permanecem separados. Nenhuma escrita,
 migration, fixture, mudanca de role/RLS/grant ou conexao Supabase foi executada.
 
+**Estado documental em 11/11/2026:** a execução completa com PostgreSQL real e tela
+vazia foi confirmada por leitura do relatório privado: 166 PASS, zero falhas e 54
+respostas HTTP 200. Os registros sem credencial abaixo são históricos. Consulte
+[a evidência consolidada](#homologação-real-confirmada-em-11112026) para os limites
+do aceite; dados operacionais não vazios não foram homologados via HTTP.
+
 ## Configuracao privada
 
 O servidor precisa de SENTINELA_LOCAL_READER_URL, sem prefixo NEXT_PUBLIC_.
@@ -41,7 +47,9 @@ encerra apenas a arvore de processos comprovadamente criada e remove os arquivos
 temporarios de contas/sessoes; relatorio sanitizado permanece privado. Sem fixtures,
 escrita, migrations ou Supabase. A saida Next usa diretorio exclusivo por UUID.
 Nao testa filtragem positiva RLS nem multiplas naturezas reais num banco vazio.
-O modo completo ainda nao foi executado: falta a credencial operacional privada.
+Na preparação inicial, o modo completo ainda não havia sido executado por ausência
+da credencial no executor. Essa limitação histórica foi superada no ensaio privado
+conferido em 11/11/2026; não repetir a execução somente para atualizar documentos.
 Para executar somente o teste antigo de repositorio: `-RepositoryOnly`.
 
 O modo sem banco foi efetivamente executado com HTTP real:
@@ -51,8 +59,8 @@ vazios e linha oculta por RLS). O relatorio indica databaseTested=false.
 Consultas validas autenticadas retornaram 503 por configuracao ausente; isso NAO
 comprova funcionamento SQL real. Parametros invalidos 400, sem sessao/invalida/
 expirada/logout 401, metodos proibidos 403. Tres logins HTTP sinteticos PASS.
-Servidor de teste encerrado, contas e sessoes removidas, evidencia preservada em
-%USERPROFILE%/.sentinela-local/http-qualification/03ca0105-e71f-4144-abfa-8c1cb4306b30/report.json.
+Servidor de teste encerrado, contas e sessões removidas. Evidência privada do
+ensaio sem banco: ID `03ca0105-e71f-4144-abfa-8c1cb4306b30`; não incluída no Git.
 
 ## Endpoints e contratos
 
@@ -114,11 +122,12 @@ Nao usar SENTINELA_VALIDATE_BUILD diretamente sem o wrapper que prepara o tsconf
 ESLint ignora esse artefato e aplica regras JSX apenas a JSX/TSX; scripts .cjs
 continuam CommonJS, sem modificar as ferramentas anteriores.
 
-Proxima atividade: configurar a credencial e executar o teste real; depois integrar
-listagem/detalhe nas telas, apresentando carregamento, erros e vazio sem mocks de
-fallback. Somente dados sinteticos aprovados estao visiveis pelas policies atuais.
+O plano inicial previa configurar a credencial, testar o banco e integrar as telas.
+Essas atividades de leitura já possuem evidência nas Etapas 2.9/2.10 abaixo.
+Somente dados sintéticos aprovados estão visíveis pelas policies atuais; escrita
+continua fora do escopo.
 
-## Resultado da entrega
+## Registro histórico da implementação inicial
 
 - 130 testes automatizados aprovados, zero falhas; incluem sessoes locais reais
   sinteticas e driver PostgreSQL simulado. Nenhum teste real de banco foi declarado.
@@ -140,7 +149,7 @@ O Next adicionou automaticamente seu bloco de orientacoes ao AGENTS.md; preserva
 Artefatos anteriores database/local/, backup-local-supabase.md e backup-supabase.mjs
 nao foram alterados nesta etapa.
 
-## Finalizacao da homologacao HTTP (sem senha operacional)
+## Registro histórico da homologação HTTP sem senha operacional
 
 Foram executadas 136 verificacoes reais PASS, zero FAIL: 57 respostas 503 por
 configuracao ausente, 48 respostas 400, 16 respostas 401 (incluindo bypass por
@@ -149,18 +158,18 @@ verificacoes de encerramento/limpeza. databaseTested=false. Um grupo nao exercit
 registra explicitamente dados nao vazios, multiplas naturezas e linha oculta RLS.
 Nenhum valor secreto ou URI foi registrado nas evidencias.
 
-A implementacao esta concluida; a Etapa 2.9 NAO esta homologada integralmente.
-Falta executar o comando PowerShell com a senha operacional existente para comprovar
-PostgreSQL e respostas HTTP 200/404. Nao houve tentativa de descobrir/reutilizar
-senha administrativa, inserir fixtures ou contornar autenticacao. Nao houve conexao
-ao banco ou Supabase nesta finalizacao. As telas nao foram modificadas.
+Naquele ensaio, a implementação estava concluída, mas a Etapa 2.9 ainda dependia
+da execução com a senha operacional para comprovar PostgreSQL e HTTP 200/404.
+Não houve tentativa de descobrir/reutilizar senha administrativa, inserir fixtures
+ou contornar autenticação. O ensaio sem banco não realizou conexão PostgreSQL ou
+Supabase e não modificou as telas. O resultado posterior está consolidado abaixo.
 
 O comando interativo verifica PostgreSQL 17.11/PostGIS 3.6.2/extensions, identidade
 real e repositorio antes de iniciar a fase HTTP; se isso falhar, nao declara sucesso.
 O relatorio informa databaseTested=true somente apos verificacoes reais aprovadas.
 Testes positivos nao vazios continuam limitados pela ausencia de dados autorizados;
-nao serao criados registros para preencher essa lacuna. Antes de integrar a tela,
-concluir essa execucao de ponta a ponta.
+não serão criados registros operacionais para preencher essa lacuna. O teste
+posterior com a interface continua separado da validação de linhas no sandbox.
 
 ## Etapa 2.10 — interface de consulta
 
@@ -174,7 +183,8 @@ Não há fallback demonstrativo nem operações de escrita. Dashboard e Mapa man
 seu comportamento demonstrativo. Contratos, adaptações dos filtros, testes de
 navegador e limitações estão em [ocorrencias-persistentes.md](ocorrencias-persistentes.md).
 
-Para incluir a tela na homologação PostgreSQL real, executar em PowerShell:
+Para reproduzir a homologação PostgreSQL real com a tela, quando necessário e
+autorizado, executar em PowerShell:
 
 ```powershell
 .\scripts\test-local-reader.ps1 -Interface
@@ -184,3 +194,44 @@ O procedimento solicita a senha existente com entrada oculta, sem alterar a
 configuração do usuário. Sem essa credencial, `pnpm check:occurrences` exercita
 segurança HTTP real e estados da interface com respostas contratuais de teste;
 não comprova a consulta PostgreSQL desta tela.
+
+## Homologação real confirmada em 11/11/2026
+
+Relatório privado original conferido exclusivamente por leitura nesta regularização:
+
+- ID: `2fcf4784-a48e-4d46-abc4-4f53d248e472`.
+- SHA-256: `007372fe265fad99f46194360f14c9e4aaf70e1a13f103ab7dffc3022de88a70`.
+- Modo `HTTP_AND_REAL_POSTGRESQL`; `databaseTested=true`.
+- **166 verificações PASS, zero FAIL/UNKNOWN e 54 respostas HTTP 200.**
+- Identidade/repositório PostgreSQL real aprovados; tela operacional vazia aprovada
+  para Administrador, Operador e Analista, sem fallback demonstrativo.
+- Um grupo `NOT_EXERCISED`: respostas HTTP com dados persistentes não vazios,
+  múltiplas naturezas e linha oculta por RLS. O operacional estava vazio e nenhuma
+  fixture foi inserida para preencher essa lacuna.
+
+O resumo não inclui senha, URI funcional, cookie, sessão ou caminho privado
+completo. O relatório bruto e os screenshots permanecem fora do Git. Sua leitura
+não executou conexão, testes SQL/HTTP, configuração ou alteração do banco.
+
+### Classes de evidência e limites
+
+| Classe | Evidência | O que não comprova |
+|---|---|---|
+| Unitários e simulados | 138 testes Node, dez estáticos PostgreSQL, 132 simulados do sandbox e 12 Windows descartáveis aprovados nas validações técnicas anteriores | Leitura de registros operacionais reais |
+| SQL real no sandbox | [Homologação RLS](../database/local/sandbox/HOMOLOGACAO.md): 20 fixtures, seis policies, seis projeções permitidas e 49 negativas, com autenticação real e conjuntos por UUID | Dados não vazios respondidos pelo endpoint HTTP operacional |
+| HTTP real operacional vazio | Relatório privado acima: PostgreSQL real, 166 PASS e tela vazia nos três perfis | Detalhes preenchidos, auditoria de escrita ou RLS não vazio via HTTP |
+| Interface preenchida contratual | Respostas sintéticas de teste para filtros, paginação, nulos, múltiplas naturezas e detalhes, documentadas na [Etapa 2.10](ocorrencias-persistentes.md) | Persistência das linhas apresentadas pelo navegador de teste |
+
+Os resultados anteriores de 130 testes de implementação e 136 verificações HTTP
+sem banco permanecem como histórico. Não somar essas execuções sobrepostas como
+se fossem uma única suíte independente. O ensaio de 165 PASS sem banco também é
+distinto do ensaio de 166 PASS com PostgreSQL real.
+
+A leitura persistente local está homologada no limite do banco vazio e das
+policies sintéticas. Isso não conclui Auth hospedado, escrita, administração de
+usuários ou recuperação integral Supabase. Os próximos passos são a revisão
+institucional e o desenho autorizado das operações de escrita.
+
+Decisões complementares: [provedor temporário](decisoes/adr-auth-local-temporario.md)
+e [leitura local/homologação isolada](decisoes/adr-leitura-postgresql-local-homologacao-isolada.md),
+ambas propostas para avaliação. Consolidação acadêmica: [Sprint 4](../sprints/sprint-04.md).

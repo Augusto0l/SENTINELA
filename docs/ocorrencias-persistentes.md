@@ -72,15 +72,17 @@ ambiente anterior é restaurado ao final. Nenhuma fixture é inserida. As respos
 preenchidas seguem simuladas no navegador e identificadas como tal no relatório.
 
 Uma execução sem credencial não comprova integração PostgreSQL desta tela. A
-homologação manual da Etapa 2.9 informada pelo usuário permanece uma evidência
-anterior distinta. Não declarar restaurabilidade, escrita ou RLS não vazio a
-partir deste teste da interface. Cadastro, edição e inativação persistentes exigem
-uma etapa própria de autorização, contratos, privilégios mínimos e auditoria.
+homologação manual inicial da Etapa 2.9 informada pelo usuário permanece uma
+evidência histórica distinta. A execução posterior com PostgreSQL real e interface
+foi confirmada pela leitura do relatório privado descrito abaixo. Não declarar
+restaurabilidade, escrita ou RLS não vazio a partir desse ensaio HTTP de base
+vazia. Cadastro, edição e inativação persistentes exigem uma etapa própria de
+autorização, contratos, privilégios mínimos e auditoria.
 
 ## Evidências desta implementação
 
 138 testes automatizados aprovados, incluindo oito novos testes do cliente.
-Qualificação isolada: 165 verificações aprovadas, zero falhas; um grupo de
+Qualificação histórica sem banco: 165 verificações aprovadas, zero falhas; um grupo de
 semântica PostgreSQL/RLS não vazia explicitamente não exercitado. Foram 26 grupos
 visuais com respostas HTTP contratuais e três verificações visuais de erro 503
 real sem configuração PostgreSQL. Os dois temas nos quatro tamanhos passaram,
@@ -89,7 +91,35 @@ encerrado e as contas/sessões sintéticas removidas.
 
 TypeScript, ESLint, contratos/OpenAPI, rotas, build Next.js isolado e
 `git diff --check` aprovados. Nenhum marcador de URI administrativa ou operacional
-foi encontrado nos bundles do navegador. A credencial operacional não estava
-disponível; a tela vazia com HTTP 200 do PostgreSQL real permanece pendente do
-comando interativo acima. Nenhuma conexão PostgreSQL/Supabase foi feita neste
-ensaio; nenhum dado ou configuração de banco foi alterado.
+foi encontrado nos bundles do navegador. Nesse primeiro ensaio a credencial
+operacional não estava disponível e a tela vazia com HTTP 200 ainda estava
+pendente. Nenhuma conexão PostgreSQL/Supabase foi feita naquele ensaio sem banco.
+
+## Homologação real posterior
+
+Em 11/11/2026, a regularização documental conferiu por leitura o relatório privado
+`2fcf4784-a48e-4d46-abc4-4f53d248e472`, modo `HTTP_AND_REAL_POSTGRESQL`,
+`databaseTested=true`: **166 PASS, zero falhas e 54 respostas HTTP 200**. Os testes
+`ui_Administrador_real_postgresql_empty_screen`,
+`ui_Operador_real_postgresql_empty_screen` e
+`ui_Analista_real_postgresql_empty_screen` estão aprovados. A antiga pendência de
+tela vazia com PostgreSQL real foi, portanto, suprida por evidência posterior.
+
+O operacional permaneceu vazio, sem fixtures. Um grupo ficou `NOT_EXERCISED`:
+dados persistentes não vazios, múltiplas naturezas e linhas ocultas por RLS via
+HTTP. As telas preenchidas continuaram sendo exercitadas por respostas contratuais
+somente no teste, inclusive nos dois temas e quatro tamanhos. Isso não é um teste
+de ocorrência não vazia recuperada do banco operacional.
+
+A homologação SQL positiva/negativa das seis policies ocorreu separadamente, com
+20 fixtures sintéticas em cluster isolado, conforme [relatório RLS](../database/local/sandbox/HOMOLOGACAO.md).
+Unitários, simulados e testes Windows também permanecem classes distintas. O
+[resumo consolidado das APIs](postgresql-leitura-local.md#homologação-real-confirmada-em-11112026)
+registra a proveniência e o SHA-256 do relatório, sem copiar artefatos privados.
+
+Não houve repetição de testes com senha ou alteração de bancos nesta atualização
+documental. Relatório bruto, screenshots, contas e sessões não foram incluídos no
+Git. Consulte o [ADR de leitura local](decisoes/adr-leitura-postgresql-local-homologacao-isolada.md)
+e o [relatório acadêmico](../sprints/sprint-04.md). A avaliação institucional dos
+ADRs, os critérios das issues e as operações persistentes de escrita continuam
+pendentes; o teste de leitura não encerra toda a Sprint 4.
