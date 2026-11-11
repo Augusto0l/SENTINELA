@@ -10,9 +10,10 @@ import styles from "@/components/Navigation.module.css"
 interface HeaderProps {
   title: string
   subtitle?: string
+  dataMode?: "read-only"
 }
 
-export default function Header({ title, subtitle }: HeaderProps) {
+export default function Header({ title, subtitle, dataMode }: HeaderProps) {
   const router = useRouter()
   const { principal } = useOperations()
   const pathname = usePathname()
@@ -27,7 +28,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
           <span className={styles.breadcrumbBrand}>SENTINELA</span>
           <NavigationIcon name="chevron" size={11} />
           <span>{group}</span>
-          <span className={styles.demoBadge} title="Dados fictícios. Alterações somente em memória, perdidas ao recarregar.">Demonstração · sem persistência</span>
+          <span className={styles.demoBadge} title={dataMode ? "Consulta PostgreSQL local, somente leitura. Dados sintéticos." : "Dados fictícios. Alterações somente em memória, perdidas ao recarregar."}>{dataMode ? "PostgreSQL local · leitura" : "Demonstração · sem persistência"}</span>
         </div>
         <div className={styles.pageTitleRow}>
           <span className={styles.pageTitle}>{title}</span>

@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { publicSupabaseConfig } from "@/lib/supabase/config"
 import { hasPermission, isProtectedPath, routePermission } from "@/lib/auth/policy"
 import { localDemoEnabled } from "@/lib/auth/local-demo"
+import { apiError, isLocalReadEndpoint } from "@/lib/db/http"
 
 export async function proxy(request: NextRequest) {
   const config = publicSupabaseConfig()
@@ -19,7 +20,12 @@ export async function proxy(request: NextRequest) {
   }
   if (localSelected()) {
     const principal = await localSession(request.cookies.get(LOCAL_COOKIE)?.value, request.headers.get("host"))
-    if (request.nextUrl.pathname.startsWith("/api/")) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      if (!isLocalReadEndpoint(request.nextUrl.pathname, request.method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
+      if (!principal) return apiError("UNAUTHORIZED", "Sessão necessária.")
+      if (!hasPermission(principal.role, "analisar")) return apiError("FORBIDDEN", "Consulta não autorizada.")
+      return noStore(response)
+    }
     if (isProtectedPath(request.nextUrl.pathname) && !principal) return noStore(NextResponse.redirect(new URL("/login?erro=sessao", process.env.SENTINELA_APP_ORIGIN && localAllowed(request.headers.get("host")) ? process.env.SENTINELA_APP_ORIGIN : request.url)))
     if (principal && isProtectedPath(request.nextUrl.pathname) && !hasPermission(principal.role, routePermission(request.nextUrl.pathname))) {
       return noStore(NextResponse.redirect(new URL("/acesso-negado", process.env.SENTINELA_APP_ORIGIN)))

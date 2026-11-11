@@ -27,5 +27,7 @@ temp/
 /.opencode-skills/
 
 .next/
+.next-build-validation/
+.next-http-validation-*/
 out/
 next-env.d.ts

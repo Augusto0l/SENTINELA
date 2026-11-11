@@ -1,4 +1,5 @@
 import type { z } from "zod"
+import { persistentQuerySchema, persistentListResponseSchema, persistentDetailResponseSchema } from "@/contracts/persistent-occurrences"
 import {
   CONTRACT_VERSION,
   catalogVersion,
@@ -159,6 +160,14 @@ export const contractModels: Record<string, {
   schema: z.ZodType
   example: unknown
 }> = {
+  PersistentQuery: { schema: persistentQuerySchema, example: { page: 1, pageSize: 25, sortBy: "data", direction: "desc" } },
+  PersistentList: { schema: persistentListResponseSchema, example: { success: true, data: { items: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 0 } }, meta: { ...meta, execution: { mode: "operacional", persisted: true } } } },
+  PersistentDetail: { schema: persistentDetailResponseSchema, example: { success: true, data: {
+    id: "50000000-0000-4000-8000-000000000001", origem: "importacao", fonte: "SENTINELA_TESTE_LOCAL_V1", anoRegistro: null, unidadeRegistro: null, numeroRegistro: null,
+    identidadeStatus: "homologada", data: null, horario: null, local: null, latitude: null, longitude: null,
+    localizacaoStatus: "ausente", consolidacaoStatus: "consolidada", ativo: true, versao: "1",
+    criadoEm: "2026-11-11T12:00:00Z", atualizadoEm: "2026-11-11T12:00:00Z", ra: null, naturezas: [],
+  }, meta: { ...meta, execution: { mode: "operacional", persisted: true } } } },
   OccurrenceCreate: { schema: occurrenceCreateSchema, example: createExample },
   OccurrenceUpdate: {
     schema: occurrenceUpdateSchema,

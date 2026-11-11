@@ -29,3 +29,13 @@ Use TypeScript estrito, imports pelo alias `@/` e componentes compartilhados. Co
 Não remova implementações legadas sem verificar dependências. Não sobrescreva alterações do usuário, faça commits, push ou publique automaticamente. Documente limitações reais dos testes: TypeScript aprovado não significa build ou homologação visual aprovados. Não desative políticas do Windows para carregar SWC.
 
 Os três perfis são Administrador, Operador e Analista. A interface de permissões é uma prévia; autorização no servidor e RLS serão implementados em outra etapa. IDs dos catálogos são internos e dependem de homologação; não invente códigos oficiais.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

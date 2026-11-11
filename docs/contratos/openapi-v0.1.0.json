@@ -4,7 +4,7 @@
   "info": {
     "title": "SENTINELA — contratos propostos",
     "version": "0.1.0",
-    "description": "Especificação de desenvolvimento. Nenhuma rota /api/v1 está implementada. Exemplos são fictícios; persisted=false na demonstração. O proxy existente /api/ocorrencias/geocode permanece fora deste envelope e é descrito no relatório técnico."
+    "description": "GET de ocorrências implementados no PostgreSQL local de desenvolvimento. Demais operações propostas continuam não implementadas. Exemplos são fictícios; as telas permanecem demonstrativas."
   },
   "servers": [
     {
@@ -16,32 +16,35 @@
   "paths": {
     "/api/v1/ocorrencias": {
       "get": {
-        "operationId": "listOccurrences",
-        "summary": "Listar, pesquisar, filtrar, ordenar e paginar ocorrências",
-        "x-implementation-status": "planned",
-        "description": "CONTRATO PROPOSTO. Endpoint não implementado nesta etapa. Autenticação, autorização, banco e transações são futuros. Refinamentos entre campos são executados por Zod e testados; consultar documentação técnica.",
+        "operationId": "listPersistentOccurrences",
+        "summary": "Consultar ocorrências persistentes locais",
+        "x-implementation-status": "implemented-local-development",
+        "description": "GET implementado somente no provedor local em development/loopback. Sessão validada no servidor, permissão analisar, PostgreSQL local via role mínima e RLS sintética. Sem fallback. UUIDs persistentes não equivalem aos catálogos demonstrativos. Página além do total retorna lista vazia; datas inclusivas. Metadado catalogVersion identifica o contrato legado, não homologa catálogos do banco.",
         "security": [
           {
-            "bearerAuth": []
+            "localSession": []
           }
         ],
         "parameters": [
           {
-            "name": "period",
+            "name": "raId",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "all",
-                "today",
-                "7d",
-                "1m",
-                "3m",
-                "6m",
-                "12m",
-                "custom"
-              ]
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
+          },
+          {
+            "name": "naturezaId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
           },
@@ -82,93 +85,23 @@
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
           },
           {
-            "name": "ra",
+            "name": "identificacao",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "RA-I",
-                "RA-II",
-                "RA-III",
-                "RA-IV",
-                "RA-V",
-                "RA-VI",
-                "RA-VII",
-                "RA-VIII",
-                "RA-IX",
-                "RA-X",
-                "RA-XI",
-                "RA-XII",
-                "RA-XIII",
-                "RA-XIV",
-                "RA-XV",
-                "RA-XVI",
-                "RA-XVII",
-                "RA-XVIII",
-                "RA-XIX",
-                "RA-XX",
-                "RA-XXI",
-                "RA-XXII",
-                "RA-XXIII",
-                "RA-XXIV",
-                "RA-XXV",
-                "RA-XXVI",
-                "RA-XXVII",
-                "RA-XXVIII",
-                "RA-XXIX",
-                "RA-XXX",
-                "RA-XXXI",
-                "RA-XXXII",
-                "RA-XXXIII",
-                "RA-XXXIV",
-                "RA-XXXV",
-                "RA-XXXVI",
-                "RA-S"
-              ]
+              "minLength": 1,
+              "maxLength": 240
             },
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
           },
           {
-            "name": "nature",
+            "name": "local",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "Furto",
-                "Roubo",
-                "Lesão Corporal",
-                "Ameaça",
-                "Homicídio",
-                "Tráfico",
-                "Estelionato",
-                "Vandalismo"
-              ]
-            },
-            "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
-          },
-          {
-            "name": "hour",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "0-6",
-                "6-12",
-                "12-18",
-                "18-24"
-              ]
-            },
-            "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
+              "minLength": 1,
               "maxLength": 240
             },
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
@@ -178,9 +111,10 @@
             "in": "query",
             "required": false,
             "schema": {
+              "default": 1,
               "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 9007199254740991
+              "minimum": 1,
+              "maximum": 1000000
             },
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
           },
@@ -189,6 +123,7 @@
             "in": "query",
             "required": false,
             "schema": {
+              "default": 25,
               "type": "integer",
               "minimum": 1,
               "maximum": 100
@@ -200,14 +135,14 @@
             "in": "query",
             "required": false,
             "schema": {
+              "default": "data",
               "type": "string",
               "enum": [
-                "id",
                 "data",
                 "horario",
-                "natureza",
-                "raName",
-                "local"
+                "identificacao",
+                "local",
+                "ra"
               ]
             },
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
@@ -217,6 +152,7 @@
             "in": "query",
             "required": false,
             "schema": {
+              "default": "desc",
               "type": "string",
               "enum": [
                 "asc",
@@ -224,64 +160,33 @@
               ]
             },
             "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
-          },
-          {
-            "name": "includeInactive",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Parâmetro opcional. Datas exigem period=custom; intervalo inclusivo. page/pageSize são inteiros; includeInactive usa true/false literais."
           }
         ],
         "responses": {
           "200": {
-            "description": "Exemplo do formato esperado, não evidencia execução ou persistência.",
+            "description": "Leitura PostgreSQL local.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OccurrenceList"
+                  "$ref": "#/components/schemas/PersistentList"
                 },
                 "example": {
                   "success": true,
                   "data": {
-                    "items": [
-                      {
-                        "data": "2026-08-25",
-                        "horario": "23:59",
-                        "raCode": "RA-I",
-                        "naturezas": [
-                          "Furto",
-                          "Ameaça"
-                        ],
-                        "local": "Quadra demonstrativa 10",
-                        "coordenadas": {
-                          "latitude": -15.79,
-                          "longitude": -47.88
-                        },
-                        "id": "#00001",
-                        "ativo": true,
-                        "origem": "manual",
-                        "loteId": null,
-                        "localizacao": "valida",
-                        "createdAt": "2026-08-25T23:00:00Z",
-                        "updatedAt": "2026-08-25T23:00:00Z"
-                      }
-                    ],
+                    "items": [],
                     "pagination": {
                       "page": 1,
                       "pageSize": 25,
-                      "total": 1,
-                      "totalPages": 1
+                      "total": 0,
+                      "totalPages": 0
                     }
                   },
                   "meta": {
                     "contractVersion": "0.1.0",
                     "catalogVersion": "0.1.0",
                     "execution": {
-                      "mode": "demonstrativo",
-                      "persisted": false
+                      "mode": "operacional",
+                      "persisted": true
                     }
                   }
                 }
@@ -297,11 +202,11 @@
           "403": {
             "$ref": "#/components/responses/FORBIDDEN"
           },
-          "422": {
-            "$ref": "#/components/responses/VALIDATION_ERROR"
-          },
           "500": {
             "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
           }
         }
       },
@@ -405,13 +310,13 @@
     },
     "/api/v1/ocorrencias/{id}": {
       "get": {
-        "operationId": "getOccurrence",
-        "summary": "Consultar detalhes por identificador",
-        "x-implementation-status": "planned",
-        "description": "CONTRATO PROPOSTO. Endpoint não implementado nesta etapa. Autenticação, autorização, banco e transações são futuros. Refinamentos entre campos são executados por Zod e testados; consultar documentação técnica.",
+        "operationId": "getPersistentOccurrence",
+        "summary": "Consultar ocorrência persistente por UUID",
+        "x-implementation-status": "implemented-local-development",
+        "description": "GET implementado somente no provedor local em development/loopback. Sessão validada no servidor, permissão analisar, PostgreSQL local via role mínima e RLS sintética. Sem fallback. UUIDs persistentes não equivalem aos catálogos demonstrativos. Página além do total retorna lista vazia; datas inclusivas. Metadado catalogVersion identifica o contrato legado, não homologa catálogos do banco.",
         "security": [
           {
-            "bearerAuth": []
+            "localSession": []
           }
         ],
         "parameters": [
@@ -421,50 +326,49 @@
             "required": true,
             "schema": {
               "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[A-Za-z0-9#][A-Za-z0-9_.:#-]*$",
-              "description": "Identificador interno opaco; aceita IDs demonstrativos como #00001. Não é código oficial nem exige UUID."
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Exemplo do formato esperado, não evidencia execução ou persistência.",
+            "description": "Leitura PostgreSQL local.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OccurrenceResponse"
+                  "$ref": "#/components/schemas/PersistentDetail"
                 },
                 "example": {
                   "success": true,
                   "data": {
-                    "data": "2026-08-25",
-                    "horario": "23:59",
-                    "raCode": "RA-I",
-                    "naturezas": [
-                      "Furto",
-                      "Ameaça"
-                    ],
-                    "local": "Quadra demonstrativa 10",
-                    "coordenadas": {
-                      "latitude": -15.79,
-                      "longitude": -47.88
-                    },
-                    "id": "#00001",
+                    "id": "50000000-0000-4000-8000-000000000001",
+                    "origem": "importacao",
+                    "fonte": "SENTINELA_TESTE_LOCAL_V1",
+                    "anoRegistro": null,
+                    "unidadeRegistro": null,
+                    "numeroRegistro": null,
+                    "identidadeStatus": "homologada",
+                    "data": null,
+                    "horario": null,
+                    "local": null,
+                    "latitude": null,
+                    "longitude": null,
+                    "localizacaoStatus": "ausente",
+                    "consolidacaoStatus": "consolidada",
                     "ativo": true,
-                    "origem": "manual",
-                    "loteId": null,
-                    "localizacao": "valida",
-                    "createdAt": "2026-08-25T23:00:00Z",
-                    "updatedAt": "2026-08-25T23:00:00Z"
+                    "versao": "1",
+                    "criadoEm": "2026-11-11T12:00:00Z",
+                    "atualizadoEm": "2026-11-11T12:00:00Z",
+                    "ra": null,
+                    "naturezas": []
                   },
                   "meta": {
                     "contractVersion": "0.1.0",
                     "catalogVersion": "0.1.0",
                     "execution": {
-                      "mode": "demonstrativo",
-                      "persisted": false
+                      "mode": "operacional",
+                      "persisted": true
                     }
                   }
                 }
@@ -483,11 +387,11 @@
           "404": {
             "$ref": "#/components/responses/NOT_FOUND"
           },
-          "422": {
-            "$ref": "#/components/responses/VALIDATION_ERROR"
-          },
           "500": {
             "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
           }
         }
       },
@@ -1809,6 +1713,935 @@
   },
   "components": {
     "schemas": {
+      "PersistentQuery": {
+        "type": "object",
+        "properties": {
+          "raId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "naturezaId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "startDate": {
+            "type": "string",
+            "allOf": [
+              {
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "pattern": "^(?:19\\d{2}|[2-9]\\d{3})-"
+              }
+            ],
+            "description": "Data civil ISO, anos 1900–9999; limites inclusivos, sem conversão para timestamp."
+          },
+          "endDate": {
+            "type": "string",
+            "allOf": [
+              {
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "pattern": "^(?:19\\d{2}|[2-9]\\d{3})-"
+              }
+            ],
+            "description": "Data civil ISO, anos 1900–9999; limites inclusivos, sem conversão para timestamp."
+          },
+          "identificacao": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "local": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "page": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "pageSize": {
+            "default": 25,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "sortBy": {
+            "default": "data",
+            "type": "string",
+            "enum": [
+              "data",
+              "horario",
+              "identificacao",
+              "local",
+              "ra"
+            ]
+          },
+          "direction": {
+            "default": "desc",
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "examples": [
+          {
+            "page": 1,
+            "pageSize": 25,
+            "sortBy": "data",
+            "direction": "desc"
+          }
+        ]
+      },
+      "PersistentList": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "origem": {
+                      "type": "string",
+                      "enum": [
+                        "manual",
+                        "importacao"
+                      ]
+                    },
+                    "fonte": {
+                      "type": "string"
+                    },
+                    "anoRegistro": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "unidadeRegistro": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "numeroRegistro": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "identidadeStatus": {
+                      "type": "string",
+                      "enum": [
+                        "candidata",
+                        "homologada",
+                        "manual"
+                      ]
+                    },
+                    "data": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "horario": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "local": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "latitude": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "longitude": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "localizacaoStatus": {
+                      "type": "string",
+                      "enum": [
+                        "ausente",
+                        "incompleta",
+                        "invalida",
+                        "referencia_pendente",
+                        "divergente",
+                        "validada"
+                      ]
+                    },
+                    "consolidacaoStatus": {
+                      "type": "string",
+                      "enum": [
+                        "em_revisao",
+                        "consolidada",
+                        "bloqueada"
+                      ]
+                    },
+                    "ativo": {
+                      "type": "boolean"
+                    },
+                    "versao": {
+                      "type": "string",
+                      "pattern": "^\\d+$"
+                    },
+                    "criadoEm": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "atualizadoEm": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "ra": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "codigo": {
+                              "type": "string"
+                            },
+                            "nome": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "codigo",
+                            "nome"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "naturezas": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "crimeTentado": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "classificacaoStatus": {
+                            "type": "string"
+                          },
+                          "natureza": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "descricao": {
+                                    "type": "string"
+                                  },
+                                  "categoriaOriginal": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "descricao",
+                                  "categoriaOriginal"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "categoria": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "codigo": {
+                                    "type": "string"
+                                  },
+                                  "nome": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "codigo",
+                                  "nome"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "crimeTentado",
+                          "classificacaoStatus",
+                          "natureza",
+                          "categoria"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "origem",
+                    "fonte",
+                    "anoRegistro",
+                    "unidadeRegistro",
+                    "numeroRegistro",
+                    "identidadeStatus",
+                    "data",
+                    "horario",
+                    "local",
+                    "latitude",
+                    "longitude",
+                    "localizacaoStatus",
+                    "consolidacaoStatus",
+                    "ativo",
+                    "versao",
+                    "criadoEm",
+                    "atualizadoEm",
+                    "ra",
+                    "naturezas"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "totalPages": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "page",
+                  "pageSize",
+                  "total",
+                  "totalPages"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "items",
+              "pagination"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "items": [],
+              "pagination": {
+                "page": 1,
+                "pageSize": 25,
+                "total": 0,
+                "totalPages": 0
+              }
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "operacional",
+                "persisted": true
+              }
+            }
+          }
+        ]
+      },
+      "PersistentDetail": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "origem": {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "importacao"
+                ]
+              },
+              "fonte": {
+                "type": "string"
+              },
+              "anoRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "unidadeRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "numeroRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "identidadeStatus": {
+                "type": "string",
+                "enum": [
+                  "candidata",
+                  "homologada",
+                  "manual"
+                ]
+              },
+              "data": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horario": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "latitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "longitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "localizacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "ausente",
+                  "incompleta",
+                  "invalida",
+                  "referencia_pendente",
+                  "divergente",
+                  "validada"
+                ]
+              },
+              "consolidacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "em_revisao",
+                  "consolidada",
+                  "bloqueada"
+                ]
+              },
+              "ativo": {
+                "type": "boolean"
+              },
+              "versao": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "criadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "atualizadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "ra": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "codigo": {
+                        "type": "string"
+                      },
+                      "nome": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "codigo",
+                      "nome"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "naturezas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "crimeTentado": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "classificacaoStatus": {
+                      "type": "string"
+                    },
+                    "natureza": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "descricao": {
+                              "type": "string"
+                            },
+                            "categoriaOriginal": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "descricao",
+                            "categoriaOriginal"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "categoria": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "codigo": {
+                              "type": "string"
+                            },
+                            "nome": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "codigo",
+                            "nome"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "crimeTentado",
+                    "classificacaoStatus",
+                    "natureza",
+                    "categoria"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "origem",
+              "fonte",
+              "anoRegistro",
+              "unidadeRegistro",
+              "numeroRegistro",
+              "identidadeStatus",
+              "data",
+              "horario",
+              "local",
+              "latitude",
+              "longitude",
+              "localizacaoStatus",
+              "consolidacaoStatus",
+              "ativo",
+              "versao",
+              "criadoEm",
+              "atualizadoEm",
+              "ra",
+              "naturezas"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "id": "50000000-0000-4000-8000-000000000001",
+              "origem": "importacao",
+              "fonte": "SENTINELA_TESTE_LOCAL_V1",
+              "anoRegistro": null,
+              "unidadeRegistro": null,
+              "numeroRegistro": null,
+              "identidadeStatus": "homologada",
+              "data": null,
+              "horario": null,
+              "local": null,
+              "latitude": null,
+              "longitude": null,
+              "localizacaoStatus": "ausente",
+              "consolidacaoStatus": "consolidada",
+              "ativo": true,
+              "versao": "1",
+              "criadoEm": "2026-11-11T12:00:00Z",
+              "atualizadoEm": "2026-11-11T12:00:00Z",
+              "ra": null,
+              "naturezas": []
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "operacional",
+                "persisted": true
+              }
+            }
+          }
+        ]
+      },
       "OccurrenceCreate": {
         "type": "object",
         "properties": {
@@ -7447,6 +8280,12 @@
       }
     },
     "securitySchemes": {
+      "localSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sentinela-local-session",
+        "description": "Somente desenvolvimento local; não disponível em produção."
+      },
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
