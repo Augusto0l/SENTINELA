@@ -1,0 +1,13 @@
+{
+  "algorithm": "SHA-256",
+  "files": {
+    "database/local/sandbox/control.py": "ee4cf011654d35cba6467399a2dc9f4f27dbb31a80e4139678feef9e2c88ebea",
+    "database/local/sandbox/complete_rls.py": "227602617cb75d731df4b533c1099e718410ea1bce01e8ef04cbc8d298139ce7",
+    "database/local/sandbox/test_complete_rls.py": "4b48d4b7f6c1a47e60141df34ff32ddc754d171c4a6a6a875e89947621d678f3",
+    "database/local/sandbox/README.md": "fc6e67a50f0dec9c6843b84c27c1174d13e21d4be991a2d2dbe3957b28bdb76e",
+    "database/local/sandbox/HOMOLOGACAO.md": "02c83b42e2614e49d3478f8958777521906cd32beef4f892c5292b8d86c892a0",
+    "database/local/sandbox/sql/snapshot_extra.sql": "14a5df87024e068eb282e8ce199e79092c8114e3a0b8c6ec23d7cf67187ad82c"
+  },
+  "execution_uuid": "ec3d8148-6f97-4aef-bebc-0df6ae260648",
+  "status": "REAL_RLS_QUALIFICATION_PASS"
+}
