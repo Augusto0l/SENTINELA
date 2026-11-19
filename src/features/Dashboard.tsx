@@ -1,27 +1,29 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Header from "../components/Header";
 import MapaDF, { type MapMode } from "../components/map/MapaDF";
 import DonutChart from "../components/DonutChart";
 import { useDemoToast } from "../components/DemoProvider";
-import { RA_LIST } from "@/data/mockData";
-import { demoPeriodLabel, emptyDemoFilters, queryDemoAnalytics, type DemoFilters } from "@/data/demoAnalytics";
+import { emptyDemoFilters } from "@/data/demoAnalytics";
+import { useAnalyticsSource } from "@/components/analytics/useAnalyticsSource";
+import type { AnalyticSelection } from "@/components/analytics/usePersistentAnalytics";
 import AnalyticFilters from "@/components/analytics/AnalyticFilters";
 import PeriodTrend from "@/components/analytics/PeriodTrend";
 import analyticsStyles from "@/components/analytics/Analytics.module.css";
-import { MOCK_OCCURRENCES } from "../data/mockOccurrences";
 
 interface DashboardProps {
-  onNavigateToCrimeMap: (raCode?: string, filters?: DemoFilters) => void;
+  onNavigateToCrimeMap: (raCode?: string, filters?: AnalyticSelection) => void;
+  persistent?: boolean;
 }
 
-export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
+export default function Dashboard({ onNavigateToCrimeMap, persistent = false }: DashboardProps) {
   const notify = useDemoToast();
   const [mapMode, setMapMode] = useState<MapMode>("heat");
-  const [filters, setFilters] = useState(emptyDemoFilters);
-  const { mapRecords, mapSummary, summary } = useMemo(() => queryDemoAnalytics(MOCK_OCCURRENCES, filters), [filters]);
+  const [filters, setFilters] = useState<AnalyticSelection>(emptyDemoFilters);
+  const source = useAnalyticsSource(persistent, filters);
+  const { mapRecords, mapSummary, summary, regionOptions } = source;
 
   const total = summary.total;
-  const ranking = RA_LIST.map(ra => ({ ...ra, occurrence_count: summary.byRa[ra.codigo] ?? 0 })).filter(ra => ra.occurrence_count > 0).sort((a, b) => b.occurrence_count - a.occurrence_count);
+  const ranking = regionOptions.map(ra => ({ ...ra, occurrence_count: summary.byRa[ra.codigo] ?? 0 })).filter(ra => ra.occurrence_count > 0).sort((a, b) => b.occurrence_count - a.occurrence_count);
   const topRA = ranking[0];
   const sparkData = summary.timeline.map(item => item.count);
 
@@ -34,7 +36,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
   const topFiveRAs = ranking.slice(0, 5);
   const rankingMax = topFiveRAs[0]?.occurrence_count ?? 1;
 
-  const updatedLabel = `Base fictícia · ${demoPeriodLabel(filters)}`;
+  const updatedLabel = `${persistent ? "Leitura PostgreSQL" : "Base fictícia"} · ${source.periodLabel}`;
 
   const MODE_LABELS: Record<MapMode, string> = {
     heat: "Mapa de calor",
@@ -62,7 +64,10 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
           <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontStyle: "italic" }}>{updatedLabel}</span>
         </div>
 
-        <AnalyticFilters filters={filters} onChange={setFilters} />
+        <AnalyticFilters filters={filters} onChange={setFilters} regions={regionOptions} catalog={source.catalogOptions} />
+        {source.pending && <p role="status">Consultando indicadores…</p>}
+        {source.error && <p role="alert">{source.error} <button type="button" onClick={source.retry}>Tentar novamente</button></p>}
+        {!source.pending && !source.error && <>
         {total === 0 && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
 
         {/* KPI Cards */}
@@ -102,7 +107,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
               </div>
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--theme-22c55e)", marginTop: 2 }}>
-              {RA_LIST.length} áreas no catálogo demonstrativo
+              {regionOptions.length} áreas no catálogo {persistent ? "cartográfico" : "demonstrativo"}
             </div>
             <div style={kpiSub}>Contagem de áreas com registros no recorte</div>
           </div>
@@ -166,7 +171,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
                     Ocorrências por Região Administrativa
                   </div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>
-                    Distribuição da base fictícia no recorte aplicado
+                    {persistent ? "Distribuição das ocorrências visíveis no recorte" : "Distribuição da base fictícia no recorte aplicado"}
                   </div>
                 </div>
                 {/* Segmented mode selector */}
@@ -200,15 +205,19 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
 
               {/* Map */}
               <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <MapaDF
+                {persistent && !source.officialRegions ? <p role="status">{source.geometryError ? "Limites oficiais indisponíveis." : "Carregando limites oficiais…"}</p> : <MapaDF
                   occurrencesByRa={mapSummary.byRa}
                   selectedRaCode={filters.ra || null}
                   showPoints={false}
                   mapMode={mapMode}
                   mockOccurrences={mapRecords}
-                  heatReferenceOccurrences={MOCK_OCCURRENCES}
+                  heatReferenceOccurrences={source.heatReference}
+                  officialRegions={source.officialRegions}
+                  heatUnavailable={source.heatUnavailable}
                   onSelectRa={(raCode) => onNavigateToCrimeMap(raCode, filters)}
-                />
+                />}
+                {source.heatUnavailable && mapMode === "heat" && <p className={analyticsStyles.mapNotice} role="status">Calor indisponível: a base de referência excede o limite de pontos.</p>}
+                {source.pointsTruncated && (mapMode === "points" || mapMode === "clusters") && <p className={analyticsStyles.mapNotice} role="status">Camada parcial. Restrinja os filtros para ver todos os pontos.</p>}
 
                 {/* The satellite layer has working Leaflet controls of its own. */}
                 <div hidden={mapMode === "satellite"} style={{
@@ -295,13 +304,20 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
             <div style={panel}>
               <div style={panelLabel}>Natureza criminal mais frequente</div>
               <DonutChart data={donutData} size={150} />
-              <p style={kpiSub}>Vínculos por natureza; uma ocorrência pode ter várias naturezas.</p>
+              <p style={kpiSub}>{persistent ? "Ocorrências distintas por descrição; uma ocorrência pode aparecer em várias naturezas." : "Vínculos por natureza; uma ocorrência pode ter várias naturezas."}</p>
             </div>
+
+            {persistent && !source.pending && !source.error && <div style={panel}>
+              <div style={panelLabel}>Ocorrências por categoria</div>
+              {source.categoryCounts.length > 0 ? <ul>
+                {source.categoryCounts.map(item => <li key={item.key}>{item.key} · {item.count.toLocaleString("pt-BR")}</li>)}
+              </ul> : <p style={kpiSub}>Nenhuma categoria homologada no recorte.</p>}
+            </div>}
 
             {/* Variation */}
             <div style={{ ...panel, padding: "12px 14px" }}>
               <div style={panelLabel}>Evolução temporal do recorte</div>
-              <PeriodTrend timeline={summary.timeline} />
+              <PeriodTrend timeline={summary.timeline} showVariation={persistent} />
             </div>
 
             {/* Info */}
@@ -317,7 +333,7 @@ export default function Dashboard({ onNavigateToCrimeMap }: DashboardProps) {
               </div>
             </div>
           </div>
-        </div>
+        </div></>}
       </div>
     </div>
   );

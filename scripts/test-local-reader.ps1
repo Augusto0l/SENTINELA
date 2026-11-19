@@ -1,9 +1,15 @@
-param([switch]$RepositoryOnly, [switch]$Interface)
+param([switch]$RepositoryOnly, [switch]$Interface, [switch]$ApplicationOnly)
 $ErrorActionPreference = 'Stop'
+if ($ApplicationOnly -and ($RepositoryOnly -or $Interface)) {
+  throw 'Use o modo de aplicação separadamente.'
+}
 # Password exists only in memory/environment of this process and its child.
 $secretReader = Read-Host 'Senha existente da role sentinela_local_reader (entrada oculta)' -AsSecureString
 $pointerReader = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secretReader)
 $namesReader = @('SENTINELA_LOCAL_READER_URL','SENTINELA_AUTH_PROVIDER','SENTINELA_LOCAL_BIND','NODE_ENV')
+if ($ApplicationOnly) {
+  $namesReader += 'SENTINELA_APP_ORIGIN'
+}
 $previousReader = @{}
 foreach ($nameReader in $namesReader) { $previousReader[$nameReader] = [Environment]::GetEnvironmentVariable($nameReader,'Process') }
 try {
@@ -13,7 +19,10 @@ try {
   $env:SENTINELA_AUTH_PROVIDER = 'local'
   $env:SENTINELA_LOCAL_BIND = '127.0.0.1'
   $env:NODE_ENV = 'development'
-  if ($RepositoryOnly) {
+  if ($ApplicationOnly) {
+    $env:SENTINELA_APP_ORIGIN = 'http://127.0.0.1:3000'
+    & node (Join-Path $PSScriptRoot 'next-cli.mjs') dev --hostname 127.0.0.1 --port 3000
+  } elseif ($RepositoryOnly) {
     & node --conditions=react-server --experimental-strip-types (Join-Path $PSScriptRoot 'test-local-reader.mjs')
   } else {
     $argumentsReader = @('--execute')

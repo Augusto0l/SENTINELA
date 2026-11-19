@@ -324,6 +324,7 @@ export default function Configuracoes() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <Header title="Configurações" subtitle="Gerencie preferências da sua conta" />
+      <p role="note" style={{ padding: "8px 26px" }}>Configurações demonstrativas. Preferências visuais são locais; cadastro definitivo, confirmação de e-mail e recuperação de senha permanecem adiados.</p>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 36px" }}>
         {/* ── Page heading ─────────────────────────────────────────────── */}
@@ -437,14 +438,14 @@ export default function Configuracoes() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
-                <Link href="/atualizar-senha" style={{
+                {principal.source === "local" ? <button type="button" disabled>Alteração de senha adiada no acesso local</button> : <Link href="/atualizar-senha" style={{
                   background: "#2563eb", border: "none", borderRadius: 7,
                   color: "#fff", fontSize: 13, fontWeight: 600,
                   padding: "8px 18px", cursor: "pointer",
                   boxShadow: "0 1px 6px rgba(37,99,235,0.3)",
                 }}>
                   Alterar senha
-                </Link>
+                </Link>}
               </div>
             </Card>
 

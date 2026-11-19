@@ -1,0 +1,5 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["./service.ts", "./mutation-contracts.ts", "./http.ts"]
+}

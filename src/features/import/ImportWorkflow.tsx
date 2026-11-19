@@ -10,12 +10,16 @@ import { IMPORT_FIELDS, IMPORT_LABELS, REQUIRED_IMPORT_FIELDS } from "@/data/imp
 import type { ImportAnalysis, ImportMapping, ImportResult, ImportTable, ImportWorkerRequest } from "@/data/importTypes";
 import { createImportWorkerClient, type ImportWorkerClient } from "@/features/import/importWorkerClient";
 import styles from "@/features/import/ImportWorkflow.module.css";
+import { useOperations } from "@/components/OperationalProvider";
+import { actionAccess } from "@/lib/auth/policy";
 
 type TableMetadata = Omit<ImportTable, "rows"> & { rowCount: number };
 const PAGE_SIZE = 25;
 const emptyMapping = () => Object.fromEntries(IMPORT_FIELDS.map(field => [field, -1])) as ImportMapping;
 
 export default function ImportWorkflow() {
+  const { role } = useOperations();
+  const access = actionAccess(role, "importar");
   const [file, setFile] = useState<File | null>(null);
   const [table, setTable] = useState<TableMetadata | null>(null);
   const [mapping, setMapping] = useState<ImportMapping>(emptyMapping);
@@ -48,11 +52,13 @@ export default function ImportWorkflow() {
     stopWorker(); setBusy(""); setAnalysis(null); setResult(null); setTable(null); setStage("mapping"); setError(message);
   }
   function send(message: ImportWorkerRequest, label: string) {
+    if (!access.enabled) return;
     setError("");
     if (!client.current) { fail("O processamento foi encerrado. Selecione o arquivo novamente."); return; }
     client.current.send(message, label);
   }
   function selectFiles(files: File[]) {
+    if (!access.enabled) return;
     reset();
     const invalid = validateImportFiles(files);
     if (invalid) { setError(invalid); return; }
@@ -77,6 +83,7 @@ export default function ImportWorkflow() {
   const pages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const rows = visibleRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  if (!access.enabled) return <p role="alert">{access.reason}</p>;
   return (
     <div className={styles.root}>
       <Header title="Importar Dados" subtitle="Importação demonstrativa de CSV e XLSX" />
@@ -157,6 +164,7 @@ export default function ImportWorkflow() {
           {stage === "confirm" && analysis && <>
             <p className={styles.notice}>Ao confirmar, {analysis.counts.valid} registros serão considerados aptos na simulação, {analysis.counts.pending} ficarão como pendências de localização e {analysis.counts.invalid} serão rejeitados. Nada será gravado ou enviado ao servidor.</p>
             <div className={styles.actions}><Button variant="outline" onClick={() => setStage("preview")}>Voltar à pré-visualização</Button><Button onClick={() => {
+              if (!access.enabled) return;
               try { setResult(simulateImportConfirmation(analysis)); setStage("complete"); }
               catch (failure) { setError(failure instanceof Error ? failure.message : "Falha na simulação."); }
             }}>Confirmar simulação</Button></div>

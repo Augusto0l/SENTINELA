@@ -1,0 +1,345 @@
+{
+  "version": "ide-df-bindings-2026-11-13-v1",
+  "sourceId": "https://www.geoservicos.ide.df.gov.br/arcgis/rest/services/Publico/LIMITES/FeatureServer/1",
+  "sourceHash": "fd13e671d7660ba6fe2703ff69ba82e8ccb30e7cbc09f2887bfcdd4c69d28553",
+  "scope": "operational",
+  "extractedOn": "2026-11-13",
+  "validFrom": null,
+  "validTo": null,
+  "temporalBasis": "extraction-only",
+  "entries": [
+    {
+      "raId": "14791512-bdae-4197-96eb-1cd30ea90bb2",
+      "catalogName": "Plano Piloto",
+      "code": "RA-I",
+      "sourceName": "PLANO PILOTO",
+      "sourceObjectId": "69",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "bd11d5b7-0e5b-4f6f-b8e0-3f3295719cfc",
+      "catalogName": "Gama",
+      "code": "RA-II",
+      "sourceName": "GAMA",
+      "sourceObjectId": "105",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "e37faa9f-3119-4a86-b91c-43ed82ce923d",
+      "catalogName": "Taguatinga",
+      "code": "RA-III",
+      "sourceName": "TAGUATINGA",
+      "sourceObjectId": "81",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "71ebf675-b23b-4e64-a6e2-f79549778609",
+      "catalogName": "Brazlândia",
+      "code": "RA-IV",
+      "sourceName": "BRAZLÂNDIA",
+      "sourceObjectId": "92",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "d7ca0550-db72-40c7-a9ea-ad83689934ee",
+      "catalogName": "Ceilândia",
+      "code": "RA-IX",
+      "sourceName": "CEILÂNDIA",
+      "sourceObjectId": "102",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "b49e4708-2223-4fa8-9be5-ae61f45d0ae6",
+      "catalogName": "Sobradinho",
+      "code": "RA-V",
+      "sourceName": "SOBRADINHO",
+      "sourceObjectId": "70",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "3dbd2558-00c0-4aa8-a918-99d96ef395af",
+      "catalogName": "Planaltina",
+      "code": "RA-VI",
+      "sourceName": "PLANALTINA",
+      "sourceObjectId": "90",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "708dc229-3c2a-4bbe-841a-f16a91543dbf",
+      "catalogName": "Paranoá",
+      "code": "RA-VII",
+      "sourceName": "PARANOÁ",
+      "sourceObjectId": "96",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "3dec98d4-77b3-4947-b398-4e241b9175e2",
+      "catalogName": "Núcleo Bandeirante",
+      "code": "RA-VIII",
+      "sourceName": "NÚCLEO BANDEIRANTE",
+      "sourceObjectId": "80",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "d19aa066-6c30-4ab8-9054-ab790b104ada",
+      "catalogName": "Guará",
+      "code": "RA-X",
+      "sourceName": "GUARÁ",
+      "sourceObjectId": "71",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "d20935c4-c8d4-47bb-9c38-0f01e03610cd",
+      "catalogName": "Cruzeiro",
+      "code": "RA-XI",
+      "sourceName": "CRUZEIRO",
+      "sourceObjectId": "72",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "45e15d7e-1fe5-49bc-917f-13a98bfd4687",
+      "catalogName": "Samambaia",
+      "code": "RA-XII",
+      "sourceName": "SAMAMBAIA",
+      "sourceObjectId": "98",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "078fb854-c488-4d0a-af41-017d17f3bc64",
+      "catalogName": "Santa Maria",
+      "code": "RA-XIII",
+      "sourceName": "SANTA MARIA",
+      "sourceObjectId": "99",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "b6ecd602-3ce4-471c-9269-ef36ff6e1ed5",
+      "catalogName": "São Sebastião",
+      "code": "RA-XIV",
+      "sourceName": "SÃO SEBASTIÃO",
+      "sourceObjectId": "100",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "7ba72616-29a7-48d9-912e-5c9c0b389527",
+      "catalogName": "Candangolândia",
+      "code": "RA-XIX",
+      "sourceName": "CANDANGOLÂNDIA",
+      "sourceObjectId": "74",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "429f5682-fd6b-47e4-99a6-5d0826baf858",
+      "catalogName": "Recanto das Emas",
+      "code": "RA-XV",
+      "sourceName": "RECANTO DAS EMAS",
+      "sourceObjectId": "97",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "dda5b63b-29fd-428c-acbf-8ba47983e005",
+      "catalogName": "Lago Sul",
+      "code": "RA-XVI",
+      "sourceName": "LAGO SUL",
+      "sourceObjectId": "77",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "b0082106-63ec-4a3b-aa25-aff82ea4af9e",
+      "catalogName": "Riacho Fundo",
+      "code": "RA-XVII",
+      "sourceName": "RIACHO FUNDO",
+      "sourceObjectId": "73",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "62d3fd37-5469-4653-ad5b-47ff296220f5",
+      "catalogName": "Lago Norte",
+      "code": "RA-XVIII",
+      "sourceName": "LAGO NORTE",
+      "sourceObjectId": "78",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "920fbd84-c417-44d5-95f9-3f5f67b11e68",
+      "catalogName": "Águas Claras",
+      "code": "RA-XX",
+      "sourceName": "ÁGUAS CLARAS",
+      "sourceObjectId": "82",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "b5946640-4625-46dd-9497-6b43c0a5062c",
+      "catalogName": "Riacho Fundo II",
+      "code": "RA-XXI",
+      "sourceName": "RIACHO FUNDO II",
+      "sourceObjectId": "75",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "99bb35b0-c074-44b6-9615-526d9adb4f55",
+      "catalogName": "Sudoeste/Octogonal",
+      "code": "RA-XXII",
+      "sourceName": "SUDOESTE/OCTOGONAL",
+      "sourceObjectId": "83",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "b7cfac22-4f7d-4420-9fa0-44cf854bd2d7",
+      "catalogName": "Varjão",
+      "code": "RA-XXIII",
+      "sourceName": "VARJÃO",
+      "sourceObjectId": "84",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "3363c9db-ac10-4fed-84d5-80eede7ee00b",
+      "catalogName": "Park Way",
+      "code": "RA-XXIV",
+      "sourceName": "PARK WAY",
+      "sourceObjectId": "76",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "772ae63d-94f0-4822-a90b-b9fe53f0e432",
+      "catalogName": "SIA",
+      "code": "RA-XXIX",
+      "sourceName": "SIA",
+      "sourceObjectId": "86",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "9d69930c-a2d3-47a5-8352-0b998a7b8300",
+      "catalogName": "SCIA",
+      "code": "RA-XXV",
+      "sourceName": "SCIA",
+      "sourceObjectId": "85",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "dd81c276-81b2-4ca7-9be2-31a8f368be8b",
+      "catalogName": "Sobradinho II",
+      "code": "RA-XXVI",
+      "sourceName": "SOBRADINHO II",
+      "sourceObjectId": "101",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "02e884ca-8c12-4b6a-a166-4ac84509cc29",
+      "catalogName": "Jardim Botânico",
+      "code": "RA-XXVII",
+      "sourceName": "JARDIM BOTÂNICO",
+      "sourceObjectId": "95",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "95fe4505-b2d9-49aa-bdf9-2a5d3e3d5982",
+      "catalogName": "Itapoã",
+      "code": "RA-XXVIII",
+      "sourceName": "ITAPOÃ",
+      "sourceObjectId": "88",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "74af4480-bc10-4fa7-9d0c-a9e1b12a949d",
+      "catalogName": "Vicente Pires",
+      "code": "RA-XXX",
+      "sourceName": "VICENTE PIRES",
+      "sourceObjectId": "104",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "51504fa0-6928-4783-ac7b-32492d455291",
+      "catalogName": "Fercal",
+      "code": "RA-XXXI",
+      "sourceName": "FERCAL",
+      "sourceObjectId": "93",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "40482163-cd05-4043-9ffc-85011fe7c7db",
+      "catalogName": "Sol Nascente/Pôr do Sol",
+      "code": "RA-XXXII",
+      "sourceName": "SOL NASCENTE E POR DO SOL",
+      "sourceObjectId": "103",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "124d9bf0-d9c9-4727-958b-09119b1f98a5",
+      "catalogName": "Arniqueira",
+      "code": "RA-XXXIII",
+      "sourceName": "ARNIQUEIRA",
+      "sourceObjectId": "89",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "b8dcd19f-6369-4abe-9744-5a52c21cefb4",
+      "catalogName": "Arapoanga",
+      "code": "RA-XXXIV",
+      "sourceName": "ARAPOANGA",
+      "sourceObjectId": "79",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "c0f038fe-de1a-4d55-8be0-876d6126bb98",
+      "catalogName": "Água Quente",
+      "code": "RA-XXXV",
+      "sourceName": "AGUA QUENTE",
+      "sourceObjectId": "91",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "ba429314-a347-4ade-8ff1-f280802111e1",
+      "catalogName": "26 de Setembro",
+      "code": "RA-XXXVI",
+      "sourceName": "26 DE SETEMBRO",
+      "sourceObjectId": "106",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    },
+    {
+      "raId": "c4b780d9-db72-43c5-96f8-099835b2bc46",
+      "catalogName": "Ponte Alta",
+      "code": "XXXVII",
+      "sourceName": "PONTE ALTA",
+      "sourceObjectId": "107",
+      "status": "approved",
+      "evidence": "local-ra-0002; ra-review-2026-11-13-v1; UUID verified in PostgreSQL after COMMIT"
+    }
+  ]
+}

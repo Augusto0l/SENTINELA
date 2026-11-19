@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+    <html>
+
+    <head id="Head1"><meta content="IE=Edge" http-equiv="X-UA-Compatible"/><meta content="pt-br" http-equiv="Content-Language"/><meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/><title>
+	
+            Lei 7918 de 03/07/2026
+        
+</title><meta name="keywords" content="Lei 7918 de 03/07/2026,sinj,distrito,federal,df"/><meta name="description" content="Cria a Região Administrativa de 26 de Setembro e dá outras providências
+"/><meta content="index,follow" name="robots"/><meta content="index,follow" name="googlebot"/><script type="text/javascript" language="javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery-1.11.0.min.js"></script>
+        <script type="text/javascript" language="javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/platform.js"></script>
+        <script type="text/javascript" language="javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/liblight.js"></script>
+
+        <script type="text/javascript" language="javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/funcoes_norma.js?4.4.00134"></script>
+        <script type="text/javascript" language="javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/ckeditor/ckeditor.js"></script>
+        <script type="text/javascript" language="javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/ckeditor/adapters/jquery.js"></script>
+
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery-1.11.0.min.js"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery.form.min.js"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery.cookie.js"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/on_error.js"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Jquery-ui/jquery-ui.min.js"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/liblight.js?3.2.00001"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/stacktrace.js"></script>
+        <script type="text/javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery.ajaxLight.js?3.2.00001"></script>
+        <script type="text/javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery.autocompleteLight.js?3.2.00001"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jMenu.jquery.min.js"></script>
+        <script type="text/javascript"
+            src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/jquery.modalLight.js?3.2.00001"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/login.js?3.2.00001"></script>
+
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/funcoes_sinj.js?3.2.00001"
+            charset="utf-8"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/sessao_sinj.js?3.2.00001"></script>
+
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/stacktable.js"></script>
+
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/platform.js"></script>
+        <script type="text/javascript" src="http://www.sinj.df.gov.br/sinjpadrao/Scripts/tooltip.js"></script>
+
+        <script type="text/javascript" language="javascript">
+            function Print() {
+                $('div.control').hide();
+                window.print();
+                $('div.control').show();
+            }
+            function exibirAlteracoes(el) {
+                if (el.getAttribute('refresh')) {
+                    location.reload();
+                }
+                else {
+
+                    // NOTE: Essa funcionalidade faz com o que o texto alterado "se transforme" 
+                    // em compilado (basicamente remove informações de vide), mas define 
+                    // um comportamento diferenciado para para os parágrafos que contiverem 
+                    // vides com os seguintes textos no link "revogado pelo(a)" ou 
+                    // "declarado(a) inconstitucional pelo(a)". By Questor
+                    
+                    var regex = undefined;
+                    regex = new RegExp(/Revogado.*?pelo\(a\)/);
+                    $('p[replaced_by]:contains("Revogado")').each(function (k, p) {
+                        if (regex.test($(p).text())) {
+                            var aLinkVide = $('a.link_vide', $(p));
+                            if (aLinkVide.length > 0) {
+                                var aTexto = $(aLinkVide[aLinkVide.length - 1]).text();
+                                if (regex.test(aTexto)) {
+                                    var ds = generateDescriptionToParagraph($(p).text());
+                                    $(p).text(ds + ' ');
+                                    $(aLinkVide[aLinkVide.length - 1]).appendTo($(p));
+                                    $(p).removeAttr('replaced_by');
+                                }
+                            }
+                        }
+                    });
+                    regex = new RegExp(/Inconstitucional.*?pelo\(a\)/);
+                    $('p[replaced_by]:contains("Inconstitucional")').each(function (k, p) {
+                        if (regex.test($(p).text())) {
+                            var aLinkVide = $('a.link_vide', $(p));
+                            if (aLinkVide.length > 0) {
+                                var aTexto = $(aLinkVide[aLinkVide.length - 1]).text();
+                                if (regex.test(aTexto)) {
+                                    var ds = generateDescriptionToParagraph($(p).text());
+                                    $(p).text(ds + ' ');
+                                    $(aLinkVide[aLinkVide.length - 1]).appendTo($(p));
+                                    $(p).removeAttr('replaced_by');
+                                }
+                            }
+                        }
+                    });
+                    $('p[replaced_by]').remove();
+                    $(el).attr('refresh', '1');
+                    $(el).text('Exibir Alterações');
+                }
+            }
+
+            //Verifica os links de LECO, ordena e insere o link 'exibir mais...' e 'exibir menos...' caso exista mais de 3 links de LECO
+            function verificarLinks() {
+                var aP = $('#div_texto > p');
+                var i = 0;
+                var length = aP.length;
+                var pAfter = null;
+                var aOrder = [];
+                for (; i < length; i++) {
+                    if ($('a[href]', aP[i]).length == 1 && $('a[href]', aP[i]).text().toLowerCase().indexOf('legislação correlata') == 0) {
+                        $('a[href]', aP[i]).attr('show', '1').attr('leco', 'leco');
+                        aOrder.push({ 'text': $('a[href]', aP[i]).text(), 'href': $('a[href]', aP[i]).attr('href') });
+                        if (i >= 3) {
+                            $('a[href]', aP[i]).attr('show', '0');
+                            pAfter = aP[i];
+                        }
+                    }
+                    else {
+                        break;
+                    }
+                }
+                aOrder.sort(function (a1, a2) {
+                    return a1.text > a2.text ? 1 : a1.text < a2.text ? -1 : 0;
+                });
+                $('#div_texto a[leco="leco"]').each(function (i, o) {
+                    o.innerText = aOrder[i].text;
+                    o.href = aOrder[i].href;
+                });
+                if (pAfter != null && $('a[show="0"]').length > 3) {
+                    $('a[show="0"]').closest('p').hide();
+                    $('<p id="p_show"><a href="javascript:void(0);" onclick="exibirLinks()">Exibir mais...</a></p>').insertAfter($(pAfter));
+                    $('<p id="p_hide" style="display:none"><a href="javascript:void(0);" onclick="esconderLinks()">Exibir menos...</a></p>').insertAfter($(pAfter));
+                }
+            }
+            function exibirLinks() {
+                $('a[show="0"]').closest('p').show();
+                $('#p_hide').show();
+                $('#p_show').hide();
+            }
+            function esconderLinks() {
+                $('a[show="0"]').closest('p').hide();
+                $('#p_hide').hide();
+                $('#p_show').show();
+            }
+
+            function generateDescriptionToParagraph(text) {
+                var ds = '';
+                text = $.trim(text);
+                if (text != "") {
+                    var palavras = text.split(' ');
+                    if (palavras[0] == 'ANEXO' || palavras[0] == 'TÍTULO' || palavras[0] == 'CAPÍTULO' || palavras[0] == 'Art.' || (palavras[0] == 'Parágrafo' && palavras[1] == 'Único') || palavras[0] == '§') {
+                        ds = palavras[0] + ' ' + palavras[1];
+                    }
+                    else if (ehInciso(palavras[0]) || ehAlinea(palavras[0]) || ehNum(palavras[0])) {
+                        ds = palavras[0];
+                    }
+                    else {
+                        ds = "...";
+                    }
+                }
+                return ds;
+            }
+
+            function ehInciso(termo) {
+                var lastIndex = termo.indexOf("-");
+                if (lastIndex > 0) {
+                    termo = termo.substring(0, lastIndex);
+                }
+                return termo.match(/^[IVXLCDM]+$/i);
+            }
+
+            function ehAlinea(termo) {
+                var lastIndex = termo.indexOf(")");
+                if (lastIndex < 0) {
+                    return false;
+                }
+                if (termo.length == (lastIndex + 1)) {
+                    termo = termo.substring(0, lastIndex);
+                    return termo.match(/[a-z]/i);
+                }
+                return false;
+            }
+
+            function ehNum(termo) {
+                var lastIndex = termo.indexOf(".");
+                if (lastIndex < 0) {
+                    return false;
+                }
+                if (termo.length == (lastIndex + 1)) {
+                    termo = termo.substring(0, lastIndex);
+                    return isInt(termo);
+                }
+                return false;
+            }
+
+            $(document).ready(function () {
+                //A epígrafe do texto da norma deverá ser um link que direciona, para uma nova aba, os detalhes daquela norma; tarefa 378
+
+
+
+                var urlPath = window.location.pathname;
+                var urlSplited = urlPath.split("/");
+                var numeroNorma = urlSplited[3];
+
+                //Pegar o texto do h1
+                var elementoh1 = $('#div_texto > h1')[0].textContent;
+                //Adicionar a tag 'a'
+                $('#div_texto > h1')[0].innerHTML = '<a>' + elementoh1 + '</a>';
+
+                //Adicionar o link
+                $("#div_texto h1 a").attr('href', '/' + urlSplited[1] + '/DetalhesDeNorma.aspx?id_norma=' + numeroNorma).attr("target", '_blank');
+                //--------------------------------------------------------------------------------------
+
+
+
+
+                // var paragrafo = $('p');
+                // for (var i = 0; i < paragrafo.length; i++) {
+                //     if (paragrafo[i].innerText.match(/Os anexos constam no DODF/g)) {
+    
+                //         var spanParagrafo = paragrafo[i].textContent;
+                //         var form_consultar_diario = "\"form_consultar_diario\"";
+                //         var _form = "<form id='form_consultar_diario' name='form_consultar_diario' method='post' onsubmit='javascript: return consultarDiarioHTML(" + form_consultar_diario + ")\'>";
+                //         var _button = "<a href='javascript: void(0)' onclick='javascript: consultarDiarioHTML(" + form_consultar_diario + ")\'>";
+    
+                //         $(paragrafo)[i].innerHTML = _form + _button + "<span>" + spanParagrafo + "<span>" + "</a></form>";
+    
+                //     }
+
+                //     if (paragrafo[i].innerText.match(/Este texto não substitui o publicado no DODF/g)) {
+                //         var span = paragrafo[i].textContent;
+                //         var form_consultar_diario = "\"form_consultar_diario\"";
+                //         var _form = "<form id='form_consultar_diario' name='form_consultar_diario' method='post' onsubmit='javascript: return consultarDiarioHTML(" + form_consultar_diario + ")\'>";
+                //         var _button = "<a href='javascript: void(0)' onclick='javascript: consultarDiarioHTML(" + form_consultar_diario + ")\'>";
+                //         var arraySpan = $("p > span");
+                //         $(paragrafo)[i].innerHTML = _form + _button + "<span style='text-decoration: underline red; color: red;' >" + span + "<span>" + "</a></form>";
+                //     }
+                // }
+                // if (!paragrafo[i - 1].innerText.match(/Este texto não substitui o publicado no DODF/g)) {
+                //     $('#paginaEColuna').hide();
+                // }
+                //--------------------------------------------------------------------------------------
+
+
+
+                if ($('#div_erro').length > 0) {
+                    $('#div_norma').hide();
+                }
+                else {
+                    if ($('p[replaced_by]').length <= 0 || $('p').length == $('p[replaced_by]').length) {
+                        $('.compilado').hide();
+                    }
+                    verificarLinks();
+                }
+            });
+
+
+            var normaOVEmFunction = new normaOVEmFunction();
+            
+                //A epígrafe do texto da norma deverá ser um link que direciona, para uma nova aba, os detalhes daquela norma; tarefa 378
+
+
+            if (normaOVEmFunction != true) {
+
+                    var urlPath = window.location.pathname;
+                    var urlSplited = urlPath.split("/");
+                    var numeroNorma = urlSplited[3];
+
+                    //Pegar o texto do h1
+                    var elementoh1 = $('#div_texto > h1')[0].textContent;
+                    //Adicionar a tag 'a'
+                    $('#div_texto > h1')[0].innerHTML = '<a>' + elementoh1 + '</a>';
+
+                    //Adicionar o link
+                    $("#div_texto h1").attr('href', '/' + urlSplited[1] + '/DetalhesDeNorma.aspx?id_norma=' + numeroNorma).attr("target", '_blank');
+                    //--------------------------------------------------------------------------------------
+
+                //consultarDiarioAspErro
+                    var paragrafo = $('p');
+
+                    for (var i = 0; i < paragrafo.length; i++) {
+
+                        if (paragrafo[i].innerText.match(/Este texto não substitui o publicado no DODF/g)) {
+                            var span = paragrafo[i].textContent;
+                            var form_consultar_diario = "\"form_consultar_diario\"";
+                            var _form = "<form id='form_consultar_diario' name='form_consultar_diario' method='post' onsubmit='javascript: return consultarDiarioHTML(" + form_consultar_diario + ")\'>";
+                            var _button = "<a href='javascript: void(0)' onclick='javascript: consultarDiarioAspErro(" + form_consultar_diario + ")\'>";
+                            var arraySpan = $("p > span");
+                            $(paragrafo)[i].innerHTML = _form + _button + "<span style='text-decoration: underline red; color: red;' >" + span + "<span>" + "</a></form>";
+                        }
+                    }
+                    if (!paragrafo[i - 1].innerText.match(/Este texto não substitui o publicado no DODF/g)) {
+                        $('#paginaEColuna').hide();
+                    }
+                    //--------------------------------------------------------------------------------------
+
+                    if ($('#div_erro').length > 0) {
+                        $('#div_norma').hide();
+                    }
+                    else {
+                        if ($('p[replaced_by]').length <= 0 || $('p').length == $('p[replaced_by]').length) {
+                            $('.compilado').hide();
+                        }
+                        verificarLinks();
+                    }
+             }
+        </script>
+        <style type="text/css">
+            .control {
+                width: 100%;
+                float: left;
+            }
+
+            .print {
+                float: right;
+            }
+
+            .compilado {
+                float: left;
+            }
+
+            div.strike {
+                text-decoration: line-through;
+            }
+
+            body,
+            p,
+            h1 {
+                font-family: Tahoma;
+                font-size: 14px;
+            }
+
+            p[nota=nota] {
+                font-size: 12px;
+                border: 1px solid #777;
+                padding: 5px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="div_norma">
+            <!-- A epígrafe do texto da norma deverá ser um link que direciona, para uma nova aba, os detalhes daquela norma; tarefa 378-->
+            
+            <!-- corpo dela epigrafe-->
+
+            <a href="/sinj/ ~/" title="Visitar o SINJ-DF - Sistema Integrado de Normas Jurídicas do
+                DF"><img src="http://www.sinj.df.gov.br/sinjpadrao/Imagens/logo_sinj.png" alt="SINJ-DF" /></a>
+
+            <div class="control">
+                <div class="compilado">
+                    <a href="javascript:void(0)" onclick="javascript:exibirAlteracoes(this);">
+                        Texto Compilado
+                    </a>
+                </div>
+                <div class="print">
+                    <a href="javascript:void(0);" onclick="javascript:Print();" title="Imprimir">
+                        <img alt="print" src="http://www.sinj.df.gov.br/sinjpadrao/Imagens/ico_print_p.png" />
+                    </a>
+                </div>
+            </div>
+            <div id="div_texto"><h1 epigrafe="epigrafe" noindex="" nota="" style="font-weight:bold; text-align:center">LEI Nº 7.918, DE 03 DE JULHO DE 2026</h1><p style="margin-top:1px; text-align:center" linkname="txt_e071455fe97a42c161f6bea572f99e4a"><a id="txt_e071455fe97a42c161f6bea572f99e4a" name="txt_e071455fe97a42c161f6bea572f99e4a" class="linkname"></a>(Autoria: Poder Executivo)<p style="margin-left:50%; text-align:justify" linkname="txt_f4eceebe262349ef932d7281de12a722"><a id="txt_f4eceebe262349ef932d7281de12a722" name="txt_f4eceebe262349ef932d7281de12a722" class="linkname"></a>Cria a Região Administrativa de 26 de Setembro e dá outras providências<p style="text-align:justify" linkname="txt_a64c28b3efae4254f24e6354089b5abb"><a id="txt_a64c28b3efae4254f24e6354089b5abb" name="txt_a64c28b3efae4254f24e6354089b5abb" class="linkname"></a>A GOVERNADORA DO DISTRITO FEDERAL, FAÇO SABER QUE A CÂMARA LEGISLATIVA DO DISTRITO FEDERAL DECRETA E EU SANCIONO A SEGUINTE LEI:<p style="text-align:justify" linkname="art1"><a id="art1" name="art1" class="linkname"></a>Art. 1º Fica criada a Região Administrativa de 26 de Setembro.<p style="text-align:justify" linkname="art1_par"><a id="art1_par" name="art1_par" class="linkname"></a>Parágrafo único. Os limites físicos da região administrativa de que trata o caput, assim como os novos limites da região que cedeu parte de seu território, estão definidos nos Anexos I e II, conforme determina a <a href="/sinj/Norma/74929/Lei_5161_2013.html" class="">Lei nº 5.161, de 26 de agosto de 2013</a>.<p style="text-align:justify" linkname="art2"><a id="art2" name="art2" class="linkname"></a>Art. 2º Com a criação da Região Administrativa de 26 de Setembro, fica criado, automaticamente, o respectivo conselho tutelar, nos termos do <a href="https://www.sinj.df.gov.br/sinj/Norma/66634/Lei_Org_nica__08_06_1993.html" onclick="window.open(this.href, '', 'resizable=no,status=no,location=no,toolbar=no,menubar=no,fullscreen=no,scrollbars=no,dependent=no,width=800,height=600'); return false;">art. 13, parágrafo único, da Lei Orgânica do Distrito Federal</a>.<p style="text-align:justify" linkname="art3"><a id="art3" name="art3" class="linkname"></a>Art. 3º Fica transferida da Administração Regional de Vicente Pires parcela do acervo patrimonial necessária para a implantação e o funcionamento da administração regional criada por esta Lei.<p style="text-align:justify" linkname="art3_par"><a id="art3_par" name="art3_par" class="linkname"></a>Parágrafo único. Durante a transição, todo o apoio operacional necessário ao funcionamento da administração regional criada por esta Lei será fornecido pela Administração Regional de Vicente Pires.<p style="text-align:justify" linkname="art4"><a id="art4" name="art4" class="linkname"></a>Art. 4º O quantitativo de cargos em comissão necessários à estrutura a ser criada será fornecido pelo Banco de Cargos administrado pela Secretaria de Estado de Economia previsto na <a href="/sinj/Norma/b4e3473f9454495da748346fc774f1b3/Lei_6525_2020.html" class="">Lei nº 6.525, de 1º de abril de 2020</a>, sem aumento de custo, obrigatoriamente, para funções de chefia, direção e assessoramento.<p style="text-align:justify" linkname="art5"><a id="art5" name="art5" class="linkname"></a>Art. 5º Esta Lei entra em vigor na data de sua publicação.<p style="font-weight:bold; margin-bottom:0px; text-align:center" linkname="txt_262641da58524e154219928d55435de0"><a id="txt_262641da58524e154219928d55435de0" name="txt_262641da58524e154219928d55435de0" class="linkname"></a>Brasília, 03 de julho de 2026.<p style="font-weight:bold; margin-bottom:0px; text-align:center" linkname="txt_282fa56ff24341688fe06967f250fcbd"><a id="txt_282fa56ff24341688fe06967f250fcbd" name="txt_282fa56ff24341688fe06967f250fcbd" class="linkname"></a>137º da República e 67º de Brasília<p style="font-weight:bold; margin-bottom:0px; text-align:center" linkname="txt_855521eb749c4df96d513109da2e73cc"><a id="txt_855521eb749c4df96d513109da2e73cc" name="txt_855521eb749c4df96d513109da2e73cc" class="linkname"></a>CELINA LEÃO<p style="font-weight:bold; margin-bottom:0px; text-align:center" linkname="aneI"><a id="aneI" name="aneI" class="linkname"></a>ANEXO I<p style="font-weight:bold; margin-top:0px; text-align:center" linkname="txt_60ebe215a09e475620fb6a27abc5b3ab"><a id="txt_60ebe215a09e475620fb6a27abc5b3ab" name="txt_60ebe215a09e475620fb6a27abc5b3ab" class="linkname"></a>MEMORIAL DESCRITIVO 26 DE SETEMBRO – RA XXXVI<p style="text-align:justify" linkname="txt_aaf540fec3a54f0d9e74e9f947c4d4d0"><a id="txt_aaf540fec3a54f0d9e74e9f947c4d4d0" name="txt_aaf540fec3a54f0d9e74e9f947c4d4d0" class="linkname"></a>Perímetro: 17.507,868 m Área: 1.389,3555 ha Inicia-se a descrição deste perímetro no vértice 1, de coordenadas N 8.256.232,82 m e E 176.662,22 m, situado no limite norte da RA XXXVI – 26 de Setembro, deste, segue com azimute de 101°39'43" e distância de 27,30 m, até o vértice 2, de coordenadas N 8.256.227,30 m e E 176.688,95 m; deste, segue com azimute de 101°39'43" e distância de 610,88 m, até o vértice 3, de coordenadas N 8.256.103,82 m e E 177.287,22 m; deste, segue com azimute de 103°24'58" e distância de 372,77 m, até o vértice 4, de coordenadas N 8.256.017,33 m e E 177.649,82 m; deste, segue com azimute de 103°24'58" e distância de 25,87 m, até o vértice 5, de coordenadas N 8.256.011,33 m e E 177.674,98 m; deste, segue com azimute de 103°24'58" e distância de 49,59 m, até o vértice 6, de coordenadas N 8.255.999,82 m e E 177.723,22 m; deste, segue com azimute de 103°44'10" e distância de 46,33 m, até o vértice 7, de coordenadas N 8.255.988,82 m e E 177.768,22 m; deste, segue com azimute de 109°05'37" e distância de 27,51 m, até o vértice 8, de coordenadas N 8.255.979,82 m e E 177.794,22 m; deste, segue com azimute de 111°19'39" e distância de 213,31 m, até o vértice 9, de coordenadas N 8.255.902,24 m e E 177.992,92 m; deste, segue com azimute de 111°19'40" e distância de 11,34 m, até o vértice 10, de coordenadas N 8.255.898,11 m e E 178.003,49 m; deste, segue com azimute de 185°17'55" e distância de 322,95 m, até o vértice 11, de coordenadas N 8.255.576,54 m e E 177.973,67 m; deste, segue com azimute de 184°33'29" e distância de 26,84 m, até o vértice 12, de coordenadas N 8.255.549,78 m e E 177.971,53 m; deste, segue com azimute de 184°33'28" e distância de 45,19 m, até o vértice 13, de coordenadas N 8.255.504,74 m e E 177.967,94 m; ponto situado às margens do Córrego do Valo deste, segue margeando o Córrego do Valo, até o vértice 14, de coordenadas N 8.252.622,22 m e E 178.106,84 m; confluência entre o Córrego do Valo e o Córrego Vicente Pires deste, segue margeando o Córrego Vicente Pires, até o vértice 15, de coordenadas N 8.252.413,27 m e E 178.236,59 m; ponto de cruzamento entre o Córrego Vicente Pires e o eixo da Rodovia DF-095 deste, segue pela Rodovia DF-095, até o vértice 16, de coordenadas N 8.252.271,77 m e E 177.383,68 m; deste, segue com azimute de 347°44'03" e distância de 50,89 m, até o vértice 17, de coordenadas N 8.252.321,50 m e E 177.372,87 m; deste, segue com azimute de 347°39'39" e distância de 61,91 m, até o vértice 18, de coordenadas N8.252.381,98 m e E 177.359,64 m; deste, segue com azimute de 344°00'36" e distância de 56,74 m, até o vértice 19, de coordenadas N 8.252.436,52 m e E 177.344,01 m; deste, segue com azimute de 331°11'20" e distância de 21,37 m, até o vértice 20, de coordenadas N 8.252.455,25 m e E 177.333,71 m; deste, segue com azimute de 323°18'23" e distância de 8,03 m, até o vértice 21, de coordenadas N 8.252.461,69 m e E 177.328,91 m; deste, segue com azimute de 322°46'28" e distância de 30,63 m, até o vértice 22, de coordenadas N 8.252.486,07 m e E 177.310,39 m; deste, segue com azimute de 319°55'23" e distância de 188,54 m, até o vértice 23, de coordenadas N 8.252.630,34 m e E 177.189,00 m; deste, segue com azimute de 318°03'03" e distância de 17,11 m, até o vértice 24, de coordenadas N 8.252.643,07 m e E 177.177,56 m; deste, segue com azimute de 303°57'06" e distância de 18,03 m, até o vértice 25, de coordenadas N 8.252.653,14 m e E 177.162,60 m; deste, segue com azimute de 301°45'58" e distância de 23,85 m, até o vértice 26, de coordenadas N 8.252.665,69 m e E 177.142,33 m; deste, segue com azimute de 302°23'00" e distância de 34,09 m, até o vértice 27, de coordenadas N 8.252.683,95 m e E 177.113,54 m; deste, segue com azimute de 299°54'40" e distância de 47,64 m, até o vértice 28, de coordenadas N 8.252.707,71 m e E 177.072,25 m; deste, segue com azimute de 299°30'43" e distância de 47,18 m, até o vértice 29, de coordenadas N 8.252.730,95 m e E 177.031,18 m; deste, segue com azimute de 301°14'17" e distância de 73,31 m, até o vértice 30, de coordenadas N 8.252.768,97 m e E 176.968,51 m; deste, segue com azimute de 300°11'24" e distância de 54,36 m, até o vértice 31, de coordenadas N 8.252.796,30 m e E 176.921,52 m; deste, segue com azimute de 293°35'27" e distância de 55,42 m, até o vértice 32, de coordenadas N 8.252.818,48 m e E 176.870,74 m; deste, segue com azimute de 293°23'56" e distância de 45,10 m, até o vértice 33, de coordenadas N 8.252.836,39 m e E 176.829,34 m; deste, segue com azimute de 288°25'48" e distância de 32,92 m, até o vértice 34, de coordenadas N 8.252.846,80 m e E 176.798,11 m; deste, segue com azimute de 265°10'21" e distância de 10,07 m, até o vértice 35, de coordenadas N 8.252.845,95 m e E 176.788,07 m; deste, segue com azimute de 241°56'34" e distância de 21,62 m, até o vértice 36, de coordenadas N 8.252.835,78 m e E 176.768,99 m; deste, segue com azimute de 232°06'58" e distância de 53,37 m, até o vértice 37, de coordenadas N 8.252.803,01 m e E 176.726,86 m; deste, segue com azimute de 244°36'38" e distância de 14,49 m, até o vértice 38, de coordenadas N 8.252.796,79 m e E 176.713,77 m; deste, segue com azimute de 258°05'32" e distância de 25,10 m, até o vértice 39, de coordenadas N 8.252.791,61 m e E 176.689,21 m; deste, segue com azimute de 259°27'38" e distância de 43,09 m, até o vértice 40, de coordenadas N8.252.783,73 m e E 176.646,85 m; deste, segue com azimute de 253°16'26" e distância de 48,57 m, até o vértice 41, de coordenadas N 8.252.769,75 m e E 176.600,33 m; deste, segue com azimute de 244°47'11" e distância de 25,90 m, até o vértice 42, de coordenadas N 8.252.758,72 m e E 176.576,90 m; deste, segue com azimute de 215°39'26" e distância de 14,69 m, até o vértice 43, de coordenadas N 8.252.746,79 m e E 176.568,34 m; deste, segue com azimute de 215°14'10" e distância de 38,29 m, até o vértice 44, de coordenadas N 8.252.715,51 m e E 176.546,24 m; deste, segue com azimute de 308°01'29" e distância de 127,16 m, até o vértice 45, de coordenadas N 8.252.793,84 m e E 176.446,08 m; deste, segue com azimute de 276°13'21" e distância de 89,21 m, até o vértice 46, de coordenadas N 8.252.803,51 m e E 176.357,40 m; deste, segue com azimute de 214°54'02" e distância de 23,10 m, até o vértice 47, de coordenadas N 8.252.784,56 m e E 176.344,18 m; deste, segue com azimute de 203°08'27" e distância de 30,58 m, até o vértice 48, de coordenadas N 8.252.756,44 m e E 176.332,16 m; deste, segue com azimute de 284°56'45" e distância de 75,62 m, até o vértice 49, de coordenadas N 8.252.775,95 m e E 176.259,10 m; deste, segue com azimute de 286°18'10" e distância de 65,65 m, até o vértice 50, de coordenadas N 8.252.794,37 m e E 176.196,09 m; deste, segue com azimute de 286°11'30" e distância de 42,89 m, até o vértice 51, de coordenadas N 8.252.806,34 m e E 176.154,90 m; deste, segue com azimute de 280°47'11" e distância de 25,26 m, até o vértice 52, de coordenadas N 8.252.811,06 m e E 176.130,09 m; deste, segue com azimute de 282°34'38" e distância de 29,02 m, até o vértice 53, de coordenadas N 8.252.817,38 m e E 176.101,76 m; deste, segue com azimute de 279°13'56" e distância de 33,66 m, até o vértice 54, de coordenadas N 8.252.822,78 m e E 176.068,54 m; deste, segue com azimute de 278°20'43" e distância de 23,92 m, até o vértice 55, de coordenadas N 8.252.826,25 m e E 176.044,87 m; deste, segue com azimute de 273°04'08" e distância de 21,88 m, até o vértice 56, de coordenadas N 8.252.827,43 m e E 176.023,02 m; deste, segue com azimute de 272°12'52" e distância de 27,46 m, até o vértice 57, de coordenadas N 8.252.828,49 m e E 175.995,57 m; deste, segue com azimute de 279°34'38" e distância de 28,95 m, até o vértice 58, de coordenadas N 8.252.833,30 m e E 175.967,03 m; deste, segue com azimute de 274°54'15" e distância de 32,46 m, até o vértice 59, de coordenadas N 8.252.836,08 m e E 175.934,69 m; deste, segue com azimute de 271°44'50" e distância de 13,27 m, até o vértice 60, de coordenadas N 8.252.836,48 m e E 175.921,42 m; deste, segue com azimute de 266°12'28" e distância de 16,04 m, até o vértice 61, de coordenadas N 8.252.835,42 m e E 175.905,41 m; deste, segue com azimute de 258°32'53" e distância de 15,70 m, até o vértice 62, de coordenadas N8.252.832,30 m e E 175.890,03 m; deste, segue com azimute de 238°24'32" e distância de 6,23 m, até o vértice 63, de coordenadas N 8.252.829,04 m e E 175.884,72 m; deste, segue com azimute de 247°57'42" e distância de 20,88 m, até o vértice 64, de coordenadas N 8.252.821,20 m e E 175.865,36 m; deste, segue com azimute de 263°17'40" e distância de 27,96 m, até o vértice 65, de coordenadas N 8.252.817,94 m e E 175.837,59 m; deste, segue com azimute de 266°58'09" e distância de 13,86 m, até o vértice 66, de coordenadas N 8.252.817,21 m e E 175.823,75 m; deste, segue com azimute de 263°35'42" e distância de 30,00 m, até o vértice 67, de coordenadas N 8.252.813,86 m e E 175.793,94 m; deste, segue com azimute de 256°25'10" e distância de 42,72 m, até o vértice 68, de coordenadas N 8.252.803,83 m e E 175.752,41 m; deste, segue com azimute de 255°12'25" e distância de 25,91 m, até o vértice 69, de coordenadas N 8.252.797,21 m e E 175.727,37 m; deste, segue com azimute de 258°32'29" e distância de 28,07 m, até o vértice 70, de coordenadas N 8.252.791,64 m e E 175.699,85 m; deste, segue com azimute de 268°43'40" e distância de 23,37 m, até o vértice 71, de coordenadas N 8.252.791,12 m e E 175.676,49 m; deste, segue com azimute de 286°22'47" e distância de 20,70 m, até o vértice 72, de coordenadas N 8.252.796,95 m e E 175.656,64 m; deste, segue com azimute de 298°42'34" e distância de 33,35 m, até o vértice 73, de coordenadas N 8.252.812,97 m e E 175.627,39 m; deste, segue com azimute de 278°16'50" e distância de 25,03 m, até o vértice 74, de coordenadas N 8.252.816,58 m e E 175.602,62 m; deste, segue com azimute de 274°06'48" e distância de 32,38 m, até o vértice 75, de coordenadas N 8.252.818,90 m e E 175.570,33 m; deste, segue com azimute de 265°55'27" e distância de 27,11 m, até o vértice 76, de coordenadas N 8.252.816,97 m e E 175.543,28 m; deste, segue com azimute de 262°36'43" e distância de 40,58 m, até o vértice 77, de coordenadas N 8.252.811,76 m e E 175.503,04 m; deste, segue com azimute de 263°31'55" e distância de 30,50 m, até o vértice 78, de coordenadas N 8.252.808,32 m e E 175.472,74 m; deste, segue com azimute de 258°22'38" e distância de 50,39 m, até o vértice 79, de coordenadas N 8.252.798,17 m e E 175.423,37 m; deste, segue com azimute de 261°21'49" e distância de 36,45 m, até o vértice 80, de coordenadas N 8.252.792,69 m e E 175.387,33 m; deste, segue com azimute de 270°14'06" e distância de 20,68 m, até o vértice 81, de coordenadas N 8.252.792,78 m e E 175.366,65 m; deste, segue com azimute de 277°25'08" e distância de 24,58 m, até o vértice 82, de coordenadas N 8.252.795,95 m e E 175.342,28 m; deste, segue com azimute de 262°56'38" e distância de 17,69 m, até o vértice 83, de coordenadas N 8.252.793,78 m e E 175.324,72 m; deste, segue com azimute de 264°18'45" e distância de 37,00 m, até o vértice 84, de coordenadas N8.252.790,11 m e E 175.287,90 m; deste, segue com azimute de 262°41'03" e distância de 42,40 m, até o vértice 85, de coordenadas N 8.252.784,71 m e E 175.245,84 m; deste, segue com azimute de 279°16'01" e distância de 19,64 m, até o vértice 86, de coordenadas N 8.252.787,88 m e E 175.226,46 m; deste, segue com azimute de 275°39'54" e distância de 58,56 m, até o vértice 87, de coordenadas N 8.252.793,66 m e E 175.168,18 m; deste, segue com azimute de 275°47'36" e distância de 40,76 m, até o vértice 88, de coordenadas N 8.252.797,77 m e E 175.127,63 m; deste, segue com azimute de 277°14'05" e distância de 43,41 m, até o vértice 89, de coordenadas N 8.252.803,24 m e E 175.084,57 m; deste, segue com azimute de 254°36'53" e distância de 25,97 m, até o vértice 90, de coordenadas N 8.252.796,35 m e E 175.059,53 m; deste, segue com azimute de 253°25'28" e distância de 76,91 m, até o vértice 91, de coordenadas N 8.252.774,41 m e E 174.985,81 m; deste, segue com azimute de 247°53'11" e distância de 15,50 m, até o vértice 92, de coordenadas N 8.252.768,57 m e E 174.971,46 m; deste, segue com azimute de 240°49'26" e distância de 27,05 m, até o vértice 93, de coordenadas N 8.252.755,38 m e E 174.947,84 m; deste, segue com azimute de 253°44'05" e distância de 24,49 m, até o vértice 94, de coordenadas N 8.252.748,52 m e E 174.924,33 m; deste, segue com azimute de 250°13'56" e distância de 21,98 m, até o vértice 95, de coordenadas N 8.252.741,09 m e E 174.903,64 m; deste, segue com azimute de 248°58'22" e distância de 62,23 m, até o vértice 96, de coordenadas N 8.252.718,76 m e E 174.845,55 m; deste, segue com azimute de 245°36'59" e distância de 105,10 m, até o vértice 97, de coordenadas N 8.252.675,37 m e E 174.749,83 m; deste, segue com azimute de 238°58'36" e distância de 19,79 m, até o vértice 98, de coordenadas N 8.252.665,17 m e E 174.732,87 m; deste, segue com azimute de 211°00'48" e distância de 39,17 m, até o vértice 99, de coordenadas N 8.252.631,60 m e E 174.712,69 m; deste, segue com azimute de 204°51'00" e distância de 48,93 m, até o vértice 100, de coordenadas N 8.252.587,20 m e E 174.692,13 m; deste, segue com azimute de 245°37'01" e distância de 15,36 m, até o vértice 101, de coordenadas N 8.252.580,86 m e E 174.678,14 m; deste, segue com azimute de 249°22'10" e distância de 41,40 m, até o vértice 102, de coordenadas N 8.252.566,27 m e E 174.639,39 m; deste, segue com azimute de 261°42'22" e distância de 21,26 m, até o vértice 103, de coordenadas N 8.252.563,21 m e E 174.618,35 m; deste, segue com azimute de 266°26'46" e distância de 41,33 m, até o vértice 104, de coordenadas N 8.252.560,65 m e E 174.577,10 m; deste, segue com azimute de 257°14'24" e distância de 34,86 m, até o vértice 105, de coordenadas N 8.252.552,95 m e E 174.543,10 m; deste, segue com azimute de 248°45'20" e distância de 189,60 m, até o vértice 106, de coordenadas N8.252.484,24 m e E 174.366,38 m; deste, segue com azimute de 357°43'42" e distância de 379,59 m, até o vértice 107, de coordenadas N 8.252.863,54 m e E 174.351,34 m; deste, segue com azimute de 258°43'30" e distância de 180,35 m, até o vértice 108, de coordenadas N 8.252.828,28 m e E 174.174,47 m; deste, segue com azimute de 258°31'33" e distância de 117,77 m, até o vértice 109, de coordenadas N 8.252.804,85 m e E 174.059,05 m; deste, segue com azimute de 11°12'39" e distância de 1.169,11 m, até o vértice 110, de coordenadas N 8.253.951,65 m e E 174.286,35 m; deste, segue com azimute de 280°33'14" e distância de 249,68 m, até o vértice 111, de coordenadas N 8.253.997,38 m e E 174.040,89 m; deste, segue com azimute de 258°42'44" e distância de 382,23 m, até o vértice 112, de coordenadas N 8.253.922,56 m e E 173.666,06 m; ponto de interseção com o eixo da Rodovia DF-001 deste, segue pela Rodovia DF-001, até o vértice 113, de coordenadas N 8.255.948,08 m e E 173.401,74 m; deste, segue com azimute de 85°33'30" e distância de 9,50 m, até o vértice 114, de coordenadas N 8.255.948,82 m e E 173.411,21 m; deste, segue com azimute de 85°04'10" e distância de 13,33 m, até o vértice 115, de coordenadas N 8.255.949,96 m e E 173.424,49 m; deste, segue com azimute de 85°04'10" e distância de 548,48 m, até o vértice 116, de coordenadas N 8.255.997,11 m e E 173.970,95 m; deste, segue com azimute de 85°04'10" e distância de 578,41 m, até o vértice 117, de coordenadas N 8.256.046,82 m e E 174.547,22 m; deste, segue com azimute de 84°58'27" e distância de 349,44 m, até o vértice 118, de coordenadas N 8.256.077,43 m e E 174.895,31 m; deste, segue com azimute de 84°58'27" e distância de 106,62 m, até o vértice 119, de coordenadas N 8.256.086,77 m e E 175.001,52 m; deste, segue com azimute de 84°58'27" e distância de 334,65 m, até o vértice 120, de coordenadas N 8.256.116,09 m e E 175.334,88 m; deste, segue com azimute de 84°58'27" e distância de 456,89 m, até o vértice 121, de coordenadas N 8.256.156,12 m e E 175.790,01 m; deste, segue com azimute de 84°58'27" e distância de 875,57 m, até o vértice 1, de coordenadas N 8.256.232,82 m e E 176.662,22 m; ponto inicial da descrição deste perímetro. Todos os azimutes e distâncias, áreas e perímetros foram calculados no plano de projeção UTM. Todas as coordenadas aqui descritas estão georreferenciadas ao Sistema Geodésico Brasileiro e encontram-se representadas no Sistema UTM, referenciadas ao Meridiano Central 45° WGr, Fuso 23, tendo como o Datum o SICAD-SIRGAS 2000.<p style="font-weight:bold; margin-bottom:0px; text-align:center" linkname="aneII"><a id="aneII" name="aneII" class="linkname"></a>ANEXO II<p style="font-weight:bold; margin-top:0px; text-align:center" linkname="txt_8adedacf1e4b40e83b596fb755742067"><a id="txt_8adedacf1e4b40e83b596fb755742067" name="txt_8adedacf1e4b40e83b596fb755742067" class="linkname"></a>CROQUI<p style="font-weight:bold; margin-bottom:0px; text-align:center"><img alt="" src="http://www.sinj.df.gov.br/sinj/Download/sinj_arquivo/2065e6b3-643a-3504-aaa2-4db9da2ab9ff/Lei_7918_2026.jpg" style="height:841px; width:871px"><p style="text-align:right"><span style="color:#FF0000"><a href=http://www.sinj.df.gov.br/sinj/BaixarArquivoDiario.aspx?id_file=b6bd66f2-c0f5-3e98-bb04-23d54c2d34f6 target='_blank'>Este texto não substitui o publicado no DODF nº 67 A, Edição Extra, seção 1, 2 e 3 de 03/07/2026<span id='paginaEColuna'> p. 3, col. 1<a/></span></div>
+        </div>
+
+        <script type="text/javascript">
+            (function (i, s, o, g, r, a, m) {
+                i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+                    (i[r].q = i[r].q || []).push(arguments)
+                }, i[r].l = 1 * new Date(); a = s.createElement(o),
+                    m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+            })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+            ga('create', 'UA-20776101-1', 'auto');
+            ga('create', 'UA-90051523-1', 'auto', 'brlightTracker');
+            ga('send', 'pageview');
+            ga('brlightTracker.send', 'pageview');
+        </script>
+    </body>
+
+    </html>

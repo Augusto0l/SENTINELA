@@ -1,28 +1,33 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Header from "../components/Header";
 import MapaDF, { type MapMode } from "../components/map/MapaDF";
 import DonutChart from "../components/DonutChart";
 import AnalyticsCard from "../components/AnalyticsCard";
 import { RA_LIST } from "@/data/mockData";
-import { MOCK_OCCURRENCES } from "../data/mockOccurrences";
-import { demoPeriodLabel, emptyDemoFilters, queryDemoAnalytics, type DemoFilters } from "@/data/demoAnalytics";
+import { emptyDemoFilters } from "@/data/demoAnalytics";
+import { useAnalyticsSource } from "@/components/analytics/useAnalyticsSource";
+import type { AnalyticSelection } from "@/components/analytics/usePersistentAnalytics";
 import AnalyticFilters from "@/components/analytics/AnalyticFilters";
 import analyticsStyles from "@/components/analytics/Analytics.module.css";
 
 interface CrimeMapProps {
   initialRaCode?: string;
-  initialFilters?: DemoFilters;
+  initialFilters?: AnalyticSelection;
+  persistent?: boolean;
 }
 
-export default function CrimeMap({ initialRaCode, initialFilters }: CrimeMapProps) {
-  const [filters, setFilters] = useState<DemoFilters>(() => {
+export default function CrimeMap({ initialRaCode, initialFilters, persistent = false }: CrimeMapProps) {
+  const [filters, setFilters] = useState<AnalyticSelection>(() => {
     const ra = initialRaCode ?? initialFilters?.ra ?? "";
-    return { ...emptyDemoFilters(), ...initialFilters, ra: RA_LIST.some(item => item.codigo === ra) ? ra : "" };
+    const initial = { ...emptyDemoFilters(), ...initialFilters }
+    return { ...initial, period: persistent && initial.period !== "custom" ? "all" : initial.period,
+      ra: persistent || RA_LIST.some(item => item.codigo === ra) ? ra : "" };
   });
   const selectedRaCode = filters.ra || null;
   const [mapMode, setMapMode] = useState<MapMode>("heat");
-  const { mapRecords: mapOccurrences, mapSummary, summary } = useMemo(() => queryDemoAnalytics(MOCK_OCCURRENCES, filters), [filters]);
-  const metadata = selectedRaCode ? RA_LIST.find((ra) => ra.codigo === selectedRaCode) : null;
+  const source = useAnalyticsSource(persistent, filters);
+  const { mapRecords: mapOccurrences, mapSummary, summary } = source;
+  const metadata = selectedRaCode ? source.regionOptions.find((ra) => ra.codigo === selectedRaCode) : null;
   const raInfo = metadata ? { ...metadata, occurrence_count: summary.total, crimes_by_nature: summary.byNature, most_common_crime: summary.topNature, peak_hour: summary.peakHour, peak_day: summary.peakDay } : null;
   const donutData = Object.entries(summary.byNature).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
 
@@ -39,10 +44,15 @@ export default function CrimeMap({ initialRaCode, initialFilters }: CrimeMapProp
       <Header title="Mapa Criminal" subtitle="Análise geográfica detalhada" />
 
       <div className={analyticsStyles.mapFilters}>
-        <AnalyticFilters filters={filters} onChange={setFilters} />
+        <AnalyticFilters filters={filters} onChange={setFilters} regions={source.regionOptions} catalog={source.catalogOptions} />
+        {source.pending && <p role="status">Consultando indicadores…</p>}
+        {source.error && <p role="alert">{source.error} <button type="button" onClick={source.retry}>Tentar novamente</button></p>}
+        {!source.pending && !source.error && <>
         {summary.total === 0 && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
         <p data-testid="analytics-total" data-count={summary.total} style={{ color: "var(--color-text-muted)", fontSize: 12, margin: "8px 0" }}>{summary.total.toLocaleString("pt-BR")} ocorrências únicas no recorte aplicado</p>
+        </>}
       </div>
+      {!source.pending && !source.error && <>
 
       {/* Breadcrumb */}
       {selectedRaCode && raInfo && (
@@ -120,15 +130,19 @@ export default function CrimeMap({ initialRaCode, initialFilters }: CrimeMapProp
             position: "relative",
             marginRight: 16,
           }}>
-            <MapaDF
+            {persistent && !source.officialRegions ? <p role="status">{source.geometryError ? "Limites oficiais indisponíveis." : "Carregando limites oficiais…"}</p> : <MapaDF
               selectedRaCode={selectedRaCode}
               onSelectRa={handleSelectRa}
               occurrencesByRa={mapSummary.byRa}
               showPoints={false}
               mapMode={mapMode}
               mockOccurrences={mapOccurrences}
-              heatReferenceOccurrences={MOCK_OCCURRENCES}
-            />
+              heatReferenceOccurrences={source.heatReference}
+              officialRegions={source.officialRegions}
+              heatUnavailable={source.heatUnavailable}
+            />}
+            {source.heatUnavailable && mapMode === "heat" && <p className={analyticsStyles.mapNotice} role="status">Calor indisponível: a base de referência excede o limite de pontos.</p>}
+            {source.pointsTruncated && (mapMode === "points" || mapMode === "clusters") && <p className={analyticsStyles.mapNotice} role="status">Camada parcial. Restrinja os filtros para ver todos os pontos.</p>}
           </div>
         </div>
 
@@ -200,7 +214,7 @@ export default function CrimeMap({ initialRaCode, initialFilters }: CrimeMapProp
 
           <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
             <DonutChart data={donutData} title="Naturezas em destaque" size={150} />
-            <p style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Vínculos por natureza; uma ocorrência pode ter várias naturezas.</p>
+            <p style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{persistent ? "Ocorrências distintas por descrição; uma ocorrência pode aparecer em várias naturezas." : "Vínculos por natureza; uma ocorrência pode ter várias naturezas."}</p>
           </div>
 
           <div style={{ background: "rgba(37,99,235,0.06)", border: "1px solid rgba(37,99,235,0.2)", borderRadius: 8, padding: "12px 14px" }}>
@@ -213,10 +227,10 @@ export default function CrimeMap({ initialRaCode, initialFilters }: CrimeMapProp
           </div>
 
           <div style={{ fontSize: 10, color: "var(--color-text-muted)", textAlign: "center", fontStyle: "italic", paddingBottom: 4 }}>
-            Base fictícia · {demoPeriodLabel(filters)}
+            {persistent ? "Leitura PostgreSQL" : "Base fictícia"} · {source.periodLabel}
           </div>
         </div>
-      </div>
+      </div></>}
     </div>
   );
 }

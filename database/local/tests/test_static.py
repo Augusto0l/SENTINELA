@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,13 +16,34 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
 SPEC = json.loads((ROOT / 'security-spec.json').read_text(encoding='utf-8'))
+RA_V2_TEMPLATE = ROOT / 'ra-catalog-v2/install.sql'
+SANDBOX_GUARD = ROOT / 'sandbox/sql/guard.sql'
+# Privileged functions are already qualified in these disposable-cluster
+# scripts. Pin the expanded SQL, including the guard and grants.
+QUALIFIED_SANDBOX_SQL = {
+    ROOT / 'pcdf-sandbox/workspace.sql': '6d1b8c4f2ef26a96f1c480a45cd847c7075a5531d753a431bf4656a2285e4a64',
+    ROOT / 'write-sandbox/003_individual_address.sql': 'dc4cdb9dca32c0fbbb9cc9280ff552349cd46c4559c675c2777a7bb5ec03010e',
+    ROOT / 'write-sandbox/004_workspace_read.sql': '3e088c4b0b88be8c67bdcf65f52dc56a73e94d6d968eb3ac23e70770975277dc',
+    ROOT / 'write-sandbox/bindings.sql': 'a8f5b9c74f42b5789fa085ee5b089bf51c8da1c92d702ed0398cc96b04cf090f',
+    ROOT / 'write-sandbox/geography.sql': 'ad8702472205a4fb6642c2778608bf7f08478041bd7e526bb75ca72289070857',
+    ROOT / 'write-sandbox/mutations.sql': 'ca3ba3f41cf93e2dd72359748262dc61390318bc9ff8cf1bfb7e66fc7490a9ce',
+    ROOT / 'write-sandbox/setup.sql': 'a274933b339d7ae86153c3bd35905f6ced8626b2908bade1217da45d38084904',
+}
 
 
 def expand(path):
+    source = path.read_text(encoding='utf-8')
+    if path == RA_V2_TEMPLATE:
+        payload = json.loads(path.with_name('payload.json').read_text(encoding='utf-8'))
+        approved = {row['code']: {'name': row['name'], 'metadata': row['metadata']} for row in payload['entries']}
+        literal = "'" + json.dumps(approved, ensure_ascii=False).replace("'", "''") + "'"
+        source = source.replace('__APPROVED_JSON__', literal)
     parts = []
-    for line in path.read_text(encoding='utf-8').splitlines():
+    for line in source.splitlines():
         if line.startswith('\\ir '):
-            include = (path.parent / line[4:].strip()).resolve()
+            target = line[4:].strip()
+            include = SANDBOX_GUARD if path == RA_V2_TEMPLATE and target == '__GUARD_PATH__' else path.parent / target
+            include = include.resolve()
             if not include.is_relative_to(ROOT) and not (path == ROOT/'sandbox/sql/baseline.sql' and include == REPO/'database/supabase/baseline/0001_modelo_inicial.sql'):
                 raise AssertionError('SQL include outside local artifacts')
             parts.append(expand(include))
@@ -29,7 +51,6 @@ def expand(path):
             parts.append(line)
     text = '\n'.join(parts)
     if path.is_relative_to(ROOT/'sandbox/sql'):
-        import re
         text = re.sub(r":'sandbox_start'", "'1000'", text)
         text = re.sub(r":'sandbox_(uuid|systemid|data)'", "'static-parser-placeholder'", text)
     return text
@@ -43,6 +64,13 @@ def load_hba():
 
 
 class StaticSecurityTests(unittest.TestCase):
+    def test_ra_v2_expands_guard_and_approved_payload(self):
+        rendered = expand(RA_V2_TEMPLATE)
+        self.assertTrue(rendered.startswith('\n'.join(RA_V2_TEMPLATE.read_text(encoding='utf-8').splitlines()[:1])
+                                            + '\n' + expand(SANDBOX_GUARD)))
+        self.assertNotIn('__GUARD_PATH__', rendered)
+        self.assertNotIn('__APPROVED_JSON__', rendered)
+
     def test_sql_and_procedural_syntax(self):
         from pglast import ast, parse_sql, parse_plpgsql
         from pglast.stream import RawStream
@@ -175,7 +203,11 @@ class StaticSecurityTests(unittest.TestCase):
         from pglast import parser
         for path in ROOT.rglob('*.sql'):
             text = expand(path)
-            self.assertNotRegex(text.upper(), r'\bDISABLE\s+(?:TRIGGER|ROW LEVEL)|\bNO\s+FORCE\b|\bDROP\s+(?:SCHEMA|TABLE|TRIGGER|ROLE)|\bSECURITY\s+DEFINER\b')
+            self.assertNotRegex(text.upper(), r'\bDISABLE\s+(?:TRIGGER|ROW LEVEL)|\bNO\s+FORCE\b|\bDROP\s+(?:SCHEMA|TABLE|TRIGGER|ROLE)')
+            if path in QUALIFIED_SANDBOX_SQL:
+                self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), QUALIFIED_SANDBOX_SQL[path], str(path))
+            else:
+                self.assertNotRegex(text.upper(), r'\bSECURITY\s+DEFINER\b')
             nodes = json.loads(parser.parse_sql_json(text))['stmts']
             if path.name == 'fixtures_rollback.sql':
                 self.assertEqual(nodes[0]['stmt']['TransactionStmt']['kind'], 'TRANS_STMT_BEGIN')

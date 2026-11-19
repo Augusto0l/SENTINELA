@@ -37,13 +37,7 @@ export default function LoginForm({ configured, message, notice, localProvider =
       </div>
       {passwordInvalid && <span id="login-password-error" className={styles.fieldError} role="alert">Informe sua senha.</span>}
     </div>
-    <div className={styles.options}>
-      <label className={styles.remember} title="A duração da sessão é definida pelo provedor. Não é alterável nesta tela.">
-        <input type="checkbox" checked disabled aria-describedby="login-session-policy" /><span>Lembrar-me</span>
-      </label>
-      <span id="login-session-policy" className={styles.srOnly}>A duração da sessão é definida pelo provedor. Esta opção não é alterável nesta tela.</span>
-      {!localProvider && <Link href="/recuperar-senha">Esqueci minha senha?</Link>}
-    </div>
+    {!localProvider && <div className={styles.options}><Link href="/recuperar-senha">Esqueci minha senha?</Link></div>}
     <button className={styles.submit} type="submit" disabled={!configured || pending}>
       {pending && <span className={styles.spinner} aria-hidden="true" />}<span>{pending ? "Entrando…" : "Entrar"}</span><LoginIcon name="arrow" />
     </button>

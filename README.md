@@ -16,7 +16,12 @@ Use Node 22 e pnpm conforme `.mise.toml`. Instale com `pnpm install --frozen-loc
 
 Verificações: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm validate:contracts`, `pnpm check:routes` e `pnpm build`. O teste de rotas é estático; homologação HTTP/visual requer servidor funcionando. O servidor de produção usa `pnpm start` após build aprovado. A configuração shadcn/ui e os componentes reutilizáveis estão descritos em [Design System](docs/design-system.md).
 
-A hospedagem prevista é Vercel com suporte nativo a Next.js: build `pnpm build`, sem configurar `dist` como saída. Os scripts manuais `.figma/make/deploy` e `deploy-preview` chamam a CLI `vercel` (pré-requisito instalado e autenticado), respectivamente produção e preview. Esses comandos publicam e só devem ser executados quando a publicação for solicitada; a revisão da sprint não executa deploy.
+A hospedagem prevista é Vercel com suporte nativo a Next.js e build `pnpm build`.
+A preparação da Sprint 4, a instalação, a sequência de migrations e os
+bloqueios para publicar dados reais estão no
+[guia de implantação](docs/guia-implantacao-sprint-04.md).
+Os scripts manuais `.figma/make/deploy` e `deploy-preview` publicam por CLI.
+Sua execução depende de autorização específica.
 
 No Windows, `scripts/next-cli.mjs` mantém o compilador nativo quando disponível e usa o fallback oficial SWC WebAssembly com Webpack se o addon nativo falhar com `ERR_DLOPEN_FAILED`. O fallback tem a mesma versão fixada do Next.js e repara apenas arquivos ausentes no cache local da dependência. Nenhuma política de segurança é alterada. Build, rotas e cinco resoluções foram homologados; consulte as [evidências da Sprint 1](docs/evidencias/sprint-01/README.md). A CI Linux foi preparada, mas sua execução remota não foi verificada.
 

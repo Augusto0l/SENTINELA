@@ -6,6 +6,8 @@ import { readDetail } from "@/features/occurrences/client"
 import useRead from "@/features/occurrences/use-read"
 import ReadError from "@/features/occurrences/ReadError"
 import styles from "@/features/Occurrences.module.css"
+import SimulationWorkspace from "@/features/occurrences/SimulationWorkspace"
+import { fromReadOccurrence } from "@/features/occurrences/simulation"
 
 export default function PersistentDetails({
   id,
@@ -77,6 +79,7 @@ export default function PersistentDetails({
           ) : (
             <p>Nenhuma natureza disponível.</p>
           )}
+          <details><summary>Simular edição ou inativação de uma cópia</summary><SimulationWorkspace key={o.id} initial={fromReadOccurrence(o)} /></details>
         </>
       )}
       <Button variant="outline" onClick={onClose}>

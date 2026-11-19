@@ -38,7 +38,8 @@ Para validar SEM escrever senha/URI em arquivos, executar no PowerShell:
 
 O comando pede entrada oculta, codifica a senha uma vez, configura apenas o ambiente
 do subprocesso e restaura variaveis anteriores ao terminar. Nao altera .env.local.
-Agora encadeia teste real do pool/repositorio e homologacao HTTP dos dois endpoints
+Encadeia teste real do pool/repositorio e homologacao HTTP dos GETs de
+ocorrencias, catalogos e analytics
 num Next separado em 127.0.0.1:3317. Exige porta livre; recusa reutilizar servidor
 existente nessa porta. Usa tres contas sinteticas temporarias, sem alterar as contas
 do usuario; senhas aleatorias, hashes com salts distintos e diretorio privado NTFS
@@ -47,6 +48,9 @@ encerra apenas a arvore de processos comprovadamente criada e remove os arquivos
 temporarios de contas/sessoes; relatorio sanitizado permanece privado. Sem fixtures,
 escrita, migrations ou Supabase. A saida Next usa diretorio exclusivo por UUID.
 Nao testa filtragem positiva RLS nem multiplas naturezas reais num banco vazio.
+O preflight exige que a lista de ocorrencias da reader esteja vazia. Se a base
+visivel mudar, a ferramenta interrompe e o cenario deve ser revisto antes de
+repetir o ensaio.
 Na preparação inicial, o modo completo ainda não havia sido executado por ausência
 da credencial no executor. Essa limitação histórica foi superada no ensaio privado
 conferido em 11/11/2026; não repetir a execução somente para atualizar documentos.
@@ -61,6 +65,13 @@ comprova funcionamento SQL real. Parametros invalidos 400, sem sessao/invalida/
 expirada/logout 401, metodos proibidos 403. Tres logins HTTP sinteticos PASS.
 Servidor de teste encerrado, contas e sessões removidas. Evidência privada do
 ensaio sem banco: ID `03ca0105-e71f-4144-abfa-8c1cb4306b30`; não incluída no Git.
+
+Na correção pós-auditoria, o mesmo modo passou em 194 verificações HTTP e
+duas verificações de limpeza. A ampliação incluiu analytics com os três perfis,
+filtros inválidos, sessão inválida, expiração e logout. O cenário de base
+preenchida e ocultação por RLS ficou fora do ensaio. Recibo privado
+`60237fc7-0420-47f3-bbaf-66f95dd59259`. A reader continua sem configuração
+disponível para o ensaio operacional e a Etapa 2.17.6 segue em 83%.
 
 ## Endpoints e contratos
 
@@ -235,3 +246,10 @@ institucional e o desenho autorizado das operações de escrita.
 Decisões complementares: [provedor temporário](decisoes/adr-auth-local-temporario.md)
 e [leitura local/homologação isolada](decisoes/adr-leitura-postgresql-local-homologacao-isolada.md),
 ambas propostas para avaliação. Consolidação acadêmica: [Sprint 4](../sprints/sprint-04.md).
+
+## Catálogos da Etapa 2.11
+
+Os dois GETs de [catálogos persistentes](catalogos-persistentes.md) reutilizam o
+mesmo pool, a role mínima e as policies existentes. O comando interativo de
+homologação também verifica esses repositórios e compara suas respostas HTTP.
+Nenhuma ampliação de grants, RLS ou dados foi necessária.

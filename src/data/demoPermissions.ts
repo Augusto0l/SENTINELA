@@ -1,19 +1,7 @@
-export const DEMO_ROLES = ["Administrador", "Operador", "Analista"] as const
-export type DemoRole = typeof DEMO_ROLES[number]
-export function canWrite(role: DemoRole) {
-  return role !== "Analista"
-}
-export function canInactivate(role: DemoRole) {
-  return role === "Administrador"
-}
-export function canVisit(role: DemoRole, path: string) {
-  if (path === "/usuarios" || path.startsWith("/usuarios/"))
-    return role === "Administrador"
-  if (
-    path === "/importar" ||
-    path.startsWith("/importar/") ||
-    path.startsWith("/ocorrencias/nova")
-  )
-    return canWrite(role)
-  return true
-}
+// Compatibility adapter: authorization rules live in the shared policy.
+import { ROLES, hasPermission, canVisit as visit, type Role } from "@/lib/auth/policy"
+export const DEMO_ROLES = ROLES
+export type DemoRole = Role
+export const canWrite = (role: Role) => hasPermission(role, "cadastrar")
+export const canInactivate = (role: Role) => hasPermission(role, "inativar")
+export const canVisit = visit

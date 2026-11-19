@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { hasPermission, routePermission, type Principal, type Role } from "@/lib/auth/policy"
+import { actionAccess, hasPermission, routePermission, type Principal, type Role } from "@/lib/auth/policy"
 import type { MockOccurrence } from "@/data/mockOccurrences"
 
 interface Operations {
@@ -30,10 +30,10 @@ export default function OperationalProvider({ children, principal }: { children:
   const [records, setRecords] = useState<Record<string, MockOccurrence>>({})
   const pathname = usePathname()
   return <Context.Provider value={{
-    role: principal.role, principal, hydrated: true, correctionsEnabled: false, records, inactive: {},
+    role: principal.role, principal, hydrated: true, correctionsEnabled: actionAccess(principal.role, "corrigir").enabled, records, inactive: {},
     save: record => {
       // Drafts only. Existing occurrences/corrections stay blocked pending audited backend.
-      if (!hasPermission(principal.role, "cadastrar") || !record.id.startsWith("DEMO-")) return false
+      if (!actionAccess(principal.role, "cadastrar").enabled || !record.id.startsWith("DEMO-") || records[record.id]) return false
       setRecords(previous => ({ ...previous, [record.id]: record }))
       return true
     },

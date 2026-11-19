@@ -12,6 +12,20 @@ const local = await import('../src/lib/auth/local-provider.ts')
 const { localPost } = await import('../src/lib/auth/local-handler.ts')
 const { hasPermission } = await import('../src/lib/auth/policy.ts')
 
+test('the local login page canonicalizes only the alternate loopback host on the configured port', () => {
+  const env = { NODE_ENV: 'development', SENTINELA_AUTH_PROVIDER: 'local',
+    SENTINELA_LOCAL_BIND: '127.0.0.1', SENTINELA_APP_ORIGIN: 'http://127.0.0.1:3000' }
+  assert.equal(local.localLoginRedirect('localhost:3000', env)?.href, 'http://127.0.0.1:3000/login')
+  assert.equal(local.localAllowed('localhost:3000', env), false)
+  assert.equal(local.localLoginRedirect('127.0.0.1:3000', { ...env, SENTINELA_APP_ORIGIN: 'http://localhost:3000' })?.href, 'http://localhost:3000/login')
+  for (const host of ['localhost:3001', 'localhost.evil.test:3000', '127.0.0.1:3000', '[::1]:3000', null]) {
+    assert.equal(local.localLoginRedirect(host, env), null)
+  }
+  assert.equal(local.localLoginRedirect('localhost:3000', { ...env, NODE_ENV: 'production' }), null)
+  assert.equal(local.localLoginRedirect('localhost:3000', { ...env, SENTINELA_LOCAL_BIND: '' }), null)
+  assert.equal(local.localLoginRedirect('localhost:3000', { ...env, SENTINELA_AUTH_PROVIDER: 'supabase' }), null)
+})
+
 test('local: three fixed roles, sessions, logout, rate limit and remote/production isolation', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'sentinela-auth-test-'))
   const previous = { ...process.env }

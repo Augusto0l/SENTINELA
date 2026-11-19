@@ -2,6 +2,6 @@
 
 import Occurrences from "@/features/Occurrences"
 
-export default function OccurrencesEntry() {
-  return <Occurrences />
+export default function OccurrencesEntry({ isolated = false }: { isolated?: boolean }) {
+  return <Occurrences isolated={isolated} />
 }

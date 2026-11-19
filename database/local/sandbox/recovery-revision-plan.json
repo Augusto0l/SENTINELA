@@ -1,0 +1,17 @@
+{
+  "uuid": "a8aaa34d-98a0-43aa-9a15-ddbdf0dd375a",
+  "system_id": "7706903844188377392",
+  "manifest_sha256": "c61a3072587ecb853be71a9fa18d46d00b37cc8b10fff3148023c013320e9c35",
+  "changes": [
+    {
+      "artifact": "database/local/sandbox/control.py",
+      "old_sha256": "a7aee281f125d5b965acc0f6d669385e183a498519b99b9b51e1d471d788b221",
+      "new_sha256": "da56abbb72e696cd66b412d0453460fda664d2876dfffca5f81bdbd5d1471fe9"
+    },
+    {
+      "artifact": "database/local/sandbox/sql/snapshot_extra.sql",
+      "old_sha256": "575552d92f0dfdab8b6674e9f2cb81d4e459902e5039e56707bc7f23fc95828e",
+      "new_sha256": "14a5df87024e068eb282e8ce199e79092c8114e3a0b8c6ec23d7cf67187ad82c"
+    }
+  ]
+}

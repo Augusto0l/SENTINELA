@@ -1,0 +1,419 @@
+{
+  "versao": "pcdf-correspondencias-v1",
+  "origem": "pcdf-inventario-v1.json",
+  "sha256Relatorio": "4f59f8449b53a7612f79beb3e908d869015a2dec08799e5b6bdb09585fab972f",
+  "idInterno": true,
+  "regrasAprovadas": 0,
+  "linhas": [
+    {
+      "id": "PCDF-N-01",
+      "natureza": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-02",
+      "natureza": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-03",
+      "natureza": "ESTUPRO",
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaSentinela": "Estupro",
+      "tentativa": null,
+      "evidencia": "pcdf-inventario-v1.json#documentedExamples",
+      "justificativa": "Relação textual explícita no relatório agregado. Tentativa e vigência dependem de confirmação.",
+      "status": "documentada"
+    },
+    {
+      "id": "PCDF-N-04",
+      "natureza": "ESTUPRO COLETIVO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-05",
+      "natureza": "ESTUPRO COM RESULTADO MORTE",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-06",
+      "natureza": "ESTUPRO CORRETIVO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-07",
+      "natureza": "ESTUPRO DE VULNERÁVEL",
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaSentinela": "Estupro de vulnerável",
+      "tentativa": null,
+      "evidencia": "pcdf-inventario-v1.json#documentedExamples",
+      "justificativa": "Relação textual explícita no relatório agregado. Tentativa e vigência dependem de confirmação.",
+      "status": "documentada"
+    },
+    {
+      "id": "PCDF-N-08",
+      "natureza": "FEMINICIDIO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-09",
+      "natureza": "FURTO DE MOTOCICLETA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-10",
+      "natureza": "FURTO DE VEICULO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-11",
+      "natureza": "FURTO EM COMERCIO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-12",
+      "natureza": "FURTO EM INTERIOR DE VEICULO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-13",
+      "natureza": "FURTO EM RESIDENCIA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-14",
+      "natureza": "HOMICIDIO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-15",
+      "natureza": "LATROCINIO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-16",
+      "natureza": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-17",
+      "natureza": "PORTE DE ARMA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-18",
+      "natureza": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-19",
+      "natureza": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-20",
+      "natureza": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-21",
+      "natureza": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-22",
+      "natureza": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-23",
+      "natureza": "ROUBO A BAR",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-24",
+      "natureza": "ROUBO A CASA LOTERICA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-25",
+      "natureza": "ROUBO A DROGARIA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-26",
+      "natureza": "ROUBO A PANIFICADORA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-27",
+      "natureza": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-28",
+      "natureza": "ROUBO A TRAILLER",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-29",
+      "natureza": "ROUBO A TRANSEUNTE",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-30",
+      "natureza": "ROUBO DE VEICULO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-31",
+      "natureza": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-32",
+      "natureza": "ROUBO EM COLETIVO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-33",
+      "natureza": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-34",
+      "natureza": "ROUBO EM PARADA DE ONIBUS",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-35",
+      "natureza": "ROUBO EM RESIDENCIA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-36",
+      "natureza": "ROUBO NA PROXIMIDADES DE BANCO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-37",
+      "natureza": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-38",
+      "natureza": "TRÁFICO DE DROGAS PREVALECENDO-SE DE FUNÇÃO PÚBLICA",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-39",
+      "natureza": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-40",
+      "natureza": "TRÁFICO INTERNACIONAL DE SUBSTANCIA ENTORPECENTE",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    },
+    {
+      "id": "PCDF-N-41",
+      "natureza": "TRÁFICO PRIVILEGIADO",
+      "categoriaPcdf": null,
+      "categoriaSentinela": null,
+      "tentativa": null,
+      "evidencia": null,
+      "justificativa": "O inventário contém frequências marginais. A matriz conjunta é necessária para atribuir categoria.",
+      "status": "pendente"
+    }
+  ]
+}

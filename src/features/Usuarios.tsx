@@ -635,6 +635,7 @@ export default function Usuarios() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <Header title="Usuários" subtitle="Gerenciamento de usuários e permissões" />
+      <p role="note" style={{ padding: "8px 26px" }}>Prévia demonstrativa com usuários fictícios. Nenhuma ação desta tela cria contas ou altera os logins locais. A administração definitiva permanece adiada.</p>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 32px" }}>
         {/* ── Page heading ─────────────────────────────────────────────── */}

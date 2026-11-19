@@ -4,8 +4,11 @@ import { localAllowed } from "@/lib/auth/local-provider"
 import { hasPermission, type Principal } from "@/lib/auth/policy"
 import { DatabaseUnavailable } from "@/lib/db/config"
 import type { queryOccurrences } from "@/lib/db/occurrences"
+import { CATALOG_PATHS } from "@/contracts/persistent-catalogs"
+import { PERSISTENT_ANALYTICS_PATH } from "@/contracts/persistent-analytics"
 
-export const isLocalReadEndpoint = (path: string, method: string) => method === "GET" && /^\/api\/v1\/ocorrencias(?:\/[^/]+)?$/.test(path)
+export const isLocalReadEndpoint = (path: string, method: string) => method === "GET" &&
+  (/^\/api\/v1\/ocorrencias(?:\/[^/]+)?$/.test(path) || path === PERSISTENT_ANALYTICS_PATH || Object.values(CATALOG_PATHS).some(value => value === path))
 export function apiError(code: Parameters<typeof contractError>[0], message: string) {
   const body = contractError(code, message)
   return Response.json(body, { status: body.error.status, headers: { "Cache-Control": "private, no-store", "Vary": "Cookie, Host" } })

@@ -4,7 +4,7 @@
   "info": {
     "title": "SENTINELA — contratos propostos",
     "version": "0.1.0",
-    "description": "GET de ocorrências implementados no PostgreSQL local de desenvolvimento. Demais operações propostas continuam não implementadas. Exemplos são fictícios; as telas permanecem demonstrativas."
+    "description": "Ocorrências, catálogos e analytics com leitura local. Importação PCDF e Central de Revisão no cluster descartável. As operações futuras estão marcadas individualmente."
   },
   "servers": [
     {
@@ -14,12 +14,595 @@
   ],
   "x-cross-field-validation": "Datas ordenadas, pares de ordenação, contagens e estados são verificados nos schemas Zod; JSON Schema não expressa todas essas relações.",
   "paths": {
+    "/api/v1/analytics/persistente": {
+      "get": {
+        "operationId": "readPersistentAnalytics",
+        "summary": "Consultar agregados e projeções espaciais PostgreSQL",
+        "description": "GET em development/loopback com sessão local e permissão analisar. Agrega ocorrências ativas visíveis à reader sob RLS. Natureza e categoria devem corresponder na mesma associação. Parâmetros desconhecidos ou repetidos são rejeitados. Pontos validados limitados a 5000.",
+        "x-implementation-status": "implemented-local-development",
+        "x-isolated-implementation": {
+          "scope": "sandbox-synthetic-only",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "const": true
+              },
+              "scope": {
+                "type": "string",
+                "const": "sandbox-synthetic-only"
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "mapTotal": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "byRa": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "byNature": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "timeline": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "byCategory": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "weekday": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 6
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hour": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 23
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "regions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "pattern": "^[A-Z0-9-]{1,30}$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "natures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "points": {
+                    "maxItems": 5000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "latitude": {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "raCode": {
+                          "type": "string",
+                          "pattern": "^[A-Z0-9-]{1,30}$"
+                        }
+                      },
+                      "required": [
+                        "latitude",
+                        "longitude",
+                        "raCode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "heatReference": {
+                    "maxItems": 5000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "latitude": {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "raCode": {
+                          "type": "string",
+                          "pattern": "^[A-Z0-9-]{1,30}$"
+                        }
+                      },
+                      "required": [
+                        "latitude",
+                        "longitude",
+                        "raCode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "pointsTruncated": {
+                    "type": "boolean"
+                  },
+                  "heatUnavailable": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "total",
+                  "mapTotal",
+                  "byRa",
+                  "byNature",
+                  "timeline",
+                  "weekday",
+                  "hour",
+                  "regions",
+                  "natures",
+                  "categories",
+                  "points",
+                  "heatReference",
+                  "pointsTruncated",
+                  "heatUnavailable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "success",
+              "scope",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Com PCDF isolado habilitado, a mesma consulta usa somente ocorrências sintéticas consolidadas."
+        },
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                {
+                  "pattern": "^(?:19\\d{2}|[2-9]\\d{3})-"
+                }
+              ],
+              "description": "Data civil ISO, anos 1900–9999; limites inclusivos, sem conversão para timestamp."
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                {
+                  "pattern": "^(?:19\\d{2}|[2-9]\\d{3})-"
+                }
+              ],
+              "description": "Data civil ISO, anos 1900–9999; limites inclusivos, sem conversão para timestamp."
+            }
+          },
+          {
+            "name": "ra",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9-]{1,30}$"
+            }
+          },
+          {
+            "name": "nature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "hour",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0-6",
+                "6-12",
+                "12-18",
+                "18-24"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta analítica concluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersistentAnalytics"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total": 0,
+                    "mapTotal": 0,
+                    "byRa": [],
+                    "byNature": [],
+                    "timeline": [],
+                    "weekday": null,
+                    "hour": null,
+                    "regions": [],
+                    "natures": [],
+                    "categories": [],
+                    "points": [],
+                    "heatReference": [],
+                    "pointsTruncated": false,
+                    "heatUnavailable": false
+                  },
+                  "meta": {
+                    "contractVersion": "0.1.0",
+                    "catalogVersion": "0.1.0",
+                    "execution": {
+                      "mode": "operacional",
+                      "persisted": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/api/v1/catalogos/regioes-administrativas": {
+      "get": {
+        "operationId": "listPersistentRegions",
+        "summary": "Consultar Regiões Administrativas persistentes",
+        "x-implementation-status": "implemented-local-development",
+        "description": "GET em development/loopback com sessão local e permissão analisar. Retorna UUIDs e nomes ou descrições no escopo RLS. Ordenação por texto em minúsculas, texto original e UUID, com collation C na ordenação. Catálogo vazio retorna items vazio. A consulta de RAs rejeita parâmetros.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Catálogo PostgreSQL local visível, possivelmente vazio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionCatalog"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "items": [
+                      {
+                        "id": "10000000-0000-4000-8000-000000000001",
+                        "nome": "Região sintética"
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "contractVersion": "0.1.0",
+                    "catalogVersion": "0.1.0",
+                    "execution": {
+                      "mode": "operacional",
+                      "persisted": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/api/v1/catalogos/naturezas-criminais": {
+      "get": {
+        "operationId": "listPersistentNatures",
+        "summary": "Consultar naturezas criminais originais persistentes",
+        "x-implementation-status": "implemented-local-development",
+        "description": "GET em development/loopback com sessão local e permissão analisar. Retorna UUIDs e nomes ou descrições no escopo RLS. Ordenação por texto em minúsculas, texto original e UUID, com collation C na ordenação. Catálogo vazio retorna items vazio. A consulta de naturezas aceita busca literal na descrição original e direção de ordenação. Preserva a grafia de origem e não expõe classificação derivada.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "description": "Trecho literal da descrição original, sem distinção entre maiúsculas e minúsculas."
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Direção da ordenação por descrição. Padrão asc. UUID asc desempata."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catálogo PostgreSQL local visível, possivelmente vazio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NatureCatalog"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "items": [
+                      {
+                        "id": "30000000-0000-4000-8000-000000000001",
+                        "descricao": "Natureza original sintética"
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "contractVersion": "0.1.0",
+                    "catalogVersion": "0.1.0",
+                    "execution": {
+                      "mode": "operacional",
+                      "persisted": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BAD_REQUEST"
+          },
+          "401": {
+            "$ref": "#/components/responses/UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/FORBIDDEN"
+          },
+          "500": {
+            "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
     "/api/v1/ocorrencias": {
       "get": {
         "operationId": "listPersistentOccurrences",
         "summary": "Consultar ocorrências persistentes locais",
         "x-implementation-status": "implemented-local-development",
-        "description": "GET implementado somente no provedor local em development/loopback. Sessão validada no servidor, permissão analisar, PostgreSQL local via role mínima e RLS sintética. Sem fallback. UUIDs persistentes não equivalem aos catálogos demonstrativos. Página além do total retorna lista vazia; datas inclusivas. Metadado catalogVersion identifica o contrato legado, não homologa catálogos do banco.",
+        "description": "GET em development/loopback, com sessão do provedor local, permissão analisar e reader PostgreSQL sujeita à RLS. Parâmetros desconhecidos ou repetidos são rejeitados. Datas inclusivas; página além do total retorna lista vazia. A consulta usa UUIDs persistentes e retorna erro se a reader estiver indisponível.",
         "security": [
           {
             "localSession": []
@@ -212,9 +795,9 @@
       },
       "post": {
         "operationId": "createOccurrence",
-        "summary": "Cadastrar ocorrência (futuro)",
+        "summary": "PROPOSTA: cadastrar ocorrência manual",
         "x-implementation-status": "planned",
-        "description": "CONTRATO PROPOSTO. Endpoint não implementado nesta etapa. Autenticação, autorização, banco e transações são futuros. Refinamentos entre campos são executados por Zod e testados; consultar documentação técnica.",
+        "description": "PLANEJADO, indisponível. Contratos UUID substituem o payload demonstrativo somente nestas operações propostas. Requer identidade SQL confiável, escopo e backend transacional auditado ainda não aprovados; login local atual não autoriza escrita. Ver docs/escrita-persistente-planejamento.md. Exemplos não evidenciam execução. Versão divergente ou reutilização incompatível da chave: 409; campos inválidos: 422. Nenhum DELETE físico.",
         "security": [
           {
             "bearerAuth": []
@@ -225,61 +808,77 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OccurrenceCreate"
+                "$ref": "#/components/schemas/PlannedManualCreate"
               },
               "example": {
-                "data": "2026-08-25",
-                "horario": "23:59",
-                "raCode": "RA-I",
-                "local": "Quadra demonstrativa 10",
+                "data": "2026-11-11",
+                "horario": "12:30:00",
+                "raId": "10000000-0000-4000-8000-000000000001",
+                "local": "Endereço sintético",
+                "coordenadas": null,
                 "naturezas": [
-                  "Furto",
-                  "Ameaça"
-                ],
-                "coordenadas": {
-                  "latitude": -15.79,
-                  "longitude": -47.88
-                }
+                  {
+                    "naturezaId": "30000000-0000-4000-8000-000000000001",
+                    "crimeTentado": null
+                  }
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Exemplo do formato esperado, não evidencia execução ou persistência.",
+            "description": "Formato futuro; não comprova persistência.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OccurrenceResponse"
+                  "$ref": "#/components/schemas/PlannedManualResponse"
                 },
                 "example": {
                   "success": true,
                   "data": {
-                    "data": "2026-08-25",
-                    "horario": "23:59",
-                    "raCode": "RA-I",
-                    "naturezas": [
-                      "Furto",
-                      "Ameaça"
-                    ],
-                    "local": "Quadra demonstrativa 10",
-                    "coordenadas": {
-                      "latitude": -15.79,
-                      "longitude": -47.88
-                    },
-                    "id": "#00001",
-                    "ativo": true,
+                    "id": "50000000-0000-4000-8000-000000000001",
                     "origem": "manual",
-                    "loteId": null,
-                    "localizacao": "valida",
-                    "createdAt": "2026-08-25T23:00:00Z",
-                    "updatedAt": "2026-08-25T23:00:00Z"
+                    "fonte": "FONTE_MANUAL_A_DEFINIR",
+                    "anoRegistro": null,
+                    "unidadeRegistro": null,
+                    "numeroRegistro": null,
+                    "identidadeStatus": "manual",
+                    "data": "2026-11-11",
+                    "horario": "12:30:00",
+                    "local": "Endereço sintético",
+                    "latitude": null,
+                    "longitude": null,
+                    "localizacaoStatus": "ausente",
+                    "consolidacaoStatus": "em_revisao",
+                    "ativo": true,
+                    "versao": "1",
+                    "criadoEm": "2026-11-11T12:00:00Z",
+                    "atualizadoEm": "2026-11-11T12:00:00Z",
+                    "ra": {
+                      "id": "10000000-0000-4000-8000-000000000001",
+                      "codigo": "EXEMPLO",
+                      "nome": "Região sintética"
+                    },
+                    "naturezas": [
+                      {
+                        "id": "60000000-0000-4000-8000-000000000001",
+                        "crimeTentado": null,
+                        "classificacaoStatus": "pendente",
+                        "natureza": {
+                          "id": "30000000-0000-4000-8000-000000000001",
+                          "descricao": "Natureza original sintética",
+                          "categoriaOriginal": null
+                        },
+                        "categoria": null
+                      }
+                    ]
                   },
                   "meta": {
                     "contractVersion": "0.1.0",
                     "catalogVersion": "0.1.0",
                     "execution": {
-                      "mode": "demonstrativo",
+                      "mode": "proposto",
                       "persisted": false
                     }
                   }
@@ -304,8 +903,28 @@
           },
           "500": {
             "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
           }
-        }
+        },
+        "x-isolated-implementation": {
+          "scope": "sandbox-synthetic-only",
+          "securityScheme": "localSession",
+          "description": "A rota Next.js aceita escrita somente em desenvolvimento com contas descartáveis e cluster atestado. O contrato experimental está documentado em database/local/write-sandbox/MUTACOES.md."
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Proposta: UUID por comando; repetição idêntica reapresenta o resultado, payload divergente retorna 409."
+          }
+        ]
       }
     },
     "/api/v1/ocorrencias/{id}": {
@@ -313,7 +932,7 @@
         "operationId": "getPersistentOccurrence",
         "summary": "Consultar ocorrência persistente por UUID",
         "x-implementation-status": "implemented-local-development",
-        "description": "GET implementado somente no provedor local em development/loopback. Sessão validada no servidor, permissão analisar, PostgreSQL local via role mínima e RLS sintética. Sem fallback. UUIDs persistentes não equivalem aos catálogos demonstrativos. Página além do total retorna lista vazia; datas inclusivas. Metadado catalogVersion identifica o contrato legado, não homologa catálogos do banco.",
+        "description": "GET em development/loopback, com sessão do provedor local, permissão analisar e reader PostgreSQL sujeita à RLS. O detalhe rejeita parâmetros de consulta. Ocorrência ausente ou invisível retorna 404. A consulta usa UUIDs persistentes e retorna erro se a reader estiver indisponível.",
         "security": [
           {
             "localSession": []
@@ -397,26 +1016,12 @@
       },
       "patch": {
         "operationId": "updateOccurrence",
-        "summary": "Atualizar campos da ocorrência",
+        "summary": "PROPOSTA: editar ocorrência regular",
         "x-implementation-status": "planned",
-        "description": "CONTRATO PROPOSTO. Endpoint não implementado nesta etapa. Autenticação, autorização, banco e transações são futuros. Refinamentos entre campos são executados por Zod e testados; consultar documentação técnica.",
+        "description": "PLANEJADO, indisponível. Contratos UUID substituem o payload demonstrativo somente nestas operações propostas. Requer identidade SQL confiável, escopo e backend transacional auditado ainda não aprovados; login local atual não autoriza escrita. Ver docs/escrita-persistente-planejamento.md. Exemplos não evidenciam execução. Versão divergente ou reutilização incompatível da chave: 409; campos inválidos: 422. Nenhum DELETE físico.",
         "security": [
           {
             "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[A-Za-z0-9#][A-Za-z0-9_.:#-]*$",
-              "description": "Identificador interno opaco; aceita IDs demonstrativos como #00001. Não é código oficial nem exige UUID."
-            }
           }
         ],
         "requestBody": {
@@ -424,50 +1029,71 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OccurrenceUpdate"
+                "$ref": "#/components/schemas/PlannedManualUpdate"
               },
               "example": {
-                "local": "Novo local demonstrativo"
+                "versaoEsperada": "1",
+                "justificativa": "Ajuste sintético autorizado",
+                "alteracoes": {
+                  "local": "Endereço sintético atualizado"
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Exemplo do formato esperado, não evidencia execução ou persistência.",
+            "description": "Formato futuro; não comprova persistência.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OccurrenceResponse"
+                  "$ref": "#/components/schemas/PlannedUpdateResponse"
                 },
                 "example": {
                   "success": true,
                   "data": {
-                    "data": "2026-08-25",
-                    "horario": "23:59",
-                    "raCode": "RA-I",
-                    "naturezas": [
-                      "Furto",
-                      "Ameaça"
-                    ],
-                    "local": "Quadra demonstrativa 10",
-                    "coordenadas": {
-                      "latitude": -15.79,
-                      "longitude": -47.88
-                    },
-                    "id": "#00001",
-                    "ativo": true,
+                    "id": "50000000-0000-4000-8000-000000000001",
                     "origem": "manual",
-                    "loteId": null,
-                    "localizacao": "valida",
-                    "createdAt": "2026-08-25T23:00:00Z",
-                    "updatedAt": "2026-08-25T23:00:00Z"
+                    "fonte": "FONTE_MANUAL_A_DEFINIR",
+                    "anoRegistro": null,
+                    "unidadeRegistro": null,
+                    "numeroRegistro": null,
+                    "identidadeStatus": "manual",
+                    "data": "2026-11-11",
+                    "horario": "12:30:00",
+                    "local": "Endereço sintético",
+                    "latitude": null,
+                    "longitude": null,
+                    "localizacaoStatus": "ausente",
+                    "consolidacaoStatus": "em_revisao",
+                    "ativo": true,
+                    "versao": "2",
+                    "criadoEm": "2026-11-11T12:00:00Z",
+                    "atualizadoEm": "2026-11-11T12:00:00Z",
+                    "ra": {
+                      "id": "10000000-0000-4000-8000-000000000001",
+                      "codigo": "EXEMPLO",
+                      "nome": "Região sintética"
+                    },
+                    "naturezas": [
+                      {
+                        "id": "60000000-0000-4000-8000-000000000001",
+                        "crimeTentado": null,
+                        "classificacaoStatus": "pendente",
+                        "natureza": {
+                          "id": "30000000-0000-4000-8000-000000000001",
+                          "descricao": "Natureza original sintética",
+                          "categoriaOriginal": null
+                        },
+                        "categoria": null
+                      }
+                    ]
                   },
                   "meta": {
                     "contractVersion": "0.1.0",
                     "catalogVersion": "0.1.0",
                     "execution": {
-                      "mode": "demonstrativo",
+                      "mode": "proposto",
                       "persisted": false
                     }
                   }
@@ -495,33 +1121,49 @@
           },
           "500": {
             "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
           }
-        }
+        },
+        "x-isolated-implementation": {
+          "scope": "sandbox-synthetic-only",
+          "securityScheme": "localSession",
+          "description": "A rota Next.js aceita escrita somente em desenvolvimento com contas descartáveis e cluster atestado. O contrato experimental está documentado em database/local/write-sandbox/MUTACOES.md."
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Proposta: UUID por comando; repetição idêntica reapresenta o resultado, payload divergente retorna 409."
+          }
+        ]
       }
     },
     "/api/v1/ocorrencias/{id}/inativacao": {
       "post": {
         "operationId": "inactivateOccurrence",
-        "summary": "Inativar logicamente, sem exclusão física",
+        "summary": "PROPOSTA: inativar logicamente",
         "x-implementation-status": "planned",
-        "description": "CONTRATO PROPOSTO. Endpoint não implementado nesta etapa. Autenticação, autorização, banco e transações são futuros. Refinamentos entre campos são executados por Zod e testados; consultar documentação técnica.",
+        "description": "PLANEJADO, indisponível. Contratos UUID substituem o payload demonstrativo somente nestas operações propostas. Requer identidade SQL confiável, escopo e backend transacional auditado ainda não aprovados; login local atual não autoriza escrita. Ver docs/escrita-persistente-planejamento.md. Exemplos não evidenciam execução. Versão divergente ou reutilização incompatível da chave: 409; campos inválidos: 422. Nenhum DELETE físico.",
         "security": [
           {
             "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[A-Za-z0-9#][A-Za-z0-9_.:#-]*$",
-              "description": "Identificador interno opaco; aceita IDs demonstrativos como #00001. Não é código oficial nem exige UUID."
-            }
           }
         ],
         "requestBody": {
@@ -529,50 +1171,68 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Inactivation"
+                "$ref": "#/components/schemas/PlannedInactivation"
               },
               "example": {
-                "motivo": "Revisão demonstrativa solicitada"
+                "versaoEsperada": "1",
+                "motivo": "Inativação sintética autorizada"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Exemplo do formato esperado, não evidencia execução ou persistência.",
+            "description": "Formato futuro; não comprova persistência.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OccurrenceResponse"
+                  "$ref": "#/components/schemas/PlannedInactivationResponse"
                 },
                 "example": {
                   "success": true,
                   "data": {
-                    "data": "2026-08-25",
-                    "horario": "23:59",
-                    "raCode": "RA-I",
-                    "naturezas": [
-                      "Furto",
-                      "Ameaça"
-                    ],
-                    "local": "Quadra demonstrativa 10",
-                    "coordenadas": {
-                      "latitude": -15.79,
-                      "longitude": -47.88
-                    },
-                    "id": "#00001",
-                    "ativo": true,
+                    "id": "50000000-0000-4000-8000-000000000001",
                     "origem": "manual",
-                    "loteId": null,
-                    "localizacao": "valida",
-                    "createdAt": "2026-08-25T23:00:00Z",
-                    "updatedAt": "2026-08-25T23:00:00Z"
+                    "fonte": "FONTE_MANUAL_A_DEFINIR",
+                    "anoRegistro": null,
+                    "unidadeRegistro": null,
+                    "numeroRegistro": null,
+                    "identidadeStatus": "manual",
+                    "data": "2026-11-11",
+                    "horario": "12:30:00",
+                    "local": "Endereço sintético",
+                    "latitude": null,
+                    "longitude": null,
+                    "localizacaoStatus": "ausente",
+                    "consolidacaoStatus": "em_revisao",
+                    "ativo": false,
+                    "versao": "2",
+                    "criadoEm": "2026-11-11T12:00:00Z",
+                    "atualizadoEm": "2026-11-11T12:00:00Z",
+                    "ra": {
+                      "id": "10000000-0000-4000-8000-000000000001",
+                      "codigo": "EXEMPLO",
+                      "nome": "Região sintética"
+                    },
+                    "naturezas": [
+                      {
+                        "id": "60000000-0000-4000-8000-000000000001",
+                        "crimeTentado": null,
+                        "classificacaoStatus": "pendente",
+                        "natureza": {
+                          "id": "30000000-0000-4000-8000-000000000001",
+                          "descricao": "Natureza original sintética",
+                          "categoriaOriginal": null
+                        },
+                        "categoria": null
+                      }
+                    ]
                   },
                   "meta": {
                     "contractVersion": "0.1.0",
                     "catalogVersion": "0.1.0",
                     "execution": {
-                      "mode": "demonstrativo",
+                      "mode": "proposto",
                       "persisted": false
                     }
                   }
@@ -600,6 +1260,2117 @@
           },
           "500": {
             "$ref": "#/components/responses/INTERNAL_ERROR"
+          },
+          "503": {
+            "$ref": "#/components/responses/SERVICE_UNAVAILABLE"
+          }
+        },
+        "x-isolated-implementation": {
+          "scope": "sandbox-synthetic-only",
+          "securityScheme": "localSession",
+          "description": "A rota Next.js aceita escrita somente em desenvolvimento com contas descartáveis e cluster atestado. O contrato experimental está documentado em database/local/write-sandbox/MUTACOES.md."
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Proposta: UUID por comando; repetição idêntica reapresenta o resultado, payload divergente retorna 409."
+          }
+        ]
+      }
+    },
+    "/api/v1/importacoes/pcdf": {
+      "get": {
+        "operationId": "listSyntheticPcdfLots",
+        "summary": "Consultar lotes PCDF sintéticos",
+        "x-implementation-status": "implemented-isolated-sandbox",
+        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída no cluster descartável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "sandbox-synthetic-only"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "lot": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "run": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "month": {
+                            "type": "string",
+                            "pattern": "^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])$"
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "issues": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "consolidated": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "lot",
+                          "run",
+                          "month",
+                          "rows",
+                          "issues",
+                          "consolidated"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "scope",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "uploadSyntheticPcdf",
+        "summary": "Persistir CSV PCDF sintético em staging",
+        "x-implementation-status": "implemented-isolated-sandbox",
+        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída no cluster descartável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "sandbox-synthetic-only"
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "replay": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "lot": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "run": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "required": [
+                            "replay",
+                            "lot",
+                            "run"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "replay": {
+                              "type": "boolean",
+                              "const": false
+                            },
+                            "lot": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "run": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "records": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "issues": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "candidates": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "replay",
+                            "lot",
+                            "run",
+                            "records",
+                            "issues",
+                            "candidates"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "scope",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Operação concluída no cluster descartável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "sandbox-synthetic-only"
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "replay": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "lot": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "run": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "required": [
+                            "replay",
+                            "lot",
+                            "run"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "replay": {
+                              "type": "boolean",
+                              "const": false
+                            },
+                            "lot": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "run": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "records": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "issues": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "candidates": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "replay",
+                            "lot",
+                            "run",
+                            "records",
+                            "issues",
+                            "candidates"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "scope",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "UTF-8, 34 colunas e até 16 MiB. Somente proveniência da fixture sintética.",
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/importacoes/pcdf/{id}/consolidacao": {
+      "post": {
+        "operationId": "promoteSyntheticPcdf",
+        "summary": "Consolidar identidades aprovadas do lote",
+        "x-implementation-status": "implemented-isolated-sandbox",
+        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída no cluster descartável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "sandbox-synthetic-only"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "run": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "rows": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "consolidated": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "pending": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "occurrencesCreated": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "associationsCreated": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "run",
+                        "rows",
+                        "consolidated",
+                        "pending",
+                        "occurrencesCreated",
+                        "associationsCreated"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "scope",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/central-revisao": {
+      "get": {
+        "operationId": "listSyntheticPcdfReview",
+        "summary": "Consultar pendências PCDF sintéticas",
+        "x-implementation-status": "implemented-isolated-sandbox",
+        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída no cluster descartável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "sandbox-synthetic-only"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "identificacao",
+                              "datas_horarios",
+                              "classificacao",
+                              "endereco_ra",
+                              "coordenadas",
+                              "informacoes_policiais",
+                              "proveniencia"
+                            ]
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "alta",
+                              "media",
+                              "baixa"
+                            ]
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "aberta",
+                              "resolvida",
+                              "encerrada_sem_solucao"
+                            ]
+                          },
+                          "version": {
+                            "type": "string",
+                            "pattern": "^[1-9][0-9]{0,17}$"
+                          },
+                          "original": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "normalized": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "canResolve": {
+                            "type": "boolean"
+                          },
+                          "occurrenceId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "history": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "author": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 500
+                                  },
+                                  "at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                  },
+                                  "before": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "after": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "author",
+                                  "reason",
+                                  "at",
+                                  "before",
+                                  "after"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "priority",
+                          "field",
+                          "reason",
+                          "status",
+                          "version",
+                          "original",
+                          "normalized",
+                          "canResolve",
+                          "occurrenceId",
+                          "history"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "scope",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "identificacao",
+                "datas_horarios",
+                "classificacao",
+                "endereco_ra",
+                "coordenadas",
+                "informacoes_policiais",
+                "proveniencia"
+              ]
+            }
+          },
+          {
+            "name": "prioridade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "alta",
+                "media",
+                "baixa"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "aberta",
+                "resolvida",
+                "encerrada_sem_solucao"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/central-revisao/{id}": {
+      "patch": {
+        "operationId": "decideSyntheticPcdfReview",
+        "summary": "Registrar decisão administrativa versionada",
+        "x-implementation-status": "implemented-isolated-sandbox",
+        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação concluída no cluster descartável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "sandbox-synthetic-only"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "identificacao",
+                            "datas_horarios",
+                            "classificacao",
+                            "endereco_ra",
+                            "coordenadas",
+                            "informacoes_policiais",
+                            "proveniencia"
+                          ]
+                        },
+                        "priority": {
+                          "type": "string",
+                          "enum": [
+                            "alta",
+                            "media",
+                            "baixa"
+                          ]
+                        },
+                        "field": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "aberta",
+                            "resolvida",
+                            "encerrada_sem_solucao"
+                          ]
+                        },
+                        "version": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]{0,17}$"
+                        },
+                        "original": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "normalized": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "canResolve": {
+                          "type": "boolean"
+                        },
+                        "occurrenceId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "history": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "author": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                "reason": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 500
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                },
+                                "before": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "after": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "author",
+                                "reason",
+                                "at",
+                                "before",
+                                "after"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "priority",
+                        "field",
+                        "reason",
+                        "status",
+                        "version",
+                        "original",
+                        "normalized",
+                        "canResolve",
+                        "occurrenceId",
+                        "history"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "scope",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Operação recusada ou indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "decisao": {
+                        "type": "string",
+                        "const": "resolvida"
+                      },
+                      "versaoEsperada": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]{0,17}$"
+                      },
+                      "justificativa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      },
+                      "valor": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "decisao",
+                      "versaoEsperada",
+                      "justificativa",
+                      "valor"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "decisao": {
+                        "type": "string",
+                        "const": "encerrada_sem_solucao"
+                      },
+                      "versaoEsperada": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]{0,17}$"
+                      },
+                      "justificativa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      }
+                    },
+                    "required": [
+                      "decisao",
+                      "versaoEsperada",
+                      "justificativa"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
           }
         }
       }
@@ -1713,6 +4484,950 @@
   },
   "components": {
     "schemas": {
+      "PlannedManualCreate": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "allOf": [
+              {
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "pattern": "^(?:19\\d{2}|[2-9]\\d{3})-"
+              }
+            ],
+            "description": "Data civil ISO, anos 1900–9999; limites inclusivos, sem conversão para timestamp."
+          },
+          "horario": {
+            "type": "string",
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$"
+          },
+          "raId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "local": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 240
+          },
+          "coordenadas": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  }
+                },
+                "required": [
+                  "latitude",
+                  "longitude"
+                ],
+                "additionalProperties": false,
+                "description": "WGS84 em graus decimais; GeoJSON usa [longitude, latitude]. Não comprova pertencimento ao DF/RA."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "naturezas": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "naturezaId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "crimeTentado": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "naturezaId",
+                "crimeTentado"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "data",
+          "horario",
+          "raId",
+          "local",
+          "naturezas"
+        ],
+        "additionalProperties": false,
+        "description": "PROPOSTA: cadastro manual; existência, escopo, cartografia e classificação exigem validação SQL futura.",
+        "examples": [
+          {
+            "data": "2026-11-11",
+            "horario": "12:30:00",
+            "raId": "10000000-0000-4000-8000-000000000001",
+            "local": "Endereço sintético",
+            "coordenadas": null,
+            "naturezas": [
+              {
+                "naturezaId": "30000000-0000-4000-8000-000000000001",
+                "crimeTentado": null
+              }
+            ]
+          }
+        ]
+      },
+      "PlannedManualUpdate": {
+        "type": "object",
+        "properties": {
+          "versaoEsperada": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{0,18}$"
+          },
+          "justificativa": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "alteracoes": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "string",
+                "allOf": [
+                  {
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "pattern": "^(?:19\\d{2}|[2-9]\\d{3})-"
+                  }
+                ],
+                "description": "Data civil ISO, anos 1900–9999; limites inclusivos, sem conversão para timestamp."
+              },
+              "horario": {
+                "type": "string",
+                "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$"
+              },
+              "raId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "local": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 240
+              },
+              "coordenadas": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "latitude",
+                      "longitude"
+                    ],
+                    "additionalProperties": false,
+                    "description": "WGS84 em graus decimais; GeoJSON usa [longitude, latitude]. Não comprova pertencimento ao DF/RA."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "naturezas": {
+                "minItems": 1,
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "naturezaId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "crimeTentado": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "naturezaId",
+                    "crimeTentado"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "versaoEsperada",
+          "justificativa",
+          "alteracoes"
+        ],
+        "additionalProperties": false,
+        "description": "PROPOSTA: versão obrigatória, validação do estado combinado e histórico transacional; não autoriza correção pela edição regular.",
+        "examples": [
+          {
+            "versaoEsperada": "1",
+            "justificativa": "Ajuste sintético autorizado",
+            "alteracoes": {
+              "local": "Endereço sintético atualizado"
+            }
+          }
+        ]
+      },
+      "PlannedInactivation": {
+        "type": "object",
+        "properties": {
+          "versaoEsperada": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{0,18}$"
+          },
+          "motivo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "versaoEsperada",
+          "motivo"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "versaoEsperada": "1",
+            "motivo": "Inativação sintética autorizada"
+          }
+        ]
+      },
+      "PlannedWriteHeaders": {
+        "type": "object",
+        "properties": {
+          "Idempotency-Key": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "Idempotency-Key"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "Idempotency-Key": "90000000-0000-4000-8000-000000000001"
+          }
+        ]
+      },
+      "RegionCatalog": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "nome": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nome"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "items": [
+                {
+                  "id": "10000000-0000-4000-8000-000000000001",
+                  "nome": "Região sintética"
+                }
+              ]
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "operacional",
+                "persisted": true
+              }
+            }
+          }
+        ]
+      },
+      "PersistentAnalytics": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "mapTotal": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "byRa": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "byNature": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "timeline": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "byCategory": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "weekday": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "hour": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 23
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "regions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "pattern": "^[A-Z0-9-]{1,30}$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "natures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "points": {
+                "maxItems": 5000,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "latitude": {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "raCode": {
+                      "type": "string",
+                      "pattern": "^[A-Z0-9-]{1,30}$"
+                    }
+                  },
+                  "required": [
+                    "latitude",
+                    "longitude",
+                    "raCode"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "heatReference": {
+                "maxItems": 5000,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "latitude": {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "raCode": {
+                      "type": "string",
+                      "pattern": "^[A-Z0-9-]{1,30}$"
+                    }
+                  },
+                  "required": [
+                    "latitude",
+                    "longitude",
+                    "raCode"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "pointsTruncated": {
+                "type": "boolean"
+              },
+              "heatUnavailable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "total",
+              "mapTotal",
+              "byRa",
+              "byNature",
+              "timeline",
+              "weekday",
+              "hour",
+              "regions",
+              "natures",
+              "categories",
+              "points",
+              "heatReference",
+              "pointsTruncated",
+              "heatUnavailable"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "total": 0,
+              "mapTotal": 0,
+              "byRa": [],
+              "byNature": [],
+              "timeline": [],
+              "weekday": null,
+              "hour": null,
+              "regions": [],
+              "natures": [],
+              "categories": [],
+              "points": [],
+              "heatReference": [],
+              "pointsTruncated": false,
+              "heatUnavailable": false
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "operacional",
+                "persisted": true
+              }
+            }
+          }
+        ]
+      },
+      "NatureCatalog": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "descricao": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "descricao"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "items": [
+                {
+                  "id": "30000000-0000-4000-8000-000000000001",
+                  "descricao": "Natureza original sintética"
+                }
+              ]
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "operacional",
+                "persisted": true
+              }
+            }
+          }
+        ]
+      },
       "PersistentQuery": {
         "type": "object",
         "properties": {
@@ -2038,7 +5753,10 @@
                                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                                   },
                                   "codigo": {
-                                    "type": "string"
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   },
                                   "nome": {
                                     "type": "string"
@@ -2469,7 +6187,10 @@
                               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                             },
                             "codigo": {
-                              "type": "string"
+                              "type": [
+                                "string",
+                                "null"
+                              ]
                             },
                             "nome": {
                               "type": "string"
@@ -8054,6 +11775,1269 @@
                   "message": "Data inválida."
                 }
               ]
+            }
+          }
+        ]
+      },
+      "PlannedManualResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "origem": {
+                "type": "string",
+                "const": "manual"
+              },
+              "fonte": {
+                "type": "string"
+              },
+              "anoRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "unidadeRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "numeroRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "identidadeStatus": {
+                "type": "string",
+                "const": "manual"
+              },
+              "data": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horario": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "latitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "longitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "localizacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "ausente",
+                  "incompleta",
+                  "invalida",
+                  "referencia_pendente",
+                  "divergente",
+                  "validada"
+                ]
+              },
+              "consolidacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "em_revisao",
+                  "consolidada",
+                  "bloqueada"
+                ]
+              },
+              "ativo": {
+                "type": "boolean"
+              },
+              "versao": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "criadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "atualizadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "ra": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "codigo": {
+                        "type": "string"
+                      },
+                      "nome": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "codigo",
+                      "nome"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "naturezas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "crimeTentado": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "classificacaoStatus": {
+                      "type": "string"
+                    },
+                    "natureza": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "descricao": {
+                              "type": "string"
+                            },
+                            "categoriaOriginal": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "descricao",
+                            "categoriaOriginal"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "categoria": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "codigo": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "nome": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "codigo",
+                            "nome"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "crimeTentado",
+                    "classificacaoStatus",
+                    "natureza",
+                    "categoria"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "origem",
+              "fonte",
+              "anoRegistro",
+              "unidadeRegistro",
+              "numeroRegistro",
+              "identidadeStatus",
+              "data",
+              "horario",
+              "local",
+              "latitude",
+              "longitude",
+              "localizacaoStatus",
+              "consolidacaoStatus",
+              "ativo",
+              "versao",
+              "criadoEm",
+              "atualizadoEm",
+              "ra",
+              "naturezas"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "id": "50000000-0000-4000-8000-000000000001",
+              "origem": "manual",
+              "fonte": "FONTE_MANUAL_A_DEFINIR",
+              "anoRegistro": null,
+              "unidadeRegistro": null,
+              "numeroRegistro": null,
+              "identidadeStatus": "manual",
+              "data": "2026-11-11",
+              "horario": "12:30:00",
+              "local": "Endereço sintético",
+              "latitude": null,
+              "longitude": null,
+              "localizacaoStatus": "ausente",
+              "consolidacaoStatus": "em_revisao",
+              "ativo": true,
+              "versao": "1",
+              "criadoEm": "2026-11-11T12:00:00Z",
+              "atualizadoEm": "2026-11-11T12:00:00Z",
+              "ra": {
+                "id": "10000000-0000-4000-8000-000000000001",
+                "codigo": "EXEMPLO",
+                "nome": "Região sintética"
+              },
+              "naturezas": [
+                {
+                  "id": "60000000-0000-4000-8000-000000000001",
+                  "crimeTentado": null,
+                  "classificacaoStatus": "pendente",
+                  "natureza": {
+                    "id": "30000000-0000-4000-8000-000000000001",
+                    "descricao": "Natureza original sintética",
+                    "categoriaOriginal": null
+                  },
+                  "categoria": null
+                }
+              ]
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "proposto",
+                "persisted": false
+              }
+            }
+          }
+        ]
+      },
+      "PlannedUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "origem": {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "importacao"
+                ]
+              },
+              "fonte": {
+                "type": "string"
+              },
+              "anoRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "unidadeRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "numeroRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "identidadeStatus": {
+                "type": "string",
+                "enum": [
+                  "candidata",
+                  "homologada",
+                  "manual"
+                ]
+              },
+              "data": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horario": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "latitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "longitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "localizacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "ausente",
+                  "incompleta",
+                  "invalida",
+                  "referencia_pendente",
+                  "divergente",
+                  "validada"
+                ]
+              },
+              "consolidacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "em_revisao",
+                  "consolidada",
+                  "bloqueada"
+                ]
+              },
+              "ativo": {
+                "type": "boolean"
+              },
+              "versao": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "criadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "atualizadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "ra": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "codigo": {
+                        "type": "string"
+                      },
+                      "nome": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "codigo",
+                      "nome"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "naturezas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "crimeTentado": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "classificacaoStatus": {
+                      "type": "string"
+                    },
+                    "natureza": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "descricao": {
+                              "type": "string"
+                            },
+                            "categoriaOriginal": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "descricao",
+                            "categoriaOriginal"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "categoria": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "codigo": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "nome": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "codigo",
+                            "nome"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "crimeTentado",
+                    "classificacaoStatus",
+                    "natureza",
+                    "categoria"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "origem",
+              "fonte",
+              "anoRegistro",
+              "unidadeRegistro",
+              "numeroRegistro",
+              "identidadeStatus",
+              "data",
+              "horario",
+              "local",
+              "latitude",
+              "longitude",
+              "localizacaoStatus",
+              "consolidacaoStatus",
+              "ativo",
+              "versao",
+              "criadoEm",
+              "atualizadoEm",
+              "ra",
+              "naturezas"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "id": "50000000-0000-4000-8000-000000000001",
+              "origem": "manual",
+              "fonte": "FONTE_MANUAL_A_DEFINIR",
+              "anoRegistro": null,
+              "unidadeRegistro": null,
+              "numeroRegistro": null,
+              "identidadeStatus": "manual",
+              "data": "2026-11-11",
+              "horario": "12:30:00",
+              "local": "Endereço sintético",
+              "latitude": null,
+              "longitude": null,
+              "localizacaoStatus": "ausente",
+              "consolidacaoStatus": "em_revisao",
+              "ativo": true,
+              "versao": "2",
+              "criadoEm": "2026-11-11T12:00:00Z",
+              "atualizadoEm": "2026-11-11T12:00:00Z",
+              "ra": {
+                "id": "10000000-0000-4000-8000-000000000001",
+                "codigo": "EXEMPLO",
+                "nome": "Região sintética"
+              },
+              "naturezas": [
+                {
+                  "id": "60000000-0000-4000-8000-000000000001",
+                  "crimeTentado": null,
+                  "classificacaoStatus": "pendente",
+                  "natureza": {
+                    "id": "30000000-0000-4000-8000-000000000001",
+                    "descricao": "Natureza original sintética",
+                    "categoriaOriginal": null
+                  },
+                  "categoria": null
+                }
+              ]
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "proposto",
+                "persisted": false
+              }
+            }
+          }
+        ]
+      },
+      "PlannedInactivationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "origem": {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "importacao"
+                ]
+              },
+              "fonte": {
+                "type": "string"
+              },
+              "anoRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "unidadeRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "numeroRegistro": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "identidadeStatus": {
+                "type": "string",
+                "enum": [
+                  "candidata",
+                  "homologada",
+                  "manual"
+                ]
+              },
+              "data": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horario": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "local": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "latitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "longitude": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "localizacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "ausente",
+                  "incompleta",
+                  "invalida",
+                  "referencia_pendente",
+                  "divergente",
+                  "validada"
+                ]
+              },
+              "consolidacaoStatus": {
+                "type": "string",
+                "enum": [
+                  "em_revisao",
+                  "consolidada",
+                  "bloqueada"
+                ]
+              },
+              "ativo": {
+                "type": "boolean",
+                "const": false
+              },
+              "versao": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "criadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "atualizadoEm": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "ra": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "codigo": {
+                        "type": "string"
+                      },
+                      "nome": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "codigo",
+                      "nome"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "naturezas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "crimeTentado": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "classificacaoStatus": {
+                      "type": "string"
+                    },
+                    "natureza": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "descricao": {
+                              "type": "string"
+                            },
+                            "categoriaOriginal": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "descricao",
+                            "categoriaOriginal"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "categoria": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "codigo": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "nome": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "codigo",
+                            "nome"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "crimeTentado",
+                    "classificacaoStatus",
+                    "natureza",
+                    "categoria"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "origem",
+              "fonte",
+              "anoRegistro",
+              "unidadeRegistro",
+              "numeroRegistro",
+              "identidadeStatus",
+              "data",
+              "horario",
+              "local",
+              "latitude",
+              "longitude",
+              "localizacaoStatus",
+              "consolidacaoStatus",
+              "ativo",
+              "versao",
+              "criadoEm",
+              "atualizadoEm",
+              "ra",
+              "naturezas"
+            ],
+            "additionalProperties": false
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "contractVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "catalogVersion": {
+                "type": "string",
+                "const": "0.1.0"
+              },
+              "execution": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "demonstrativo"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "proposto"
+                      },
+                      "persisted": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "const": "operacional"
+                      },
+                      "persisted": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "persisted"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "contractVersion",
+              "catalogVersion",
+              "execution"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "success": true,
+            "data": {
+              "id": "50000000-0000-4000-8000-000000000001",
+              "origem": "manual",
+              "fonte": "FONTE_MANUAL_A_DEFINIR",
+              "anoRegistro": null,
+              "unidadeRegistro": null,
+              "numeroRegistro": null,
+              "identidadeStatus": "manual",
+              "data": "2026-11-11",
+              "horario": "12:30:00",
+              "local": "Endereço sintético",
+              "latitude": null,
+              "longitude": null,
+              "localizacaoStatus": "ausente",
+              "consolidacaoStatus": "em_revisao",
+              "ativo": false,
+              "versao": "2",
+              "criadoEm": "2026-11-11T12:00:00Z",
+              "atualizadoEm": "2026-11-11T12:00:00Z",
+              "ra": {
+                "id": "10000000-0000-4000-8000-000000000001",
+                "codigo": "EXEMPLO",
+                "nome": "Região sintética"
+              },
+              "naturezas": [
+                {
+                  "id": "60000000-0000-4000-8000-000000000001",
+                  "crimeTentado": null,
+                  "classificacaoStatus": "pendente",
+                  "natureza": {
+                    "id": "30000000-0000-4000-8000-000000000001",
+                    "descricao": "Natureza original sintética",
+                    "categoriaOriginal": null
+                  },
+                  "categoria": null
+                }
+              ]
+            },
+            "meta": {
+              "contractVersion": "0.1.0",
+              "catalogVersion": "0.1.0",
+              "execution": {
+                "mode": "proposto",
+                "persisted": false
+              }
             }
           }
         ]

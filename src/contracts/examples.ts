@@ -1,4 +1,7 @@
 import type { z } from "zod"
+import { plannedOccurrenceCreateSchema, plannedOccurrenceUpdateSchema, plannedOccurrenceInactivationSchema, plannedWriteHeadersSchema, plannedManualResponseSchema, plannedInactivationResponseSchema, plannedWriteResponseSchema } from "@/contracts/planned-occurrence-writes"
+import { regionCatalogResponseSchema, natureCatalogResponseSchema } from "@/contracts/persistent-catalogs"
+import { persistentAnalyticsResponse } from "@/contracts/persistent-analytics"
 import { persistentQuerySchema, persistentListResponseSchema, persistentDetailResponseSchema } from "@/contracts/persistent-occurrences"
 import {
   CONTRACT_VERSION,
@@ -160,6 +163,16 @@ export const contractModels: Record<string, {
   schema: z.ZodType
   example: unknown
 }> = {
+  PlannedManualCreate: { schema: plannedOccurrenceCreateSchema, example: { data: "2026-11-11", horario: "12:30:00", raId: "10000000-0000-4000-8000-000000000001", local: "Endereço sintético", coordenadas: null, naturezas: [{ naturezaId: "30000000-0000-4000-8000-000000000001", crimeTentado: null }] } },
+  PlannedManualUpdate: { schema: plannedOccurrenceUpdateSchema, example: { versaoEsperada: "1", justificativa: "Ajuste sintético autorizado", alteracoes: { local: "Endereço sintético atualizado" } } },
+  PlannedInactivation: { schema: plannedOccurrenceInactivationSchema, example: { versaoEsperada: "1", motivo: "Inativação sintética autorizada" } },
+  PlannedWriteHeaders: { schema: plannedWriteHeadersSchema, example: { "Idempotency-Key": "90000000-0000-4000-8000-000000000001" } },
+  RegionCatalog: { schema: regionCatalogResponseSchema, example: { success: true, data: { items: [{ id: "10000000-0000-4000-8000-000000000001", nome: "Região sintética" }] }, meta: { ...meta, execution: { mode: "operacional", persisted: true } } } },
+  PersistentAnalytics: { schema: persistentAnalyticsResponse, example: { success: true, data: {
+    total: 0, mapTotal: 0, byRa: [], byNature: [], timeline: [], weekday: null, hour: null,
+    regions: [], natures: [], categories: [], points: [], heatReference: [], pointsTruncated: false, heatUnavailable: false,
+  }, meta: { ...meta, execution: { mode: "operacional", persisted: true } } } },
+  NatureCatalog: { schema: natureCatalogResponseSchema, example: { success: true, data: { items: [{ id: "30000000-0000-4000-8000-000000000001", descricao: "Natureza original sintética" }] }, meta: { ...meta, execution: { mode: "operacional", persisted: true } } } },
   PersistentQuery: { schema: persistentQuerySchema, example: { page: 1, pageSize: 25, sortBy: "data", direction: "desc" } },
   PersistentList: { schema: persistentListResponseSchema, example: { success: true, data: { items: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 0 } }, meta: { ...meta, execution: { mode: "operacional", persisted: true } } } },
   PersistentDetail: { schema: persistentDetailResponseSchema, example: { success: true, data: {
@@ -253,3 +266,17 @@ export const contractModels: Record<string, {
     ]),
   },
 }
+
+const plannedRecord = {
+  ...persistentDetailResponseSchema.parse(contractModels.PersistentDetail.example).data,
+  origem: "manual", identidadeStatus: "manual", fonte: "FONTE_MANUAL_A_DEFINIR",
+  data: "2026-11-11", horario: "12:30:00", local: "Endereço sintético",
+  consolidacaoStatus: "em_revisao",
+  ra: { id: "10000000-0000-4000-8000-000000000001", codigo: "EXEMPLO", nome: "Região sintética" },
+  naturezas: [{ id: "60000000-0000-4000-8000-000000000001", crimeTentado: null, classificacaoStatus: "pendente",
+    natureza: { id: "30000000-0000-4000-8000-000000000001", descricao: "Natureza original sintética", categoriaOriginal: null }, categoria: null }],
+}
+const plannedMeta = { ...meta, execution: { mode: "proposto", persisted: false } }
+contractModels.PlannedManualResponse = { schema: plannedManualResponseSchema, example: { success: true, data: plannedRecord, meta: plannedMeta } }
+contractModels.PlannedUpdateResponse = { schema: plannedWriteResponseSchema, example: { success: true, data: { ...plannedRecord, versao: "2" }, meta: plannedMeta } }
+contractModels.PlannedInactivationResponse = { schema: plannedInactivationResponseSchema, example: { success: true, data: { ...plannedRecord, ativo: false, versao: "2" }, meta: plannedMeta } }
