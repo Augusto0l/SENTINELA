@@ -4,7 +4,7 @@
   "info": {
     "title": "SENTINELA — contratos propostos",
     "version": "0.1.0",
-    "description": "Ocorrências, catálogos e analytics com leitura local. Importação PCDF e Central de Revisão no cluster descartável. As operações futuras estão marcadas individualmente."
+    "description": "Ocorrências, catálogos e analytics com leitura local. Importação PCDF sintética e Central de Revisão em clusters locais atestados. As operações futuras estão marcadas individualmente."
   },
   "servers": [
     {
@@ -1299,7 +1299,10 @@
         "operationId": "listSyntheticPcdfLots",
         "summary": "Consultar lotes PCDF sintéticos",
         "x-implementation-status": "implemented-isolated-sandbox",
-        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "x-persistent-implementation": {
+          "scope": "homologacao-persistente-sintetica"
+        },
+        "description": "Cluster local atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
         "security": [
           {
             "localSession": []
@@ -1307,7 +1310,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Operação concluída no cluster descartável.",
+            "description": "Operação concluída no cluster atestado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1319,7 +1322,10 @@
                     },
                     "scope": {
                       "type": "string",
-                      "const": "sandbox-synthetic-only"
+                      "enum": [
+                        "sandbox-synthetic-only",
+                        "homologacao-persistente-sintetica"
+                      ]
                     },
                     "data": {
                       "type": "array",
@@ -1397,6 +1403,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1434,6 +1444,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1471,6 +1485,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1508,6 +1526,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1530,9 +1552,12 @@
       },
       "post": {
         "operationId": "uploadSyntheticPcdf",
-        "summary": "Persistir CSV PCDF sintético em staging",
+        "summary": "Persistir arquivo PCDF sintético em staging",
         "x-implementation-status": "implemented-isolated-sandbox",
-        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "x-persistent-implementation": {
+          "scope": "homologacao-persistente-sintetica"
+        },
+        "description": "Cluster local atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
         "security": [
           {
             "localSession": []
@@ -1540,7 +1565,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Operação concluída no cluster descartável.",
+            "description": "Operação concluída no cluster atestado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1552,7 +1577,10 @@
                     },
                     "scope": {
                       "type": "string",
-                      "const": "sandbox-synthetic-only"
+                      "enum": [
+                        "sandbox-synthetic-only",
+                        "homologacao-persistente-sintetica"
+                      ]
                     },
                     "data": {
                       "oneOf": [
@@ -1638,7 +1666,7 @@
             }
           },
           "201": {
-            "description": "Operação concluída no cluster descartável.",
+            "description": "Operação concluída no cluster atestado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1650,7 +1678,10 @@
                     },
                     "scope": {
                       "type": "string",
-                      "const": "sandbox-synthetic-only"
+                      "enum": [
+                        "sandbox-synthetic-only",
+                        "homologacao-persistente-sintetica"
+                      ]
                     },
                     "data": {
                       "oneOf": [
@@ -1754,6 +1785,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1791,6 +1826,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1828,6 +1867,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1865,6 +1908,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1902,6 +1949,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1939,6 +1990,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -1976,6 +2031,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2013,6 +2072,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2045,9 +2108,15 @@
         ],
         "requestBody": {
           "required": true,
-          "description": "UTF-8, 34 colunas e até 16 MiB. Somente proveniência da fixture sintética.",
+          "description": "CSV UTF-8 ou XLSX, com 34 colunas, até 16 MiB e proveniência sintética. XLSX exige homologação persistente com a migration 0006.",
           "content": {
             "text/csv": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
               "schema": {
                 "type": "string",
                 "format": "binary"
@@ -2062,7 +2131,10 @@
         "operationId": "promoteSyntheticPcdf",
         "summary": "Consolidar identidades aprovadas do lote",
         "x-implementation-status": "implemented-isolated-sandbox",
-        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "x-persistent-implementation": {
+          "scope": "homologacao-persistente-sintetica"
+        },
+        "description": "Cluster local atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
         "security": [
           {
             "localSession": []
@@ -2070,7 +2142,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Operação concluída no cluster descartável.",
+            "description": "Operação concluída no cluster atestado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2082,7 +2154,10 @@
                     },
                     "scope": {
                       "type": "string",
-                      "const": "sandbox-synthetic-only"
+                      "enum": [
+                        "sandbox-synthetic-only",
+                        "homologacao-persistente-sintetica"
+                      ]
                     },
                     "data": {
                       "type": "object",
@@ -2158,6 +2233,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2195,6 +2274,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2232,6 +2315,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2269,6 +2356,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2306,6 +2397,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2343,6 +2438,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2380,6 +2479,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2418,7 +2521,10 @@
         "operationId": "listSyntheticPcdfReview",
         "summary": "Consultar pendências PCDF sintéticas",
         "x-implementation-status": "implemented-isolated-sandbox",
-        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "x-persistent-implementation": {
+          "scope": "homologacao-persistente-sintetica"
+        },
+        "description": "Consulta em cluster local atestado. Na homologação persistente com a migration 0006, informe pagina para receber items e hasMore e habilitar q, ordem e limite. A consulta legada retorna uma lista.",
         "security": [
           {
             "localSession": []
@@ -2426,7 +2532,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Operação concluída no cluster descartável.",
+            "description": "Operação concluída no cluster atestado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2438,147 +2544,330 @@
                     },
                     "scope": {
                       "type": "string",
-                      "const": "sandbox-synthetic-only"
+                      "enum": [
+                        "sandbox-synthetic-only",
+                        "homologacao-persistente-sintetica"
+                      ]
                     },
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "identificacao",
-                              "datas_horarios",
-                              "classificacao",
-                              "endereco_ra",
-                              "coordenadas",
-                              "informacoes_policiais",
-                              "proveniencia"
-                            ]
-                          },
-                          "priority": {
-                            "type": "string",
-                            "enum": [
-                              "alta",
-                              "media",
-                              "baixa"
-                            ]
-                          },
-                          "field": {
-                            "type": "string"
-                          },
-                          "reason": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "aberta",
-                              "resolvida",
-                              "encerrada_sem_solucao"
-                            ]
-                          },
-                          "version": {
-                            "type": "string",
-                            "pattern": "^[1-9][0-9]{0,17}$"
-                          },
-                          "original": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "normalized": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "canResolve": {
-                            "type": "boolean"
-                          },
-                          "occurrenceId": {
-                            "anyOf": [
-                              {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
                                 "type": "string",
                                 "format": "uuid",
                                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                               },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "history": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "author": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "identificacao",
+                                  "datas_horarios",
+                                  "classificacao",
+                                  "endereco_ra",
+                                  "coordenadas",
+                                  "informacoes_policiais",
+                                  "proveniencia"
+                                ]
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "alta",
+                                  "media",
+                                  "baixa"
+                                ]
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "aberta",
+                                  "resolvida",
+                                  "encerrada_sem_solucao"
+                                ]
+                              },
+                              "version": {
+                                "type": "string",
+                                "pattern": "^[1-9][0-9]{0,17}$"
+                              },
+                              "original": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "normalized": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "canResolve": {
+                                "type": "boolean"
+                              },
+                              "occurrenceId": {
+                                "anyOf": [
+                                  {
                                     "type": "string",
                                     "format": "uuid",
                                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                                   },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lotId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "history": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "author": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      "reason": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 500
+                                      },
+                                      "at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                      },
+                                      "before": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "after": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "author",
+                                      "reason",
+                                      "at",
+                                      "before",
+                                      "after"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "priority",
+                              "field",
+                              "reason",
+                              "status",
+                              "version",
+                              "original",
+                              "normalized",
+                              "canResolve",
+                              "occurrenceId",
+                              "history"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "items": {
+                              "maxItems": 50,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "identificacao",
+                                      "datas_horarios",
+                                      "classificacao",
+                                      "endereco_ra",
+                                      "coordenadas",
+                                      "informacoes_policiais",
+                                      "proveniencia"
+                                    ]
+                                  },
+                                  "priority": {
+                                    "type": "string",
+                                    "enum": [
+                                      "alta",
+                                      "media",
+                                      "baixa"
+                                    ]
+                                  },
+                                  "field": {
+                                    "type": "string"
+                                  },
                                   "reason": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 500
+                                    "type": "string"
                                   },
-                                  "at": {
+                                  "status": {
                                     "type": "string",
-                                    "format": "date-time",
-                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    "enum": [
+                                      "aberta",
+                                      "resolvida",
+                                      "encerrada_sem_solucao"
+                                    ]
                                   },
-                                  "before": {
+                                  "version": {
+                                    "type": "string",
+                                    "pattern": "^[1-9][0-9]{0,17}$"
+                                  },
+                                  "original": {
                                     "type": [
                                       "string",
                                       "null"
                                     ]
                                   },
-                                  "after": {
+                                  "normalized": {
                                     "type": [
                                       "string",
                                       "null"
+                                    ]
+                                  },
+                                  "canResolve": {
+                                    "type": "boolean"
+                                  },
+                                  "occurrenceId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "lotId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "history": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "author": {
+                                            "type": "string",
+                                            "format": "uuid",
+                                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                          },
+                                          "reason": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 500
+                                          },
+                                          "at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                          },
+                                          "before": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "after": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "author",
+                                          "reason",
+                                          "at",
+                                          "before",
+                                          "after"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
                                     ]
                                   }
                                 },
                                 "required": [
-                                  "author",
+                                  "id",
+                                  "type",
+                                  "priority",
+                                  "field",
                                   "reason",
-                                  "at",
-                                  "before",
-                                  "after"
+                                  "status",
+                                  "version",
+                                  "original",
+                                  "normalized",
+                                  "canResolve",
+                                  "occurrenceId",
+                                  "history"
                                 ],
                                 "additionalProperties": false
-                              },
-                              {
-                                "type": "null"
                               }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "type",
-                          "priority",
-                          "field",
-                          "reason",
-                          "status",
-                          "version",
-                          "original",
-                          "normalized",
-                          "canResolve",
-                          "occurrenceId",
-                          "history"
-                        ],
-                        "additionalProperties": false
-                      }
+                            },
+                            "page": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10000
+                            },
+                            "pageSize": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 50
+                            },
+                            "hasMore": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "items",
+                            "page",
+                            "pageSize",
+                            "hasMore"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -2610,6 +2899,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2647,6 +2940,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2684,6 +2981,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2721,6 +3022,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -2783,6 +3088,48 @@
                 "encerrada_sem_solucao"
               ]
             }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "ordem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "prioridade",
+              "type": "string",
+              "enum": [
+                "prioridade",
+                "recentes",
+                "antigas"
+              ]
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9]\\d{0,4}$"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9]\\d?$"
+            }
           }
         ]
       }
@@ -2792,7 +3139,10 @@
         "operationId": "decideSyntheticPcdfReview",
         "summary": "Registrar decisão administrativa versionada",
         "x-implementation-status": "implemented-isolated-sandbox",
-        "description": "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+        "x-persistent-implementation": {
+          "scope": "homologacao-persistente-sintetica"
+        },
+        "description": "Cluster local atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
         "security": [
           {
             "localSession": []
@@ -2800,7 +3150,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Operação concluída no cluster descartável.",
+            "description": "Operação concluída no cluster atestado.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2812,7 +3162,10 @@
                     },
                     "scope": {
                       "type": "string",
-                      "const": "sandbox-synthetic-only"
+                      "enum": [
+                        "sandbox-synthetic-only",
+                        "homologacao-persistente-sintetica"
+                      ]
                     },
                     "data": {
                       "type": "object",
@@ -2886,6 +3239,11 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "lotId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
                         "history": {
                           "anyOf": [
@@ -2981,6 +3339,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3018,6 +3380,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3055,6 +3421,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3092,6 +3462,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3129,6 +3503,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3166,6 +3544,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3203,6 +3585,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3240,6 +3626,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [
@@ -3277,6 +3667,10 @@
                         },
                         "message": {
                           "type": "string"
+                        },
+                        "diagnostic": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_]{1,100}$"
                         }
                       },
                       "required": [

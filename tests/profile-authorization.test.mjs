@@ -82,7 +82,12 @@ test("all three profiles keep only approved GET endpoints; direct persistent wri
 test("rendered sidebar and header expose only permitted navigation for each verified role",()=>{
   for(const role of policy.ROLES) {
     state.principal=principal(role)
-    const html=renderToStaticMarkup(React.createElement(Sidebar,{currentPage:"occurrences",onNavigate(){},collapsed:false,onToggle(){}}))
+    const sidebarProps={currentPage:"occurrences",onNavigate(){},collapsed:false,onToggle(){}}
+    const html=renderToStaticMarkup(React.createElement(Sidebar,sidebarProps))
+    const persisted=renderToStaticMarkup(React.createElement(Sidebar,{...sidebarProps,persistent:true}))
+    assert(html.includes("Alterações em memória"))
+    assert(persisted.includes("Dados sintéticos no banco local."))
+    assert(!persisted.includes("Alterações em memória"))
     for(const label of ["Dashboard","Mapa Criminal"])assert(html.includes(`aria-label="${label}"`))
     for(const label of ["Nova Ocorrência","Importar Dados"])assert.equal(html.includes(`aria-label="${label}"`),role!=="Analista")
     for(const label of ["Usuários","Configurações"])assert.equal(html.includes(`aria-label="${label}"`),role==="Administrador")
