@@ -5,7 +5,7 @@ import { publicSupabaseConfig } from "@/lib/supabase/config"
 import { hasPermission, isProtectedPath, routePermission } from "@/lib/auth/policy"
 import { localDemoEnabled } from "@/lib/auth/local-demo"
 import { apiError, isLocalReadEndpoint } from "@/lib/db/http"
-import { isolatedWriteMode, isIsolatedMutation } from "@/lib/db/isolated-write-mode"
+import { isolatedWriteMode, isIsolatedMutation, isolatedPcdfMode, isPcdfEndpoint } from "@/lib/db/isolated-write-mode"
 
 export async function proxy(request: NextRequest) {
   const config = publicSupabaseConfig()
@@ -23,7 +23,8 @@ export async function proxy(request: NextRequest) {
     const principal = await localSession(request.cookies.get(LOCAL_COOKIE)?.value, request.headers.get("host"))
     if (request.nextUrl.pathname.startsWith("/api/")) {
       const isolatedMutation = isolatedWriteMode() && isIsolatedMutation(request.nextUrl.pathname, request.method)
-      if (!isolatedMutation && !isLocalReadEndpoint(request.nextUrl.pathname, request.method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
+      const pcdf = isolatedPcdfMode() && isPcdfEndpoint(request.nextUrl.pathname, request.method)
+      if (!isolatedMutation && !pcdf && !isLocalReadEndpoint(request.nextUrl.pathname, request.method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
       if (!principal) return apiError("UNAUTHORIZED", "Sessão necessária.")
       if (!hasPermission(principal.role, "analisar")) return apiError("FORBIDDEN", "Consulta não autorizada.")
       return noStore(response)

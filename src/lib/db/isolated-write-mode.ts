@@ -1,4 +1,5 @@
 import { join } from "node:path"
+import { pcdfImportPath } from "@/contracts/pcdf-workspace"
 
 export function isolatedWriteMode(env = process.env) {
   const id = env.SENTINELA_SANDBOX_WRITE_ID
@@ -16,4 +17,13 @@ export function isolatedWriteMode(env = process.env) {
 export function isIsolatedMutation(path: string, method: string) {
   return (method === "POST" && (path === "/api/v1/ocorrencias" || /^\/api\/v1\/ocorrencias\/[^/]+\/inativacao$/.test(path)))
     || (method === "PATCH" && /^\/api\/v1\/ocorrencias\/[^/]+$/.test(path))
+}
+
+export function isolatedPcdfMode(env = process.env) {
+  return env.SENTINELA_SANDBOX_PCDF === "1" ? isolatedWriteMode(env) : null
+}
+
+export function isPcdfEndpoint(path: string, method: string) {
+  return (path === pcdfImportPath && method === "GET")
+    || (method === "POST" && (path === pcdfImportPath || /^\/api\/v1\/importacoes\/pcdf\/[^/]+\/consolidacao$/.test(path)))
 }

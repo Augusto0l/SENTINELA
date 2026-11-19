@@ -33,7 +33,7 @@ export default function IsolatedList({ rows, write, unavailable = false }: {
             <thead><tr><th>Ocorrência</th><th>Data</th><th>Local</th><th>Estado</th><th>Ações</th></tr></thead>
             <tbody>{rows.map(row => <tr key={row.id}>
               <td><Button variant="outline" onClick={() => open(row.id)}>{row.id}</Button></td>
-              <td>{row.data ?? "Ausente"}</td><td>{row.local ?? "Ausente"}</td><td>{row.ativo ? "Ativa" : "Inativa"}</td>
+              <td>{row.data ?? "Ausente"}</td><td>{row.local ?? "Ausente"}</td><td>{row.fonte ? "PCDF consolidada" : row.ativo ? "Ativa" : "Inativa"}</td>
               <td>{write && row.elegivel && <Button onClick={() => open(row.id, "edit")}>Editar</Button>}</td>
             </tr>)}</tbody>
           </table></div>}
@@ -41,6 +41,7 @@ export default function IsolatedList({ rows, write, unavailable = false }: {
     {record && <Dialog title="Detalhes da ocorrência sintética" onClose={close}>
       <h2>Detalhes da ocorrência sintética</h2>
       <p>{record.local ?? "Local ausente"} · versão {record.versao}</p>
+      {record.fonte && <p>Importação PCDF sintética · {record.naturezas.length} associações de natureza</p>}
       <p>{record.endereco ?? "Endereço não informado"} · {record.bairro ?? "Bairro ou setor não informado"}</p>
       {write && record.elegivel && (action
         ? <IsolatedCreate key={record.id + record.versao + action} initial={record} action={action} onSaved={() => {

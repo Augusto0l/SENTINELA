@@ -211,6 +211,34 @@ Aceite exige evidência produzida pela implementação futura; este documento n�
 
 ## 11. Pendências de homologação e sequência da Sprint 4
 
+### Extensão da homologação local
+
+- A [matriz de correspondências](../catalogos/pcdf-correspondencias-v1.json)
+  atribui identificadores internos a 41 descrições e referencia o hash
+  do relatório agregado. Duas relações estão documentadas e 39 continuam
+  pendentes. Nenhuma regra está aprovada para carga.
+- A promoção sintética bloqueia chaves candidatas semelhantes em outros
+  lotes ou extrações já em staging, além das já consolidadas. Espaços
+  nas extremidades entram apenas na detecção de conflito. Os valores
+  originais, zeros à esquerda e a chave usada na aprovação são preservados.
+  Divergência ou falta de chave mantém as linhas em staging.
+- A Central permite ao Administrador resolver horário, local e flagrante
+  desconhecido antes da promoção. Para flagrante, o valor efetivo é
+  booleano. Após a promoção, a Central informa o UUID da ocorrência e
+  conserva o histórico. A alteração do caso consolidado exige política
+  própria para versionamento e impacto nos indicadores.
+- A exportação territorial da IDE/DF usa `outSR=4326`. GeoJSON usa
+  longitude e latitude nessa ordem. O PostGIS representa os pontos com
+  longitude em X e latitude em Y. A camada territorial preserva as 37
+  feições e os casos de fronteira ambígua. O relatório PCDF descreve
+  campos GEO e UTM, com referência, unidades e eixos ainda a confirmar
+  junto ao produtor. Valores ausentes, par inválido ou par candidato sem
+  CRS confirmado continuam em revisão, com geometria nula. Depois da
+  confirmação, transformar somente a partir do CRS de origem aprovado
+  e checar limites e vínculos territoriais vigentes.
+  [Auditoria cartográfica](../cartografia-validacao-territorial.md) ·
+  [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946.html)
+
 | Pendência | Decisão necessária antes do uso definitivo |
 | --- | --- |
 | Chave oficial PCDF | Confirmar unicidade, escopo, estabilidade e conflitos da tupla candidata, inclusive entre extrações. |

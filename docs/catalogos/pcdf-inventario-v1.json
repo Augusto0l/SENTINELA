@@ -1,0 +1,367 @@
+{
+  "version": "pcdf-inventario-v1",
+  "source": {
+    "file": "relatorios/dados/resumo_recebimento_pcdf.md",
+    "section": "Naturezas criminais",
+    "reportSha256": "4f59f8449b53a7612f79beb3e908d869015a2dec08799e5b6bdb09585fab972f"
+  },
+  "status": "inventario-agregado-sem-homologacao",
+  "originalNatures": [
+    {
+      "label": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "count": 799
+    },
+    {
+      "label": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "count": 12648
+    },
+    {
+      "label": "ESTUPRO",
+      "count": 1795
+    },
+    {
+      "label": "ESTUPRO COLETIVO",
+      "count": 14
+    },
+    {
+      "label": "ESTUPRO COM RESULTADO MORTE",
+      "count": 1
+    },
+    {
+      "label": "ESTUPRO CORRETIVO",
+      "count": 1
+    },
+    {
+      "label": "ESTUPRO DE VULNERÁVEL",
+      "count": 4032
+    },
+    {
+      "label": "FEMINICIDIO",
+      "count": 681
+    },
+    {
+      "label": "FURTO DE MOTOCICLETA",
+      "count": 6059
+    },
+    {
+      "label": "FURTO DE VEICULO",
+      "count": 12667
+    },
+    {
+      "label": "FURTO EM COMERCIO",
+      "count": 24918
+    },
+    {
+      "label": "FURTO EM INTERIOR DE VEICULO",
+      "count": 37474
+    },
+    {
+      "label": "FURTO EM RESIDENCIA",
+      "count": 24102
+    },
+    {
+      "label": "HOMICIDIO",
+      "count": 4232
+    },
+    {
+      "label": "LATROCINIO",
+      "count": 85
+    },
+    {
+      "label": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "count": 116262
+    },
+    {
+      "label": "PORTE DE ARMA",
+      "count": 631
+    },
+    {
+      "label": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "count": 19565
+    },
+    {
+      "label": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "count": 2530
+    },
+    {
+      "label": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "count": 1299
+    },
+    {
+      "label": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "count": 1429
+    },
+    {
+      "label": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "count": 21
+    },
+    {
+      "label": "ROUBO A BAR",
+      "count": 50
+    },
+    {
+      "label": "ROUBO A CASA LOTERICA",
+      "count": 3
+    },
+    {
+      "label": "ROUBO A DROGARIA",
+      "count": 335
+    },
+    {
+      "label": "ROUBO A PANIFICADORA",
+      "count": 141
+    },
+    {
+      "label": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "count": 113
+    },
+    {
+      "label": "ROUBO A TRAILLER",
+      "count": 20
+    },
+    {
+      "label": "ROUBO A TRANSEUNTE",
+      "count": 64430
+    },
+    {
+      "label": "ROUBO DE VEICULO",
+      "count": 7117
+    },
+    {
+      "label": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "count": 122
+    },
+    {
+      "label": "ROUBO EM COLETIVO",
+      "count": 2059
+    },
+    {
+      "label": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "count": 1893
+    },
+    {
+      "label": "ROUBO EM PARADA DE ONIBUS",
+      "count": 6233
+    },
+    {
+      "label": "ROUBO EM RESIDENCIA",
+      "count": 1090
+    },
+    {
+      "label": "ROUBO NA PROXIMIDADES DE BANCO",
+      "count": 51
+    },
+    {
+      "label": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "count": 11
+    },
+    {
+      "label": "TRÁFICO DE DROGAS PREVALECENDO-SE DE FUNÇÃO PÚBLICA",
+      "count": 3
+    },
+    {
+      "label": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "count": 14644
+    },
+    {
+      "label": "TRÁFICO INTERNACIONAL DE SUBSTANCIA ENTORPECENTE",
+      "count": 18
+    },
+    {
+      "label": "TRÁFICO PRIVILEGIADO",
+      "count": 82
+    }
+  ],
+  "originalCategories": [
+    {
+      "label": "01.1_TENTATIVA DE HOMICIDIO",
+      "count": 2952
+    },
+    {
+      "label": "01_HOMICIDIO",
+      "count": 1280
+    },
+    {
+      "label": "05_ESTUPRO",
+      "count": 5843
+    },
+    {
+      "label": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "count": 128910
+    },
+    {
+      "label": "123.1_TENTATIVA DE FEMINICIDIO",
+      "count": 540
+    },
+    {
+      "label": "123_FEMINICIDIO",
+      "count": 141
+    },
+    {
+      "label": "13_ROUBO A TRANSEUNTE",
+      "count": 70725
+    },
+    {
+      "label": "14_ROUBO EM COLETIVO",
+      "count": 2059
+    },
+    {
+      "label": "18_ROUBO DE VEICULO",
+      "count": 7117
+    },
+    {
+      "label": "19_ROUBO EM COMÉRCIO",
+      "count": 2555
+    },
+    {
+      "label": "20_ROUBO EM RESIDÊNCIA",
+      "count": 1212
+    },
+    {
+      "label": "21_LATROCINIO",
+      "count": 85
+    },
+    {
+      "label": "25_FURTO DE VEICULO",
+      "count": 18726
+    },
+    {
+      "label": "26_FURTO EM COMERCIO",
+      "count": 24918
+    },
+    {
+      "label": "27_FURTO EM RESIDENCIA",
+      "count": 24102
+    },
+    {
+      "label": "28_FURTO EM INTERIOR DE VEICULO",
+      "count": 37474
+    },
+    {
+      "label": "87_PORTE/POSSE DE ARMA",
+      "count": 5910
+    },
+    {
+      "label": "88_USO E PORTE DE DROGAS",
+      "count": 19565
+    },
+    {
+      "label": "89_TRAFICO DE DROGAS",
+      "count": 15546
+    }
+  ],
+  "requestedCategories": [
+    {
+      "name": "Homicídio",
+      "reportedLabel": "01_HOMICIDIO",
+      "reportedCount": 1280
+    },
+    {
+      "name": "Tentativa de homicídio",
+      "reportedLabel": "01.1_TENTATIVA DE HOMICIDIO",
+      "reportedCount": 2952
+    },
+    {
+      "name": "Roubo a transeunte",
+      "reportedLabel": "13_ROUBO A TRANSEUNTE",
+      "reportedCount": 70725
+    },
+    {
+      "name": "Roubo em comércio",
+      "reportedLabel": "19_ROUBO EM COMÉRCIO",
+      "reportedCount": 2555
+    },
+    {
+      "name": "Roubo em residência",
+      "reportedLabel": "20_ROUBO EM RESIDÊNCIA",
+      "reportedCount": 1212
+    },
+    {
+      "name": "Roubo de veículo",
+      "reportedLabel": "18_ROUBO DE VEICULO",
+      "reportedCount": 7117
+    },
+    {
+      "name": "Furto em veículo",
+      "reportedLabel": "28_FURTO EM INTERIOR DE VEICULO",
+      "reportedCount": 37474
+    },
+    {
+      "name": "Furto de veículo",
+      "reportedLabel": "25_FURTO DE VEICULO",
+      "reportedCount": 18726
+    },
+    {
+      "name": "Furto em comércio",
+      "reportedLabel": "26_FURTO EM COMERCIO",
+      "reportedCount": 24918
+    },
+    {
+      "name": "Furto em residência",
+      "reportedLabel": "27_FURTO EM RESIDENCIA",
+      "reportedCount": 24102
+    },
+    {
+      "name": "Estupro",
+      "reportedLabel": "ESTUPRO (Natureza; outras modalidades exigem validação)",
+      "reportedCount": 1795
+    },
+    {
+      "name": "Violência doméstica",
+      "reportedLabel": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "reportedCount": 128910
+    },
+    {
+      "name": "Roubo em transporte coletivo",
+      "reportedLabel": "14_ROUBO EM COLETIVO",
+      "reportedCount": 2059
+    },
+    {
+      "name": "Feminicídio",
+      "reportedLabel": "123_FEMINICIDIO",
+      "reportedCount": 141
+    },
+    {
+      "name": "Tentativa de feminicídio",
+      "reportedLabel": "123.1_TENTATIVA DE FEMINICIDIO",
+      "reportedCount": 540
+    },
+    {
+      "name": "Estupro de vulnerável",
+      "reportedLabel": "ESTUPRO DE VULNERÁVEL",
+      "reportedCount": 4032
+    },
+    {
+      "name": "Latrocínio",
+      "reportedLabel": "21_LATROCINIO",
+      "reportedCount": 85
+    },
+    {
+      "name": "Tráfico de drogas",
+      "reportedLabel": "89_TRAFICO DE DROGAS",
+      "reportedCount": 15546
+    },
+    {
+      "name": "Uso e porte de drogas",
+      "reportedLabel": "88_USO E PORTE DE DROGAS",
+      "reportedCount": 19565
+    },
+    {
+      "name": "Posse/porte de arma de fogo",
+      "reportedLabel": "87_PORTE/POSSE DE ARMA",
+      "reportedCount": 5910
+    }
+  ],
+  "documentedExamples": [
+    {
+      "original": "ESTUPRO",
+      "pcdfCategory": "05_ESTUPRO",
+      "requested": "Estupro"
+    },
+    {
+      "original": "ESTUPRO DE VULNERÁVEL",
+      "pcdfCategory": "05_ESTUPRO",
+      "requested": "Estupro de vulnerável"
+    }
+  ]
+}
