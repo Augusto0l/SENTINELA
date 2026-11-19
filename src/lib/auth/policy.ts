@@ -32,7 +32,7 @@ export function routePermission(pathname: string): Permission {
 }
 
 export function isProtectedPath(pathname: string): boolean {
-  return ["/dashboard", "/mapa-criminal", "/ocorrencias", "/importar", "/usuarios", "/configuracoes", "/central-revisao", "/api/ocorrencias", "/api/v1/ocorrencias"]
+  return ["/dashboard", "/mapa-criminal", "/ocorrencias", "/importar", "/usuarios", "/configuracoes", "/central-revisao", "/api/ocorrencias", "/api/v1/ocorrencias", "/api/v1/catalogos"]
     .some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 

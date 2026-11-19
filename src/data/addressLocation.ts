@@ -1,4 +1,5 @@
 import type { RaFeature, RaGeoJSON } from "@/data/geoLoader"
+import { validateTerritory } from "@/data/territorial-validation"
 
 export interface AddressLocation {
   id: string
@@ -158,35 +159,12 @@ export function parseLocations(payload: unknown): AddressLocation[] {
   })
 }
 
-function inRing(longitude: number, latitude: number, ring: number[][]) {
-  let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [x, y] = ring[i],
-      [previousX, previousY] = ring[j]
-    if (
-      y > latitude !== previousY > latitude &&
-      longitude < ((previousX - x) * (latitude - y)) / (previousY - y) + x
-    )
-      inside = !inside
-  }
-  return inside
-}
-
 export function locationRa(
   geo: RaGeoJSON,
   latitude: number,
   longitude: number,
 ): RaFeature | undefined {
-  return geo.features.find((feature) => {
-    const polygons =
-      feature.geometry.type === "Polygon"
-        ? [feature.geometry.coordinates as number[][][]]
-        : feature.geometry.coordinates as number[][][][]
-    return polygons.some(
-      ([outer, ...holes]) =>
-        outer &&
-        inRing(longitude, latitude, outer) &&
-        !holes.some((hole) => inRing(longitude, latitude, hole)),
-    )
-  })
+  const result = validateTerritory(geo, latitude, longitude)
+  if (result.status !== "reference_pending" || result.matches.length !== 1) return undefined
+  return geo.features.find(feature => feature.properties.ra_codigo === result.matches[0])
 }

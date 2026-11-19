@@ -1,0 +1,13 @@
+{
+  "version": "local-ra-0002",
+  "sourceManifestSha256": "f871d94812c763a9b2decfffc7a94a9991e4fd04e519a0538fca35d12e2877bc",
+  "files": {
+    "execute.mjs": "172ef41cbdcd07061b493c56f1007bf2ff4c28afc258b8946fc5e3a9f39f0e3f",
+    "preflight.sql": "af0012a6743f8b493ef953af2ef4d9fd7eca330b16d8bef168605897d31bdb0c",
+    "inspect.sql": "e4b7f3708ee229d1a408e2f889046f36ccfae5492314768fa8f03ab8022194c8",
+    "stage.sql": "8fccf6d90a2695fadc4f2bb5e268fc76e235a8f98109fcf6c334db4a9244e268",
+    "compare.sql": "a11f6e71750ce38fd60c7f295b73868f9efc68d2293c2a82b72fd72f212cc136",
+    "load.sql": "6d022a7c18d4a8ba93a48531e9a2731cfa49673a54475a31417dbae754fe8bcd",
+    "../migrations/0002_ra_official_catalog.sql": "e47bd3dcf1cf7003ee359bca24d808c658cb2672caffb834d5de4be660f0f6b5"
+  }
+}

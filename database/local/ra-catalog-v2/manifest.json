@@ -1,0 +1,10 @@
+{
+  "version": "ra-public-sandbox-2026-11-13-v2",
+  "scope": "sandbox-only",
+  "files": {
+    "install.sql": "142806b5467ee5025831ca27b4e4310e8a1d42df486ad9a6a2ab443efd2aa0c9",
+    "payload.json": "8179f313a17c1ce15913f6ab4b8bc19270ca05c88d2825e9e8c10d99c641a4c9",
+    "qualify.mjs": "415c7c3b4f956b0a041a8e3a0d94d6391c1adbcbc6369b3eb9448e9d5d7d9e76",
+    "run.py": "ee5993679033ebf06a1660a0b9d47652727cae299032079ab8086c720732d334"
+  }
+}

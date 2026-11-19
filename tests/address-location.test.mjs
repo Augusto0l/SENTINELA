@@ -1,6 +1,7 @@
+import "../scripts/contracts-runtime.mjs"
 import test from "node:test"
 import assert from "node:assert/strict"
-import {
+const {
   completeCep,
   looksLikeCep,
   parseLocations,
@@ -8,7 +9,7 @@ import {
   postalAddressFrom,
   postalSearches,
   parsePostalLocations,
-} from "../src/data/addressLocation.ts"
+} = await import("../src/data/addressLocation.ts")
 
 test("dados postais preservam bairro e oferecem referência regional sem inventar coordenadas", () => {
   const postal = postalAddressFrom({ cep: "73081-140", logradouro: "Quadra QMS 29C Módulo A", bairro: "Setor de Mansões de Sobradinho", localidade: "Brasília", uf: "DF" })

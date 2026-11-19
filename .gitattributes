@@ -144,3 +144,11 @@
 *.stl                filter=lfs diff=lfs merge=lfs -text
 *.nc                 filter=lfs diff=lfs merge=lfs -text
 *.mat                filter=lfs diff=lfs merge=lfs -text
+
+# Preserve the reviewed bytes of release assets checked by SHA-256.
+/database/local/ra-catalog-v2/* -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/database/local/ra-operational/* -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/database/local/migrations/0002_ra_official_catalog.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/public/data/cartography/ras-ide-2026-11-13.geojson -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/catalogos/ras-revisao-2026-11-13-v1/* -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/catalogos/ras-revisao-2026-11-13-v1/*.html -whitespace
