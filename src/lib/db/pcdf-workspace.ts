@@ -7,7 +7,8 @@ import { attestManifest } from "../../../database/local/write-sandbox/service.ts
 import { getLocalPrincipal } from "@/lib/auth/local-server"
 import { hasPermission, type Permission, type Role } from "@/lib/auth/policy"
 import { isolatedPcdfMode } from "@/lib/db/isolated-write-mode"
-import { pcdfLot, pcdfMonth, pcdfPromotion, pcdfUpload } from "@/contracts/pcdf-workspace"
+import { pcdfDecision, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion,
+  pcdfReviewFilters, pcdfUpload } from "@/contracts/pcdf-workspace"
 
 const maxCsvBytes = 16 * 1024 * 1024
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" }
@@ -69,9 +70,9 @@ function stagePayload(content: Buffer, month: string) {
   })
 }
 
-type Operation = "upload" | "lots" | "promote"
+type Operation = "upload" | "lots" | "promote" | "review" | "decide"
 const permissions: Record<Operation, Permission> = {
-  upload: "importar", lots: "importar", promote: "importar",
+  upload: "importar", lots: "importar", promote: "importar", review: "consultar_central", decide: "corrigir",
 }
 
 function sqlError(error: unknown) {
@@ -90,7 +91,7 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
   try {
     const mode = isolatedPcdfMode()
     if (!mode || request.headers.get("host") !== new URL(mode.origin).host) throw new WorkspaceError(403)
-    const write = operation === "upload" || operation === "promote"
+    const write = operation === "upload" || operation === "promote" || operation === "decide"
     if (write && request.headers.get("origin") !== mode.origin) throw new WorkspaceError(403)
     const principal = await getLocalPrincipal()
     if (!principal) throw new WorkspaceError(401)
@@ -130,6 +131,23 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
         params = [principal.localSubject, z.uuid().parse(id)]
         schema = pcdfPromotion
         break
+      case "review": {
+        const { tipo, prioridade, status } = pcdfReviewFilters.parse(query)
+        statement = "SELECT ARRAY(SELECT sentinela_pcdf_lab.workspace_review($1,$2,$3,NULL)) AS data"
+        params = [tipo, prioridade, status]
+        schema = z.array(pcdfIssue)
+        break
+      }
+      case "decide": {
+        z.strictObject({}).parse(query)
+        if (bodyType !== "application/json") throw new WorkspaceError(415)
+        const body = pcdfDecision.parse(JSON.parse((await readBody(request, 8192)).toString("utf8")))
+        statement = "SELECT sentinela_pcdf_lab.decide($1,$2,$3,$4,$5,$6) AS data"
+        params = [principal.localSubject, z.uuid().parse(id), body.versaoEsperada, body.decisao,
+          body.decisao === "resolvida" ? body.valor : null, body.justificativa]
+        schema = pcdfIssue
+        break
+      }
     }
 
     client = new Client({ host: "127.0.0.1", port: 55432, database: "sentinela_rls_sandbox", user, password, ssl: false,

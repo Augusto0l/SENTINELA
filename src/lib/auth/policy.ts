@@ -8,6 +8,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, readonly Permission[]>> = 
 }
 export const NAVIGATION_ROUTES: Readonly<Record<string, string>> = {
   dashboard: "/dashboard", "crime-map": "/mapa-criminal", occurrences: "/ocorrencias",
+  review: "/central-revisao",
   new: "/ocorrencias/nova", import: "/importar", users: "/usuarios", settings: "/configuracoes",
 }
 export interface Principal {
@@ -32,7 +33,7 @@ export function routePermission(pathname: string): Permission {
 }
 
 export function isProtectedPath(pathname: string): boolean {
-  return ["/dashboard", "/mapa-criminal", "/ocorrencias", "/importar", "/usuarios", "/configuracoes", "/central-revisao", "/api/ocorrencias", "/api/v1/ocorrencias", "/api/v1/catalogos", "/api/v1/importacoes"]
+  return ["/dashboard", "/mapa-criminal", "/ocorrencias", "/importar", "/usuarios", "/configuracoes", "/central-revisao", "/api/ocorrencias", "/api/v1/ocorrencias", "/api/v1/catalogos", "/api/v1/importacoes", "/api/v1/central-revisao"]
     .some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 

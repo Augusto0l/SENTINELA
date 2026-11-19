@@ -10,6 +10,7 @@ interface SidebarProps {
   onNavigate: (page: string) => void
   collapsed: boolean
   onToggle: () => void
+  pcdf?: boolean
 }
 
 const navGroups: { label: string; items: { key: string; label: string; icon: NavigationIconName }[] }[] = [
@@ -26,6 +27,7 @@ const navGroups: { label: string; items: { key: string; label: string; icon: Nav
       { key: "occurrences", label: "Ocorrências", icon: "records" },
       { key: "new", label: "Nova Ocorrência", icon: "plus" },
       { key: "import", label: "Importar Dados", icon: "upload" },
+      { key: "review", label: "Central de Revisão", icon: "records" },
     ],
   },
   {
@@ -38,7 +40,7 @@ const navGroups: { label: string; items: { key: string; label: string; icon: Nav
   },
 ]
 
-export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, pcdf = false }: SidebarProps) {
   const { role, principal } = useOperations()
   return (
     <aside aria-label="Navegação do SENTINELA" className={`system-sidebar ${styles.sidebar} ${collapsed ? `${styles.collapsed} is-collapsed` : ""}`}>
@@ -65,7 +67,8 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
         {navGroups.map((group) => (
           <div key={group.label} className={styles.navGroup}>
             <p className={styles.groupLabel}>{group.label}</p>
-            {group.items.filter((item) => item.key in NAVIGATION_ROUTES && canVisit(role, NAVIGATION_ROUTES[item.key])).map((item) => (
+            {group.items.filter((item) => (item.key !== "review" || pcdf)
+              && item.key in NAVIGATION_ROUTES && canVisit(role, NAVIGATION_ROUTES[item.key])).map((item) => (
               <button key={item.key} type="button" className={styles.navItem}
                 aria-label={item.label} aria-current={currentPage === item.key ? "page" : undefined}
                 title={item.label} onClick={() => onNavigate(item.key)}>

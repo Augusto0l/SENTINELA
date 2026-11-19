@@ -1,5 +1,5 @@
 import { join } from "node:path"
-import { pcdfImportPath } from "@/contracts/pcdf-workspace"
+import { pcdfImportPath, pcdfReviewPath } from "@/contracts/pcdf-workspace"
 
 export function isolatedWriteMode(env = process.env) {
   const id = env.SENTINELA_SANDBOX_WRITE_ID
@@ -24,6 +24,7 @@ export function isolatedPcdfMode(env = process.env) {
 }
 
 export function isPcdfEndpoint(path: string, method: string) {
-  return (path === pcdfImportPath && method === "GET")
+  return ((path === pcdfImportPath || path === pcdfReviewPath) && method === "GET")
     || (method === "POST" && (path === pcdfImportPath || /^\/api\/v1\/importacoes\/pcdf\/[^/]+\/consolidacao$/.test(path)))
+    || (method === "PATCH" && /^\/api\/v1\/central-revisao\/[^/]+$/.test(path))
 }
