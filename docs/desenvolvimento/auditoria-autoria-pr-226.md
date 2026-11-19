@@ -5,8 +5,8 @@ O PR #226 foi integrado por `f98ec07`, com base `e943ae4` e cabeça
 confirmam 12 commits de trabalho. Todos registram Pedro Augusto como
 autor e committer no Git, resolvidos pelo GitHub como `Augusto0l` nos
 dois campos. Os 12 não contêm trailers de coautoria. O commit de merge
-registra Pedro Augusto como autor e GitHub como committer. A descrição
-do PR informa 11 commits, número que antecede o último ajuste de CI.
+registra Pedro Augusto como autor e GitHub como committer. A descrição inicial do PR mencionava 11 commits, antes do último ajuste de CI;
+a contagem definitiva é de 12 commits.
 [PR #226](https://github.com/CAMPUSCEUB/Sentinela/pull/226)
 
 | Commit | Alterações efetivamente incluídas |
@@ -42,9 +42,9 @@ pela integração. [PR #224](https://github.com/CAMPUSCEUB/Sentinela/pull/224) �
 | Pedro Augusto (`Augusto0l`) | `e253cc3` implementou o caminho de leitura PostgreSQL, com 13 linhas preservadas em `occurrences.ts` no merge do #226. A integração dos 12 commits do #226 está registrada na mesma identidade. [API de leitura](https://github.com/CAMPUSCEUB/Sentinela/commit/e253cc3) · [Correção de CI](https://github.com/CAMPUSCEUB/Sentinela/commit/24bd59f) |
 
 O histórico sustenta o crédito pelas contribuições acima nos seus
-commits de origem. A discussão do #226 e os arquivos inspecionados
-não apresentaram patches, trailers ou confirmação verificável que
-justifiquem reatribuir um dos 12 commits ou incluir coautores neles.
+commits de origem. À época da auditoria original, a discussão do #226 e os arquivos
+inspecionados não apresentaram trailers nem confirmação verificável
+suficiente para reatribuir individualmente os 12 commits.
 Responsabilidades da Sprint e autoria anterior de um módulo servem
 para orientar a investigação de um trecho.
 
@@ -69,3 +69,66 @@ entrega assistida e o committer, com a assistência registrada na
 mensagem. Esse registro não atribui edição manual individual a outros
 integrantes. Uma futura alegação de coautoria deve vir acompanhada de
 um patch, versão de origem ou confirmação vinculada a um trecho.
+
+## Complemento posterior — reconstrução de coautoria em 19/11/2026
+
+**Natureza do registro:** proposta retrospectiva de atribuição principal, baseada
+na declaração de colaboração conjunta feita pelo representante da equipe.
+A distribuição entre commits ainda depende de confirmação dos cinco
+integrantes. Ela não substitui a autoria histórica dos commits integrados no
+[PR #226](https://github.com/CAMPUSCEUB/Sentinela/pull/226).
+
+Em 19/11/2026, a equipe preparou e publicou uma reconstrução **alternativa**
+dos 12 commits em
+[`arquivo/pr226-reconstrucao-20261119`](https://github.com/CAMPUSCEUB/Sentinela/tree/arquivo/pr226-reconstrucao-20261119),
+com ponta `2425ee284a7c6319a1756e8b634ee2cfe1ce49d2`.
+Essa referência preserva a série de commits reconstruídos para consulta;
+**não deve ser mesclada diretamente à `main`**.
+
+| SHA original | SHA reconstruído | Autor principal proposto |
+| --- | --- | --- |
+| `472fe94` | `5ef1741` | Pedro Felizardo Barbosa |
+| `de1353f` | `d888b86` | João Pedro Roriz Costa |
+| `1e32687` | `907da38` | Arthur de Jesus Lira Rojas |
+| `fd6af57` | `8bdfb6d` | Pedro Augusto |
+| `08be68c` | `66bab31` | João Pedro Roriz Costa |
+| `fcb57ac` | `b98ccf1` | João Pedro Roriz Costa |
+| `95ad411` | `5bfb3ed` | Henrique Rabelo Rega |
+| `78a7f75` | `c83258c` | Henrique Rabelo Rega |
+| `50dc711` | `dc40dcc` | Arthur de Jesus Lira Rojas |
+| `b79b9a9` | `0eb9612` | Pedro Felizardo Barbosa |
+| `c6b9372` | `827ce47` | Pedro Augusto |
+| `24bd59f` | `2425ee2` | Henrique Rabelo Rega |
+
+A distribuição dos autores principais é **3/3/2/2/2**:
+João Pedro Roriz Costa (3), Henrique Rabelo Rega (3), Pedro Felizardo
+Barbosa (2), Arthur de Jesus Lira Rojas (2) e Pedro Augusto (2).
+Nos commits reconstruídos constam trailers `Co-authored-by` para os
+outros quatro integrantes. Pedro Augusto é o `committer` dos 12 commits,
+por ter efetuado a reconstrução.
+
+**Validações reportadas pelo Codex no ambiente local:** 12/12 árvores
+idênticas, 12/12 patches idênticos e pareamento com `git range-diff`;
+241/241 testes Node, 11/11 verificações SQL/HBA estáticas,
+14/14 testes de recuperação, TypeScript, ESLint e build Next.js aprovados.
+Esses resultados documentam a reconstrução local, não demonstram,
+isoladamente, qual integrante produziu cada trecho originalmente.
+
+### Integridade institucional e Pull Requests
+
+- O [PR #226](https://github.com/CAMPUSCEUB/Sentinela/pull/226)
+  permanece mesclado no commit `f98ec07`, com os **12 SHAs originais**.
+- O [PR #227](https://github.com/CAMPUSCEUB/Sentinela/pull/227)
+  preserva sua própria integração, concluída em `2f5eea9`.
+- A reconstrução alternativa diverge do histórico institucional e não
+  preserva, isoladamente, os três documentos de reuniões existentes na
+  trajetória de integração. Fazer merge ou force-push da série alternativa
+  sobre `main` seria uma operação de alto risco.
+- O [PR #228](https://github.com/CAMPUSCEUB/Sentinela/pull/228)
+  deve conter **somente este complemento documental**, sem tentar
+  reaplicar os 12 commits ou alterar a árvore de código já integrado.
+
+**Ação pendente:** validar com os cinco integrantes os créditos propostos
+e, se exigido no processo acadêmico, registrar essa confirmação junto
+aos relatórios da Sprint 4. Esta documentação não faz afirmações
+de autoria individual além da atribuição retrospectiva proposta.
