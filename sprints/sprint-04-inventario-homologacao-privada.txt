@@ -1,0 +1,247 @@
+Inventário de entrada da preparação final da Sprint 4
+Branch feat/sprint4-auth-local-mapas
+HEAD fe874f68e4d6e36f9661fb00b683ecddad4c3ea9
+Fonte: git status --porcelain=v1 -uall
+
+ M .gitattributes
+ M AGENTS.md
+ M README.md
+ M database/local/tests/test_static.py
+ M docs/autenticacao-local.md
+ M docs/contratos/api-v0.1.0.md
+ M docs/contratos/importacao-pcdf-v1.0.md
+ M docs/contratos/openapi-v0.1.0.json
+ M docs/ocorrencias-persistentes.md
+ M docs/postgresql-leitura-local.md
+ M next.config.ts
+ M package.json
+ M pnpm-lock.yaml
+ M scripts/check-persistent-occurrences.mjs
+ M scripts/check-routes.mjs
+ M scripts/homologate-local-reader.mjs
+ M scripts/next-cli.mjs
+ M scripts/test-local-reader.mjs
+ M scripts/test-local-reader.ps1
+ M scripts/validate-api-contracts.mjs
+ M scripts/validate-contracts.mjs
+ M sprints/sprint-04.md
+ M src/app/(sistema)/configuracoes/page.tsx
+ M src/app/(sistema)/dashboard/page.tsx
+ M src/app/(sistema)/importar/page.tsx
+ M src/app/(sistema)/layout.tsx
+ M src/app/(sistema)/mapa-criminal/page.tsx
+ M src/app/(sistema)/ocorrencias/nova/page.tsx
+ M src/app/(sistema)/ocorrencias/page.tsx
+ M src/app/api/v1/ocorrencias/[id]/route.ts
+ M src/app/api/v1/ocorrencias/route.ts
+ M src/app/login/page.tsx
+ M src/components/Header.tsx
+ M src/components/OperationalProvider.tsx
+ M src/components/Sidebar.tsx
+ M src/components/SystemSidebar.tsx
+ M src/components/analytics/AnalyticFilters.tsx
+ M src/components/analytics/Analytics.module.css
+ M src/components/analytics/PeriodTrend.tsx
+ M src/components/auth/LoginBrand.tsx
+ M src/components/auth/LoginForm.tsx
+ M src/components/auth/LoginScreen.module.css
+ M src/components/auth/LoginScreen.tsx
+ M src/components/map/MapaDF.tsx
+ M src/components/map/SatelliteMap.tsx
+ M src/components/occurrences/OccurrenceForm.tsx
+ M src/contracts/examples.ts
+ M src/contracts/openapi.ts
+ M src/contracts/persistent-occurrences.ts
+ M src/data/addressLocation.ts
+ M src/data/demoPermissions.ts
+ M src/features/Configuracoes.tsx
+ M src/features/CrimeMap.tsx
+ M src/features/CrimeMapEntry.tsx
+ M src/features/Dashboard.tsx
+ M src/features/DashboardEntry.tsx
+ M src/features/NovaOcorrenciaEntry.tsx
+ M src/features/Occurrences.module.css
+ M src/features/Occurrences.tsx
+ M src/features/OccurrencesEntry.tsx
+ M src/features/Usuarios.tsx
+ M src/features/import/ImportWorkflow.tsx
+ M src/features/occurrences/PersistentDetails.tsx
+ M src/features/occurrences/client.ts
+ M src/lib/auth/local-demo.ts
+ M src/lib/auth/local-provider.ts
+ M src/lib/auth/policy.ts
+ M src/lib/db/http.ts
+ M src/lib/db/occurrences.ts
+ M src/proxy.ts
+ M tests/address-location.test.mjs
+ M tests/api-contracts.test.mjs
+ M tests/http-qualification.test.mjs
+ M tests/local-auth.test.mjs
+ M tests/local-demo.test.mjs
+ M tests/operational-rules.test.mjs
+ M tests/persistent-occurrences.test.mjs
+?? .vercelignore
+?? database/local/audit/verify-ra-global-readonly.sql
+?? database/local/backup/private_pipe.py
+?? database/local/backup/qualify_restore.py
+?? database/local/backup/recover.py
+?? database/local/backup/test_recover.py
+?? database/local/migrations/0002_ra_official_catalog.sql
+?? database/local/pcdf-sandbox/analytics.sql
+?? database/local/pcdf-sandbox/catalog-fixtures.sql
+?? database/local/pcdf-sandbox/consolidate.sql
+?? database/local/pcdf-sandbox/install.sql
+?? database/local/pcdf-sandbox/pipeline.py
+?? database/local/pcdf-sandbox/qualify.py
+?? database/local/pcdf-sandbox/workspace.py
+?? database/local/pcdf-sandbox/workspace.sql
+?? database/local/ra-catalog-v2/install.sql
+?? database/local/ra-catalog-v2/manifest.json
+?? database/local/ra-catalog-v2/payload.json
+?? database/local/ra-catalog-v2/qualify.mjs
+?? database/local/ra-catalog-v2/run.py
+?? database/local/ra-operational/audit_backup.py
+?? database/local/ra-operational/compare.sql
+?? database/local/ra-operational/execute.mjs
+?? database/local/ra-operational/homologate.mjs
+?? database/local/ra-operational/homologate.py
+?? database/local/ra-operational/inspect.sql
+?? database/local/ra-operational/load.sql
+?? database/local/ra-operational/manifest.json
+?? database/local/ra-operational/preflight.sql
+?? database/local/ra-operational/stage.sql
+?? database/local/sandbox/recovery-revision-checksums.json
+?? database/local/sandbox/recovery-revision-plan.json
+?? database/local/sandbox/revision-checksums.json
+?? database/local/sandbox/revision-plan.json
+?? database/local/write-sandbox/003_individual_address.sql
+?? database/local/write-sandbox/004_workspace_read.sql
+?? database/local/write-sandbox/HOMOLOGACAO.md
+?? database/local/write-sandbox/MUTACOES.md
+?? database/local/write-sandbox/README.md
+?? database/local/write-sandbox/binding-checks.sql
+?? database/local/write-sandbox/bindings.sql
+?? database/local/write-sandbox/catalog-checks.sql
+?? database/local/write-sandbox/catalog-source.mjs
+?? database/local/write-sandbox/catalog.sql
+?? database/local/write-sandbox/compare-preoperational.mjs
+?? database/local/write-sandbox/geography.sql
+?? database/local/write-sandbox/http.ts
+?? database/local/write-sandbox/mutation-contracts.ts
+?? database/local/write-sandbox/mutation-fixtures.sql
+?? database/local/write-sandbox/mutations.sql
+?? database/local/write-sandbox/preoperational-snapshot.sql
+?? database/local/write-sandbox/qualify-bindings.mjs
+?? database/local/write-sandbox/qualify-catalog.mjs
+?? database/local/write-sandbox/qualify-geography.mjs
+?? database/local/write-sandbox/qualify-mutations.mjs
+?? database/local/write-sandbox/qualify-next.mjs
+?? database/local/write-sandbox/qualify.mjs
+?? database/local/write-sandbox/run-geography.py
+?? database/local/write-sandbox/run-mutations.py
+?? database/local/write-sandbox/run.py
+?? database/local/write-sandbox/service.ts
+?? database/local/write-sandbox/setup.sql
+?? database/local/write-sandbox/tsconfig.json
+?? database/release/README.md
+?? database/release/preflight.psql
+?? docs/analytics-postgresql-local.md
+?? docs/backup-recuperacao-postgresql-local.md
+?? docs/cartografia-validacao-territorial.md
+?? docs/catalogo-ras-carga.md
+?? docs/catalogos-persistentes.md
+?? docs/catalogos/pcdf-correspondencias-v1.json
+?? docs/catalogos/pcdf-inventario-v1.json
+?? docs/catalogos/ras-revisao-2026-11-13-v1/attributes.json
+?? docs/catalogos/ras-revisao-2026-11-13-v1/lei7917.html
+?? docs/catalogos/ras-revisao-2026-11-13-v1/lei7918.html
+?? docs/catalogos/ras-revisao-2026-11-13-v1/manifest.json
+?? docs/catalogos/ras-revisao-2026-11-13-v1/matrix.json
+?? docs/catalogos/ras-revisao-2026-11-13-v1/matrix.md
+?? docs/catalogos/ras-revisao-2026-11-13-v1/sha256.txt
+?? docs/desenvolvimento/pendencias-conclusao.md
+?? docs/desenvolvimento/plano-conclusao-sentinela.md
+?? docs/desenvolvimento/progresso-conclusao.md
+?? docs/escrita-persistente-planejamento.md
+?? docs/guia-implantacao-sprint-04.md
+?? docs/homologacao-ra-operacional-sprint-04.md
+?? docs/importacao-pcdf-sandbox.md
+?? docs/ocorrencias-fluxos-demonstrativos.md
+?? docs/permissoes-locais.md
+?? docs/ra-bindings.md
+?? docs/ra-preoperacional-auditoria.md
+?? docs/revisao-oficial-catalogo-ras.md
+?? public/data/cartography/provenance.json
+?? public/data/cartography/ra-bindings-synthetic.json
+?? public/data/cartography/ra-bindings.json
+?? public/data/cartography/ras-ide-2026-11-13.geojson
+?? public/data/cartography/source-metadata.json
+?? scripts/audit-ra-preoperational.mjs
+?? scripts/audit-ra-preoperational.ps1
+?? scripts/backup-local-postgresql.ps1
+?? scripts/check-occurrence-workflows-browser.mjs
+?? scripts/check-persistent-analytics.mjs
+?? scripts/compare-ra-preoperational.mjs
+?? scripts/hosted-env.mjs
+?? scripts/ra-audit-policy.mjs
+?? scripts/ra-evidence.mjs
+?? scripts/review-ra-catalog.mjs
+?? sprints/sprint-04-inventario-retomada.txt
+?? src/app/(sistema)/central-revisao/page.tsx
+?? src/app/api/v1/analytics/persistente/route.ts
+?? src/app/api/v1/catalogos/naturezas-criminais/route.ts
+?? src/app/api/v1/catalogos/regioes-administrativas/route.ts
+?? src/app/api/v1/central-revisao/[id]/route.ts
+?? src/app/api/v1/central-revisao/route.ts
+?? src/app/api/v1/importacoes/pcdf/[id]/consolidacao/route.ts
+?? src/app/api/v1/importacoes/pcdf/route.ts
+?? src/app/api/v1/ocorrencias/[id]/inativacao/route.ts
+?? src/components/analytics/useAnalyticsSource.ts
+?? src/components/analytics/usePersistentAnalytics.ts
+?? src/components/map/officialRegions.ts
+?? src/contracts/pcdf-workspace.ts
+?? src/contracts/persistent-analytics.ts
+?? src/contracts/persistent-catalogs.ts
+?? src/contracts/planned-occurrence-writes.ts
+?? src/data/ra-bindings.ts
+?? src/data/territorial-validation.ts
+?? src/features/import/PcdfReview.tsx
+?? src/features/import/PersistentPcdf.tsx
+?? src/features/import/pcdf-client.ts
+?? src/features/occurrences/CatalogSelect.tsx
+?? src/features/occurrences/IsolatedCreate.tsx
+?? src/features/occurrences/IsolatedList.tsx
+?? src/features/occurrences/SimulationWorkspace.module.css
+?? src/features/occurrences/SimulationWorkspace.tsx
+?? src/features/occurrences/TerritorialFeedback.tsx
+?? src/features/occurrences/simulation.ts
+?? src/lib/db/analytics-http.ts
+?? src/lib/db/analytics-query.ts
+?? src/lib/db/catalog-http.ts
+?? src/lib/db/catalog-query.ts
+?? src/lib/db/catalogs.ts
+?? src/lib/db/isolated-occurrence-read.ts
+?? src/lib/db/isolated-write-mode.ts
+?? src/lib/db/isolated-write.ts
+?? src/lib/db/pcdf-workspace.ts
+?? tests/fixtures/catalog-pool.mjs
+?? tests/fixtures/permission-context.mjs
+?? tests/hosted-env.test.mjs
+?? tests/local-backup-recovery.test.mjs
+?? tests/occurrence-simulation-ui.test.mjs
+?? tests/occurrence-simulation.test.mjs
+?? tests/persistent-analytics.test.mjs
+?? tests/persistent-catalogs.test.mjs
+?? tests/planned-occurrence-writes.test.mjs
+?? tests/profile-authorization.test.mjs
+?? tests/ra-bindings.test.mjs
+?? tests/ra-catalog-load.test.mjs
+?? tests/ra-evidence.test.mjs
+?? tests/ra-official-review.test.mjs
+?? tests/ra-operational.test.mjs
+?? tests/ra-preoperational.test.mjs
+?? tests/ra-public-sandbox.test.mjs
+?? tests/sandbox-create.test.mjs
+?? tests/sandbox-mutations.test.mjs
+?? tests/territorial-validation.test.mjs
+?? vercel.json
