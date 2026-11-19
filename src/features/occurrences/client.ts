@@ -6,6 +6,7 @@ import {
   type PersistentQuery,
 } from "@/contracts/persistent-occurrences"
 import { z } from "zod"
+import { CATALOG_PATHS, catalogResponseSchemas, type CatalogKind, type CatalogData } from "@/contracts/persistent-catalogs"
 
 export type ReadOccurrence = z.infer<typeof persistentDetailResponseSchema>["data"]
 export type ReadList = z.infer<typeof persistentListResponseSchema>["data"]
@@ -111,6 +112,11 @@ async function get(
       "Não foi possível conectar ao serviço de leitura. Tente novamente.",
     )
   }
+}
+export async function readCatalog(kind: CatalogKind, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<CatalogData> {
+  if (!Object.prototype.hasOwnProperty.call(CATALOG_PATHS, kind)) throw errorForStatus(400)
+  const result = await get(CATALOG_PATHS[kind], catalogResponseSchemas[kind], signal, fetcher) as { data: CatalogData }
+  return result.data
 }
 export async function readList(
   query: PersistentQuery,

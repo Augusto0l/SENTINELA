@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react"
 import Header from "@/components/Header"
 
 import Button from "@/components/ui/button"
+import Link from "next/link"
+import SimulationWorkspace from "@/features/occurrences/SimulationWorkspace"
 
 import {
   emptyFilters,
@@ -23,6 +25,9 @@ import useRead from "@/features/occurrences/use-read"
 import ReadError from "@/features/occurrences/ReadError"
 
 import PersistentDetails from "@/features/occurrences/PersistentDetails"
+import CatalogSelect from "@/features/occurrences/CatalogSelect"
+import { useOperations } from "@/components/OperationalProvider"
+import { actionAccess } from "@/lib/auth/policy"
 
 import styles from "@/features/Occurrences.module.css"
 
@@ -39,7 +44,8 @@ const headings: {
   { field: "local", label: "Local" },
 ]
 
-export default function Occurrences() {
+export default function Occurrences({ isolated = false }: { isolated?: boolean }) {
+  const { role } = useOperations()
   const [draft, setDraft] = useState<Filters>(emptyFilters)
 
   const [query, setQuery] = useState(initial)
@@ -146,9 +152,7 @@ export default function Occurrences() {
               · dados sintéticos de desenvolvimento
             </p>
           </div>
-          <Button disabled title="Cadastro persistente ainda não disponível">
-            Nova ocorrência
-          </Button>
+          {actionAccess(role, "cadastrar").enabled && <Button asChild><Link href="/ocorrencias/nova">{isolated ? "Gerenciar ocorrências sintéticas" : "Novo cadastro demonstrativo"}</Link></Button>}
         </div>
         <form
           className={styles.filters}
@@ -162,18 +166,8 @@ export default function Occurrences() {
             "UUID, ano, unidade ou número",
           )}
           {input("local", "Buscar localização", "search", "Trecho do local")}
-          {input(
-            "raId",
-            "Região Administrativa (UUID)",
-            "text",
-            "Identificador da região",
-          )}
-          {input(
-            "naturezaId",
-            "Natureza criminal (UUID)",
-            "text",
-            "Identificador da natureza",
-          )}
+          <CatalogSelect kind="regioes" value={draft.raId} onChange={value => setDraft(d => ({ ...d, raId: value }))} />
+          <CatalogSelect kind="naturezas" value={draft.naturezaId} onChange={value => setDraft(d => ({ ...d, naturezaId: value }))} />
           {input("startDate", "Data inicial", "date")}
           {input("endDate", "Data final", "date")}
           <div className={styles.actions}>
@@ -184,7 +178,7 @@ export default function Occurrences() {
           </div>
         </form>
         <p className={styles.note}>
-          RA e natureza utilizam os identificadores dos catálogos autorizados.
+          RA e natureza exibem somente catálogos persistentes visíveis; os filtros usam seus UUIDs reais. Natureza original não equivale à categoria padronizada.
           Consulta somente de leitura; cadastro, edição, inativação e consulta
           de inativas não estão disponíveis.
         </p>
@@ -297,14 +291,14 @@ export default function Occurrences() {
                         <button
                           type="button"
                           disabled
-                          title="Edição persistente ainda não disponível"
+                          title={actionAccess(role, "editar").reason}
                         >
                           Editar
                         </button>
                         <button
                           type="button"
                           disabled
-                          title="Inativação persistente ainda não disponível"
+                          title={actionAccess(role, "inativar").reason}
                         >
                           Inativar
                         </button>
@@ -381,6 +375,7 @@ export default function Occurrences() {
           </nav>
         </section>
       </div>
+      <details className={styles.simulationEntry}><summary>Homologar fluxos demonstrativos (separados da consulta)</summary><SimulationWorkspace /></details>
       {selected && (
         <PersistentDetails id={selected} onClose={() => setSelected(null)} />
       )}
