@@ -69,9 +69,17 @@ class RecoveryTests(unittest.TestCase):
     def test_timeout_or_interrupt_only_owned_utility_tree(self):
         for error in [subprocess.TimeoutExpired('synthetic',1),KeyboardInterrupt()]:
             child=MagicMock();child.pid=424242;child.communicate.side_effect=error
-            with patch.object(r.subprocess,'Popen',return_value=child),patch.object(r.subprocess,'run') as kill:
+            with patch.object(r.subprocess,'Popen',return_value=child) as popen, \
+                 patch.object(r.subprocess,'run') as kill_windows, \
+                 patch.object(r.os,'killpg',create=True) as kill_posix:
                 with self.assertRaises(RuntimeError):r.Commands().call('pg_restore',[])
-                self.assertEqual(kill.call_args.args[0],['taskkill.exe','/PID','424242','/T','/F'])
+                if r.os.name=='nt':
+                    self.assertEqual(kill_windows.call_args.args[0],['taskkill.exe','/PID','424242','/T','/F'])
+                    kill_posix.assert_not_called()
+                else:
+                    self.assertTrue(popen.call_args.kwargs['start_new_session'])
+                    kill_posix.assert_called_once_with(424242,r.signal.SIGKILL)
+                    kill_windows.assert_not_called()
     def test_bootstrap_password_only_in_private_pipe(self):
         pipe=MagicMock();pipe.name=r'\\.\pipe\synthetic-local';pipe.delivered=True;pipe.error=None
         commands=MagicMock();commands.call.return_value='ok'

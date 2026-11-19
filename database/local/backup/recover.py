@@ -8,6 +8,7 @@ from pathlib import Path
 import queue
 import re
 import secrets
+import signal
 import shutil
 import subprocess
 import sys
@@ -73,11 +74,18 @@ class Commands:
         command=[str(c.BIN/(exe+'.exe')),*map(str,args)]
         child=subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
             env=clean_env(self.source_password if source else password,source),text=True,encoding='utf8',errors='replace',
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,
+            start_new_session=os.name!='nt')
         try:stdout,stderr=child.communicate(input=input,timeout=timeout)
         except (subprocess.TimeoutExpired,KeyboardInterrupt):
             # Only this owned utility tree, never a server or unrelated process.
-            subprocess.run(['taskkill.exe','/PID',str(child.pid),'/T','/F'],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW)
+            if os.name=='nt':
+                subprocess.run(['taskkill.exe','/PID',str(child.pid),'/T','/F'],capture_output=True,
+                               creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                # A new session ensures this is only the owned utility process group.
+                try:os.killpg(child.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
             raise RuntimeError('Owned utility timeout/interruption: '+exe) from None
         p=subprocess.CompletedProcess(command,child.returncode,stdout,stderr)
         self.events.append({'tool':exe,'exit_code':p.returncode,'warnings':'warning:' in p.stderr.lower() or 'aviso:' in p.stderr.lower(),
