@@ -12,6 +12,7 @@ registerHooks({ resolve(s,c,next) {
 } })
 const { operationalConfig, DatabaseUnavailable } = await import("../src/lib/db/config.ts")
 const { occurrenceSql } = await import("../src/lib/db/occurrence-query.ts")
+const { queryOccurrences } = await import("../src/lib/db/occurrences.ts")
 const { persistentQuerySchema, parsePersistentQuery, persistentListResponseSchema } = await import("../src/contracts/persistent-occurrences.ts")
 const { occurrenceGET, isLocalReadEndpoint } = await import("../src/lib/db/http.ts")
 const local = await import("../src/lib/auth/local-provider.ts")
@@ -31,6 +32,12 @@ test("persistent filters reject unknown/duplicate keys, invalid IDs, dates, page
   for (const s of ["page=0","pageSize=101","page=1&page=2","raId=x","naturezaId=%23demo","startDate=2026-02-30","startDate=2026-12-01&endDate=2026-01-01","sortBy=id;DROP TABLE x","host=evil.test","includeInactive=true"])
     assert.throws(()=>parsePersistentQuery(new URLSearchParams(s)),s)
 })
+test("occurrence repository denies non-local and unknown principals before opening a pool", () => {
+  const query=persistentQuerySchema.parse({})
+  const principal={id:"test",authUserId:"",name:"Synthetic",role:"Analista",source:"local"}
+  assert.throws(()=>queryOccurrences({...principal,source:"supabase"},query),DatabaseUnavailable)
+  assert.throws(()=>queryOccurrences({...principal,role:"Unknown"},query),DatabaseUnavailable)
+})
 test("SQL binds combined filters/injection literally; stable pagination, scalar count and many-nature aggregation", () => {
   const attack="%' OR true; DROP TABLE sentinela.ocorrencias; --"
   const query=persistentQuerySchema.parse({raId:"10000000-0000-4000-8000-000000000001",naturezaId:"30000000-0000-4000-8000-000000000001",startDate:"2026-01-01",endDate:"2026-12-31",identificacao:attack,local:attack,page:3,pageSize:10,sortBy:"ra",direction:"asc"})
@@ -42,7 +49,7 @@ test("SQL binds combined filters/injection literally; stable pagination, scalar 
   const detail=occurrenceSql(persistentQuerySchema.parse({}),"50000000-0000-4000-8000-000000000001")
   assert.match(detail.text,/o.id=\$1::uuid/);assert.deepEqual(detail.values.slice(-2),[1,0])
 })
-test("only the two GET patterns are exceptions; all other methods/APIs remain closed", () => {
+test("occurrence GET patterns remain allowed; other occurrence methods and unrelated APIs remain closed", () => {
   assert(isLocalReadEndpoint("/api/v1/ocorrencias","GET"));assert(isLocalReadEndpoint("/api/v1/ocorrencias/invalid-id","GET"))
   for(const method of ["POST","PATCH","DELETE","HEAD"]) assert(!isLocalReadEndpoint("/api/v1/ocorrencias",method))
   for(const path of ["/api/v1/ocorrencias/x/inativacao","/api/usuarios","/api/ocorrencias/geocode"]) assert(!isLocalReadEndpoint(path,"GET"))

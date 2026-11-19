@@ -23,7 +23,7 @@ export function parsePersistentQuery(search: URLSearchParams) {
   }
   return persistentQuerySchema.parse(input)
 }
-const category = z.strictObject({ id: persistentIdSchema, codigo: z.string(), nome: z.string() })
+const category = z.strictObject({ id: persistentIdSchema, codigo: z.string().nullable(), nome: z.string() })
 export const persistentOccurrenceSchema = z.strictObject({
   id: persistentIdSchema,
   origem: z.enum(["manual", "importacao"]),

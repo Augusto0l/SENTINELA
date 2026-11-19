@@ -21,6 +21,12 @@ SANDBOX_GUARD = ROOT / 'sandbox/sql/guard.sql'
 # Privileged functions are already qualified in these disposable-cluster
 # scripts. Pin the expanded SQL, including the guard and grants.
 QUALIFIED_SANDBOX_SQL = {
+    ROOT / 'write-sandbox/003_individual_address.sql': 'dc4cdb9dca32c0fbbb9cc9280ff552349cd46c4559c675c2777a7bb5ec03010e',
+    ROOT / 'write-sandbox/004_workspace_read.sql': '3e088c4b0b88be8c67bdcf65f52dc56a73e94d6d968eb3ac23e70770975277dc',
+    ROOT / 'write-sandbox/bindings.sql': 'a8f5b9c74f42b5789fa085ee5b089bf51c8da1c92d702ed0398cc96b04cf090f',
+    ROOT / 'write-sandbox/geography.sql': 'ad8702472205a4fb6642c2778608bf7f08478041bd7e526bb75ca72289070857',
+    ROOT / 'write-sandbox/mutations.sql': 'ca3ba3f41cf93e2dd72359748262dc61390318bc9ff8cf1bfb7e66fc7490a9ce',
+    ROOT / 'write-sandbox/setup.sql': 'a274933b339d7ae86153c3bd35905f6ced8626b2908bade1217da45d38084904',
 }
 
 
