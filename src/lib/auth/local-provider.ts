@@ -17,7 +17,19 @@ export function localAllowed(host: string | null, env = process.env) {
       && origin.origin === env.SENTINELA_APP_ORIGIN && host === origin.host
   } catch { return false }
 }
-type Account = { email: string; role: Role; salt: string; hash: string }
+export function localLoginRedirect(host: string | null, env = process.env): URL | null {
+  try {
+    const origin = new URL(env.SENTINELA_APP_ORIGIN ?? "")
+    if (!localAllowed(origin.host, env)) return null
+    const alias = origin.hostname === "localhost" ? "127.0.0.1"
+      : origin.hostname === "127.0.0.1" ? "localhost" : null
+    if (!alias || host !== (origin.port ? `${alias}:${origin.port}` : alias)) return null
+    return new URL("/login", origin)
+  } catch {
+    return null
+  }
+}
+type Account = { email: string; role: Role; salt: string; hash: string; subject?: string }
 type Config = { accounts: Account[]; directory: string; fingerprint: string }
 function outside(path: string, root: string) {
   const rel = relative(root, path)
@@ -36,16 +48,20 @@ export async function localConfig(env = process.env): Promise<Config> {
   const accounts: Account[] = data.accounts
   if (!ROLES.every(role => accounts.filter(a => a.role === role).length === 1)
     || new Set(accounts.map(a => a.email)).size !== 3
-    || accounts.some(a => Object.keys(a).some(key => !["email", "role", "salt", "hash"].includes(key)) || typeof a.email !== "string" || a.email !== a.email.trim().toLowerCase()
+    || new Set(accounts.flatMap(a => a.subject ? [a.subject] : [])).size !== accounts.filter(a => a.subject).length
+    || accounts.some(a => Object.keys(a).some(key => !["email", "role", "salt", "hash", "subject"].includes(key))
+      || (a.subject !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(a.subject))
+      || typeof a.email !== "string" || a.email !== a.email.trim().toLowerCase()
       || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email) || a.email.length > 254
       || !/^[a-f0-9]{32}$/.test(a.salt) || !/^[a-f0-9]{128}$/.test(a.hash))) throw Error("Local configuration unavailable")
   return { accounts, directory: join(dirname(actual), "sentinela-sessions"), fingerprint: createHash("sha256").update(raw).digest("hex") }
 }
 const tokenName = (token: string) => createHash("sha256").update(token).digest("hex") + ".json"
-export function localPrincipal(account: Account): Principal {
-  return { id: `LOCAL-${account.role}`, authUserId: "", name: `Desenvolvimento — ${account.role}`, role: account.role, source: "local" }
+export function localPrincipal(account: Account): Principal & { localSubject?: string } {
+  return { id: `LOCAL-${account.role}`, authUserId: "", name: `Desenvolvimento — ${account.role}`, role: account.role, source: "local",
+    ...(account.subject && { localSubject: account.subject }) }
 }
-export async function localSession(token: string | undefined, host: string | null, env = process.env, now = Date.now()): Promise<Principal | null> {
+export async function localSession(token: string | undefined, host: string | null, env = process.env, now = Date.now()): Promise<ReturnType<typeof localPrincipal> | null> {
   if (!localAllowed(host, env) || !token || !/^[a-f0-9]{64}$/.test(token)) return null
   try {
     const config = await localConfig(env)

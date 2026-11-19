@@ -11,7 +11,7 @@ import {
 } from "@/data/occurrenceForm"
 import type { MockOccurrence } from "@/data/mockOccurrences"
 import { useOperations } from "@/components/OperationalProvider"
-import { canWrite } from "@/data/demoPermissions"
+import { actionAccess } from "@/lib/auth/policy"
 import { useDemoToast } from "@/components/DemoProvider"
 import Button from "@/components/ui/button"
 import Dialog from "@/components/ui/dialog"
@@ -85,7 +85,7 @@ export default function OccurrenceForm({
     })
   }
   if (
-    !canWrite(operations.role) || (initial && !operations.correctionsEnabled) ||
+    !actionAccess(operations.role, initial ? "editar" : "cadastrar").enabled || (initial && !operations.correctionsEnabled) ||
     (initial && operations.inactive[initial.id])
   )
     return (
@@ -98,6 +98,7 @@ export default function OccurrenceForm({
       className="occurrence-form"
       noValidate
       onSubmit={handleSubmit((data) => {
+        if (!actionAccess(operations.role, initial ? "editar" : "cadastrar").enabled) return
         const ra = RA_LIST.find((item) => item.codigo === data.raCode)!
         const record: MockOccurrence = {
           ...initial,

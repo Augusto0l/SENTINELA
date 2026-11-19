@@ -64,7 +64,7 @@ test("geocodificação simulada rejeita endereço/RA inválidos e devolve refer�
 test("matriz distingue consulta, escrita, gestão e inativação nos três perfis", () => {
   for (const role of ["Administrador", "Operador", "Analista"]) {
     assert.equal(canWrite(role), role !== "Analista")
-    assert.equal(canInactivate(role), role === "Administrador")
+    assert.equal(canInactivate(role), role !== "Analista")
     assert.equal(canVisit(role, "/usuarios"), role === "Administrador")
     assert.equal(canVisit(role, "/ocorrencias/nova"), role !== "Analista")
     assert.equal(canVisit(role, "/importar"), role !== "Analista")

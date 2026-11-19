@@ -1,7 +1,7 @@
 import { SentinelaBrand } from "@/components/SentinelaLogo"
 import NavigationIcon, { type NavigationIconName } from "@/components/NavigationIcon"
 import { useOperations } from "@/components/OperationalProvider"
-import { canVisit } from "@/data/demoPermissions"
+import { canVisit, NAVIGATION_ROUTES } from "@/lib/auth/policy"
 import styles from "@/components/Navigation.module.css"
 import LogoutForm from "@/components/auth/LogoutForm"
 
@@ -65,7 +65,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }
         {navGroups.map((group) => (
           <div key={group.label} className={styles.navGroup}>
             <p className={styles.groupLabel}>{group.label}</p>
-            {group.items.filter((item) => item.key !== "login" && canVisit(role, ({ new: "/ocorrencias/nova", import: "/importar", users: "/usuarios" } as Record<string, string>)[item.key] ?? "/dashboard")).map((item) => (
+            {group.items.filter((item) => item.key in NAVIGATION_ROUTES && canVisit(role, NAVIGATION_ROUTES[item.key])).map((item) => (
               <button key={item.key} type="button" className={styles.navItem}
                 aria-label={item.label} aria-current={currentPage === item.key ? "page" : undefined}
                 title={item.label} onClick={() => onNavigate(item.key)}>

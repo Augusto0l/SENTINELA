@@ -3,17 +3,9 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
+import { NAVIGATION_ROUTES } from "@/lib/auth/policy";
 
-const routes: Record<string, string> = {
-  login: "/login",
-  dashboard: "/dashboard",
-  "crime-map": "/mapa-criminal",
-  occurrences: "/ocorrencias",
-  new: "/ocorrencias/nova",
-  import: "/importar",
-  users: "/usuarios",
-  settings: "/configuracoes",
-};
+const routes = NAVIGATION_ROUTES;
 
 export default function SystemSidebar() {
   const [collapsed, setCollapsed] = useState(false);

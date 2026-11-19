@@ -1,6 +1,6 @@
 # Autenticação local de desenvolvimento
 
-Não cria identidades Supabase nem permite acesso ao banco remoto. O estado atual permite exclusivamente a leitura persistente de ocorrências sintéticas no PostgreSQL local pelos dois endpoints GET descritos abaixo. Dashboard e Mapa continuam demonstrativos; cadastros, edições e inativações demonstrativas não gravam no banco.
+Não cria identidades Supabase nem permite acesso ao banco remoto. O estado atual permite exclusivamente a leitura persistente de ocorrências e catálogos sintéticos no PostgreSQL local pelos quatro endpoints GET descritos abaixo. Dashboard e Mapa continuam demonstrativos; cadastros, edições e inativações demonstrativas não gravam no banco.
 
 ## Histórico e estado atual
 
@@ -25,7 +25,7 @@ SENTINELA_APP_ORIGIN=http://localhost:3000
 SENTINELA_LOCAL_DEMO=false
 ```
 
-Preserve as variáveis Supabase e de backup. Nenhuma variável nova usa `NEXT_PUBLIC_`. Não configure `SENTINELA_LOCAL_BIND`: o launcher define essa trava somente ao executar `pnpm dev`, substituindo o listener por `127.0.0.1`. Não execute Next diretamente para esse modo. Encerre previamente somente o servidor deste projeto e reinicie pelo comando oficial. Acesse exatamente a origem configurada.
+Preserve as variáveis Supabase e de backup. Nenhuma variável nova usa `NEXT_PUBLIC_`. Não configure `SENTINELA_LOCAL_BIND`: o launcher define essa trava somente ao executar `pnpm dev`, substituindo o listener por `127.0.0.1`. Não execute Next diretamente para esse modo. Encerre previamente somente o servidor deste projeto e reinicie pelo comando oficial. A página `/login` redireciona entre `localhost` e `127.0.0.1` na porta configurada para exibir o formulário na origem de `SENTINELA_APP_ORIGIN`. O envio das credenciais e o cookie de sessão usam essa origem. O login local depende das contas demonstrativas configuradas e funciona sem a credencial da reader PostgreSQL.
 
 Se o provedor for alterado para `local` com o servidor já aberto, recarregar a página ou o hot reload do `.env.local` não altera o endereço de escuta. Reinicie completamente pelo comando oficial. Até isso acontecer, os campos permanecem desabilitados e a tela informa a necessidade de reiniciar. A indicação de acesso local disponível aparece somente quando as travas e o arquivo externo das três contas foram validados no servidor.
 
@@ -36,7 +36,9 @@ Faça login com cada e-mail e sua senha; não existe seletor de perfil. A sessã
 O provedor recusa produção, hosts diferentes da origem e execução sem a trava do launcher. Somente as seguintes formas de GET possuem exceção no bloqueio local de APIs:
 
 - `GET /api/v1/ocorrencias`;
-- `GET /api/v1/ocorrencias/{id}`.
+- `GET /api/v1/ocorrencias/{id}`;
+- `GET /api/v1/catalogos/regioes-administrativas`;
+- `GET /api/v1/catalogos/naturezas-criminais`.
 
 Proxy e handlers verificam a sessão local e a permissão `analisar`. O backend também exige `principal.source=local`; Administrador, Operador e Analista podem consultar somente o conjunto sintético autorizado pelo RLS. Uma identidade Supabase não autoriza essa conexão. Sessão ausente, adulterada, expirada ou revogada não libera leitura; verificações no navegador não substituem a autorização no servidor.
 
@@ -49,5 +51,13 @@ Recuperação de senha, convites e definição de senha Supabase ficam indispon�
 Consulte a [configuração de leitura PostgreSQL](postgresql-leitura-local.md), a [interface persistente](ocorrencias-persistentes.md) e o [ADR de isolamento e leitura](decisoes/adr-leitura-postgresql-local-homologacao-isolada.md).
 
 ## Limitações de segurança
+
+No modo de escrita descartável, a configuração efêmera associa um UUID
+sintético à conta. A sessão resolve essa identidade no servidor a cada
+requisição. O adaptador seleciona a credencial técnica do perfil e o
+PostgreSQL valida o vínculo individual com `session_user` na transação da
+mutação. O registro resultante correlaciona o UUID ao evento de auditoria
+e à versão. Contas de desenvolvimento sem UUID ficam fora desse fluxo.
+[Fluxo e persistência](ocorrencias-persistentes.md#crud-no-ambiente-descartável)
 
 Senhas existem brevemente na memória do PowerShell/Node durante o cadastro; strings gerenciadas não permitem garantir apagamento físico. Arquivos externos e ACLs protegem contra commits e outros usuários, não contra processos executados pela mesma conta Windows ou administradores. Não use senhas de produção.

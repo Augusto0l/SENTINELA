@@ -1,10 +1,10 @@
 import styles from "@/components/auth/LoginScreen.module.css"
 
 // Same shield/diamond geometry as SentinelaIcon, adapted only for this login.
-// The S sits at the diamond's center (18, 22.5); each instance has unique gradient IDs.
-export default function LoginBrand({ large = false }: { large?: boolean }) {
-  const id = large ? "login-institution" : "login-panel"
-  return <div className={large ? styles.brandLarge : styles.brandSmall}>
+// The S sits at the diamond's center (18, 22.5).
+export default function LoginBrand() {
+  const id = "login-institution"
+  return <div className={styles.brandLarge}>
     <svg className={styles.shield} viewBox="0 0 36 44" fill="none" role="img" aria-label="Escudo SENTINELA">
       <defs>
         <linearGradient id={`${id}-stroke`} x1="8" y1="2" x2="26" y2="44" gradientUnits="userSpaceOnUse"><stop stopColor="#55a4ff" /><stop offset="1" stopColor="#0050ff" /></linearGradient>

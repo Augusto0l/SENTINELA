@@ -5,6 +5,7 @@ import { useTheme } from "@/components/ThemeProvider"
 import { useDemoToast } from "@/components/DemoProvider"
 import { DemoProfileSelect, useOperations } from "@/components/OperationalProvider"
 import NavigationIcon from "@/components/NavigationIcon"
+import { hasPermission } from "@/lib/auth/policy"
 import styles from "@/components/Navigation.module.css"
 
 interface HeaderProps {
@@ -50,7 +51,7 @@ export default function Header({ title, subtitle, dataMode }: HeaderProps) {
           </button>
         </div>
         <DemoProfileSelect className={styles.profile} />
-        <button className={`topbar-user ${styles.headerUser}`} type="button" aria-label="Abrir configurações da conta"
+        <button className={`topbar-user ${styles.headerUser}`} type="button" aria-label="Abrir configurações da conta" disabled={!hasPermission(principal.role, "administrar")}
           title={`Configurações de ${principal.name}`} onClick={() => router.push("/configuracoes")}>
           <span className={styles.avatar}>{principal.name.slice(0, 2).toLocaleUpperCase("pt-BR")}</span>
           <span className={styles.headerUserName}>{principal.name}<small>{principal.role}</small></span>

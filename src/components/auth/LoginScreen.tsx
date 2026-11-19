@@ -10,7 +10,7 @@ export default function LoginScreen({ configured, message, notice, localDemo = f
     <span className={`${styles.corner} ${styles.cornerTop}`} aria-hidden="true" /><span className={`${styles.corner} ${styles.cornerBottom}`} aria-hidden="true" />
     <div className={styles.layout}>
       <section className={styles.institution} aria-label="Sobre o SENTINELA">
-        <LoginBrand large /><div className={styles.rule} />
+        <LoginBrand /><div className={styles.rule} />
         <h2>Inteligência para<br />uma sociedade<br /><span>mais segura.</span></h2>
         <p className={styles.description}>Dados, análise e tecnologia a serviço<br />da segurança pública.</p>
         <ul className={styles.features}>
@@ -21,9 +21,7 @@ export default function LoginScreen({ configured, message, notice, localDemo = f
       </section>
       <div className={styles.cardFrame}>
         <section className={styles.card} aria-labelledby="auth-title">
-          <LoginBrand />
           <h1 id="auth-title">Acesse sua conta</h1>
-          <p className={styles.intro}>Plataforma de análise criminal com dados fictícios.<br />{" "}Acesso restrito a usuários autorizados.</p>
           <LoginForm configured={configured} message={message} notice={notice} localProvider={localProvider} />
           {localDemo && <div className={styles.feedback} role="status"><p>Prévia local com dados fictícios, sem autenticação real ou acesso ao banco.</p><Link className={styles.submit} href="/dashboard">Entrar na demonstração local →</Link></div>}
           <footer className={styles.security}><LoginIcon name="lock" /><p>Acesso exclusivo para usuários autorizados.<br />Ambiente demonstrativo com dados fictícios.</p></footer>
