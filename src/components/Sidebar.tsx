@@ -11,6 +11,7 @@ interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
   pcdf?: boolean
+  persistent?: boolean
 }
 
 const navGroups: { label: string; items: { key: string; label: string; icon: NavigationIconName }[] }[] = [
@@ -40,7 +41,7 @@ const navGroups: { label: string; items: { key: string; label: string; icon: Nav
   },
 ]
 
-export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, pcdf = false }: SidebarProps) {
+export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, pcdf = false, persistent = false }: SidebarProps) {
   const { role, principal } = useOperations()
   return (
     <aside aria-label="Navegação do SENTINELA" className={`system-sidebar ${styles.sidebar} ${collapsed ? `${styles.collapsed} is-collapsed` : ""}`}>
@@ -85,7 +86,8 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, 
       <div className={styles.sidebarFooter}>
         <div className={styles.demoNote}>
           <span className={styles.demoIndicator} aria-hidden="true" />
-          <div><strong>Ambiente demonstrativo</strong><p>Alterações em memória, perdidas ao recarregar.</p></div>
+          <div><strong>{persistent ? "Homologação local" : "Ambiente demonstrativo"}</strong>
+            <p>{persistent ? "Dados sintéticos no banco local." : "Alterações em memória, perdidas ao recarregar."}</p></div>
         </div>
         <div className={styles.userCard} title={`${principal.name} · ${role}`}>
           <span className={styles.avatar}>{principal.name.slice(0, 2).toLocaleUpperCase("pt-BR")}</span>

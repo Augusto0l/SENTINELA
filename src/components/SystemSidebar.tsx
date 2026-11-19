@@ -7,7 +7,7 @@ import { NAVIGATION_ROUTES } from "@/lib/auth/policy";
 
 const routes = NAVIGATION_ROUTES;
 
-export default function SystemSidebar({ pcdf = false }: { pcdf?: boolean }) {
+export default function SystemSidebar({ pcdf = false, persistent = false }: { pcdf?: boolean; persistent?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function SystemSidebar({ pcdf = false }: { pcdf?: boolean }) {
       collapsed={collapsed}
       onToggle={() => setCollapsed((value) => !value)}
       pcdf={pcdf}
+      persistent={persistent}
     />
   );
 }

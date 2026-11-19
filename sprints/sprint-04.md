@@ -539,3 +539,130 @@ Preparação para a execução da Sprint 5 (Semana 7), focada em Processamento e
 * **Feature [#19](https://github.com/CAMPUSCEUB/Sentinela/issues/19)** — Motor Transacional de Importação e Deduplicação; PBIs: [#160](https://github.com/CAMPUSCEUB/Sentinela/issues/160) (`EP07-PBI-07`), [#163](https://github.com/CAMPUSCEUB/Sentinela/issues/163) (`EP07-PBI-08`), [#166](https://github.com/CAMPUSCEUB/Sentinela/issues/166) (`EP07-PBI-09`), [#169](https://github.com/CAMPUSCEUB/Sentinela/issues/169) (`EP07-PBI-10`).
 * **Feature [#20](https://github.com/CAMPUSCEUB/Sentinela/issues/20)** — Serviço Real de Geocodificação Integrado; PBIs: [#172](https://github.com/CAMPUSCEUB/Sentinela/issues/172) (`EP07-PBI-11`), [#175](https://github.com/CAMPUSCEUB/Sentinela/issues/175) (`EP07-PBI-12`).
 * **Feature [#21](https://github.com/CAMPUSCEUB/Sentinela/issues/21)** — Analytics e Dados Espaciais; PBIs: [#178](https://github.com/CAMPUSCEUB/Sentinela/issues/178) (`EP07-PBI-13`), [#181](https://github.com/CAMPUSCEUB/Sentinela/issues/181) (`EP07-PBI-14`), [#184](https://github.com/CAMPUSCEUB/Sentinela/issues/184) (`EP07-PBI-15`).
+
+## Homologação persistente local — 19/11/2026
+
+A branch `feat/sprint4-homologacao-persistente` foi criada em `f98ec07` após
+fast-forward da `main` local, que estava em `86fc921`. A árvore inicial estava
+limpa em `feat/sprint4-auth-local-mapas`, HEAD `c6b9372`. A entrega
+`24bd59f` é ancestral da base atual.
+
+O cluster `sentinela-sprint4-homologacao`, identificador `7709847064550752852`,
+usa PostgreSQL 17.11, PostGIS 3.6.2 e `127.0.0.1:55473`. O banco
+`sentinela_sprint4_homologacao` fica em um diretório de dados próprio sob
+`.cache/sprint4-homologacao-persistente/`, ignorado pelo Git e protegido por
+ACL local. O login de instalação usa credencial exclusiva e SCRAM. O acesso
+padrão de PUBLIC ao banco foi revogado.
+
+Foram instalados PostGIS no schema `extensions` e a baseline
+`database/supabase/baseline/0001_modelo_inicial.sql`. O inventário preservou
+identidade, versões e 19 tabelas com RLS habilitada e forçada após parada e
+partida do PostgreSQL. O backup lógico da baseline foi restaurado em
+`sentinela_sprint4_restore`, banco separado no mesmo cluster, com as mesmas
+versões e contagem de tabelas protegidas verificadas. SHA-256 do arquivo
+`baseline.dump`: `874a523afa71cad49f294e7bd50a588f45bcd4a3257d424c119af3458fd2bda9`.
+
+Os scripts de escrita e PCDF e os conectores locais de leitura e PCDF
+atestam o banco e a porta do sandbox descartável. O catálogo de 37 RAs
+também precisa de um caminho de instalação atestado para este destino.
+Permanecem pendentes as roles de aplicação, os grants efetivos, a carga do
+catálogo, os fluxos sintéticos, a reinicialização integrada com Next.js,
+a prova de UUIDs e idempotência e o restore com dados de aplicação.
+
+Pela lista técnica da instalação e integração desta rodada, 1 de 10
+verificações está concluída (estrutura PostgreSQL/PostGIS, 10%). A régua
+oficial da Sprint 4 segue em 30 de 40 critérios (75%).
+
+Validação desta rodada: 241 testes Node, 11 testes estáticos SQL/HBA com
+o parser local, 14 testes de recuperação, typecheck, lint, contratos, rotas
+e build de produção aprovados. As primeiras tentativas no sandbox do agente
+foram limitadas por criação de subprocessos e acesso a diretórios temporários.
+O build concluiu na reexecução com acesso local autorizado.
+
+### Integração de leitura no ambiente persistente — 19/11/2026
+
+- A auditoria confirmou o cluster `7709847064550752852` em
+  `127.0.0.1:55473/sentinela_sprint4_homologacao`, PostgreSQL 17.11,
+  PostGIS 3.6.2 e ledger inicial `0001`–`0005`. As duas constraints
+  `NOT VALID` de transação são as previstas na baseline.
+- `homolog-persist-0001` carregou 37 RAs com 37 códigos e UUIDs distintos.
+  Em nova conexão, cada registro coincidiu com nome, código, UUID,
+  metadados e geometria EWKB esperados. O arquivo operacional de vínculos
+  serviu de referência para as identidades aprovadas. A extração IDE-DF
+  de 13/11/2026 continua com validade jurídica desconhecida. O SHA-256
+  dos vínculos verificados é
+  `8228cc09e07728f6646dac7120d8ce9a67ba111ef8797342d83be8d207397905`.
+- `homolog-persist-0002` corrigiu a atestação apontada pela regressão
+  SQL/HBA. O identificador é consultado sob o próprio login de leitura
+  usando a função nativa do PostgreSQL. A reconciliação confirmou as
+  19 tabelas com RLS forçada, três logins SCRAM e bloqueio efetivo de
+  escrita, correção, auditoria, coluna geométrica e outros bancos.
+- O Next.js em `127.0.0.1:3317` confirmou os logins sintéticos de
+  Administrador, Operador e Analista. Para cada perfil, o catálogo retornou
+  as 37 RAs, a listagem retornou zero ocorrências, o detalhe inexistente
+  retornou `404` e o endpoint analítico retornou totais zero. Sessões
+  ausentes ou inválidas, Host divergente, Origin divergente no login e
+  chamadas de escrita foram recusados.
+- A parada do PostgreSQL produziu `503` na leitura autenticada do
+  catálogo. Após reiniciar PostgreSQL e Next.js, os três cookies ainda
+  válidos retornaram o mesmo catálogo e as mesmas respostas. Recibo
+  privado `http-c4f8c2a2-9961-4c8f-8159-ac190bf6bc11.json`.
+- Validação aprovada com 243 testes Node, 11 testes SQL/HBA,
+  14 testes de recuperação, typecheck, ESLint, contratos/OpenAPI,
+  inventário de rotas, build de produção e `git diff --check`.
+
+A homologação persistente passa a **3/10 (30%)**, com estrutura, catálogo
+e leitura. Os controles de leitura dos três perfis foram validados.
+O marco completo de roles, grants e RLS depende dos papéis de escrita
+e da autorização de cada ação. As evidências desta rodada correspondem
+a marcos já contabilizados na Sprint 4, que segue em **30/40 (75%)**.
+A próxima etapa é validar o SQL e a autoria sintética de escrita com
+credenciais próprias de Administrador e Operador antes de habilitar
+mutações HTTP. O roteiro está no
+[guia de homologação persistente](../database/local/persistent-homologation/README.md).
+
+### Homologação funcional sintética — 19/11/2026
+
+As migrations `homolog-persist-0003` a `homolog-persist-0005` colocaram
+CRUD, staging PCDF, revisão e consolidação no cluster privado. O recibo
+`2967fa3d-2036-4521-adb8-523fdade300d` comprova o cenário integrado,
+incluindo concorrência, idempotência, negações por perfil, interrupção
+com `503`, persistência das 37 RAs, versões e auditoria após reiniciar
+Next.js e PostgreSQL. A cópia `funcional-b0a88c5432c8bddf.dump` foi
+restaurada e 30 tabelas foram reconciliadas.
+
+O staging processou 10.000 associações sintéticas em teste com rollback.
+Passaram 246 testes Node, 11 SQL/HBA, 14 de recuperação, TypeScript,
+ESLint, contratos/OpenAPI, rotas e build. A homologação técnica passa
+para **8/10 (80%)**. A Sprint 4 permanece em **30/40 (75%)**.
+O [relatório por fase](../docs/desenvolvimento/relatorio-homologacao-funcional.md)
+registra as restrições de CSV/XLSX, de revisão e de aceite visual.
+
+### Finalização da homologação local — 19/11/2026
+
+- `homolog-persist-0006` foi aplicada somente no cluster privado
+  `7709847064550752852`, porta 55473. Foram homologados o XLSX de 34
+  colunas, o replay entre CSV e XLSX, a guarda do original, a Central
+  com busca e paginação e as permissões de decisão administrativa.
+- A regressão SQL, HTTP e Edge confirmou catálogo de 37 RAs, CRUD,
+  consolidação de uma ocorrência com duas naturezas, totais conciliados,
+  histórico e auditoria depois do reinício. O backup final reconciliou
+  31 tabelas em um banco separado.
+- Passaram 249 testes Node, 11 SQL/HBA, 14 de recuperação, typecheck,
+  ESLint, contratos/OpenAPI, rotas e build. As nove rotas estão no
+  inventário para redesign.
+
+**Homologação persistente local sintética — 10/10 (100%).** A Sprint 4
+permanece em **30/40 (75%)**. As decisões sobre identidade e classificação
+entre extrações, política de reprocessamento e regras adicionais de
+correção seguem abertas. [Relatório e recibos](../docs/desenvolvimento/relatorio-homologacao-funcional.md#finalização-do-xlsx-e-da-central--19112026) ·
+[Inventário de telas](../docs/desenvolvimento/inventario-telas-redesign.md)
+
+### Registro de autoria do PR #226
+
+O merge `f98ec07` integrou 12 commits, incluindo a correção de CI
+`24bd59f`, posterior à descrição que enumerava 11. A base incorporada
+preserva as contribuições verificadas nos PRs #224 e #225. O registro
+de autoria identifica os commits de origem por integrante e contém
+o texto proposto para retificação documental do PR #226.
+[Auditoria de autoria](../docs/desenvolvimento/auditoria-autoria-pr-226.md)

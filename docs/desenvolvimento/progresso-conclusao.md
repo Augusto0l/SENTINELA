@@ -253,3 +253,58 @@ homologação persistente e operação dependentes de autorização.
 - Passaram a suíte Node com 241 testes e zero falhas ou ignorados,
   11 testes SQL/HBA, 14 testes de recuperação, TypeScript, ESLint,
   contratos/OpenAPI, rotas, build de produção e `git diff --check`.
+
+### Início da homologação persistente local — 19/11/2026
+
+A baseline PostgreSQL/PostGIS foi instalada em cluster privado de homologação
+e preservou o inventário após reinicialização. O backup estrutural foi
+restaurado em banco separado no mesmo cluster. A integração com aplicação,
+a carga das 37 RAs, os perfis e a prova de persistência funcional seguem
+pendentes. A Sprint 4 permanece em 30/40 (75%).
+[Registro da rodada](../../sprints/sprint-04.md#homologação-persistente-local--19112026)
+
+### Primeira leitura com Next.js no ambiente persistente — 19/11/2026
+
+O cluster privado agora contém as 37 RAs verificadas contra o GeoJSON e
+os vínculos aprovados. As migrations `homolog-persist-0001` e
+`homolog-persist-0002` provisionaram três logins técnicos de leitura e
+atestação do destino sem elevação. Os três perfis autenticados consultaram
+o catálogo e as ocorrências vazias antes e depois do reinício de
+PostgreSQL e Next.js. Durante a parada do banco, a consulta retornou
+`503`.
+
+A régua técnica da homologação passa de 1/10 para **3/10 (30%)**. A Sprint 4
+permanece em **30/40 (75%)**. A escrita e a autoria sintética de cada ação
+ainda precisam ser qualificadas para Administrador e Operador, com negação
+ao Analista e correção administrativa restrita ao Administrador.
+[Evidências e roteiro](../../database/local/persistent-homologation/README.md)
+
+### Homologação funcional sintética no cluster persistente — 19/11/2026
+
+CRUD, CSV sintético, revisão de horário e promoção autorizada foram
+verificados em fluxo integrado com PostgreSQL, Next.js e navegador.
+Listagem, Dashboard e Mapa reconciliaram os totais. Os UUIDs, o
+histórico, os vínculos PCDF e o catálogo foram preservados após o reinício.
+O backup funcional reconciliou o conteúdo de 30 tabelas em banco separado.
+
+A homologação persistente chegou a **8/10 (80%)**. A Sprint 4 permanece
+em **30/40 (75%)**. O relatório indica XLSX, casos adicionais da Central
+e validação exaustiva das telas entre as pendências.
+[Relatório funcional](relatorio-homologacao-funcional.md)
+
+### Finalização local com XLSX e Central de Revisão — 19/11/2026
+
+`homolog-persist-0006` habilitou XLSX de 34 colunas com original
+arquivado e o mesmo staging do CSV. A Central ganhou busca, filtros
+combinados, ordenação, paginação e detalhe com lote e histórico.
+A regressão confirmou correção exclusiva do Administrador, conflitos
+versionados, rollback, replay entre formatos e persistência após
+reiniciar PostgreSQL e Next.js. O backup final restaurou e reconciliou
+31 tabelas com RLS forçada.
+
+A homologação persistente chegou a **10/10 (100%)** no cenário local
+sintético admitido. A Sprint 4 permanece em **30/40 (75%)**. Identidade,
+classificação e reprocessamento entre extrações, além das demais regras
+de correção PCDF, dependem de decisão institucional. A versão foi
+classificada como **APTA PARA USO LOCAL SINTÉTICO**. [Relatório funcional](relatorio-homologacao-funcional.md#finalização-do-xlsx-e-da-central--19112026) ·
+[Inventário para redesign](inventario-telas-redesign.md)

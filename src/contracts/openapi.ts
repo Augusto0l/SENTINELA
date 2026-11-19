@@ -10,7 +10,7 @@ import { persistentIdSchema } from "@/contracts/persistent-occurrences"
 import { natureCatalogQuerySchema } from "@/contracts/persistent-catalogs"
 import { persistentAnalyticsData, persistentAnalyticsQuery, PERSISTENT_ANALYTICS_PATH } from "@/contracts/persistent-analytics"
 import { pcdfDecision, pcdfImportPath, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion, pcdfResponse,
-  pcdfReviewFilters, pcdfReviewPath, pcdfUpload } from "@/contracts/pcdf-workspace"
+  pcdfReviewPage, pcdfReviewPageQuery, pcdfReviewPath, pcdfUpload } from "@/contracts/pcdf-workspace"
 
 export const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 function jsonSchema(schema: z.ZodType) {
@@ -20,15 +20,18 @@ function jsonSchema(schema: z.ZodType) {
 }
 function pcdfOperation(operationId: string, summary: string, schema: z.ZodType, statuses: number[],
   errorStatuses: number[]) {
-  const failure = z.strictObject({ success: z.literal(false), error: z.strictObject({ status: z.number(), message: z.string() }) })
+  const failure = z.strictObject({ success: z.literal(false), error: z.strictObject({
+    status: z.number(), message: z.string(), diagnostic: z.string().regex(/^[a-z0-9_]{1,100}$/).optional(),
+  }) })
   const json = (model: z.ZodType) => ({ "application/json": { schema: jsonSchema(model) } })
   return {
     operationId, summary, "x-implementation-status": "implemented-isolated-sandbox",
-    description: "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+    "x-persistent-implementation": { scope: "homologacao-persistente-sintetica" },
+    description: "Cluster local atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
     security: [{ localSession: [] }],
     responses: {
-      ...Object.fromEntries(statuses.map(status => [status, { description: "Operação concluída no cluster descartável.",
-        content: json(pcdfResponse(schema)) }])),
+      ...Object.fromEntries(statuses.map(status => [status, { description: "Operação concluída no cluster atestado.",
+        content: json(pcdfResponse(schema, true)) }])),
       ...Object.fromEntries(errorStatuses.map(status => [status, { description: "Operação recusada ou indisponível.",
         content: json(failure) }])),
     },
@@ -225,7 +228,7 @@ export function buildOpenApi() {
       title: "SENTINELA — contratos propostos",
       version: CONTRACT_VERSION,
       description:
-        "Ocorrências, catálogos e analytics com leitura local. Importação PCDF e Central de Revisão no cluster descartável. As operações futuras estão marcadas individualmente.",
+        "Ocorrências, catálogos e analytics com leitura local. Importação PCDF sintética e Central de Revisão em clusters locais atestados. As operações futuras estão marcadas individualmente.",
     },
     servers: [
       {
@@ -269,11 +272,12 @@ export function buildOpenApi() {
       [pcdfImportPath]: {
         get: pcdfOperation("listSyntheticPcdfLots", "Consultar lotes PCDF sintéticos", z.array(pcdfLot), [200], pcdfCommonErrors),
         post: {
-          ...pcdfOperation("uploadSyntheticPcdf", "Persistir CSV PCDF sintético em staging", pcdfUpload,
+          ...pcdfOperation("uploadSyntheticPcdf", "Persistir arquivo PCDF sintético em staging", pcdfUpload,
             [200, 201], [...pcdfCommonErrors, 409, 413, 415, 422]),
           parameters: [{ name: "competencia", in: "query", required: true, schema: jsonSchema(pcdfMonth) }],
-          requestBody: { required: true, description: "UTF-8, 34 colunas e até 16 MiB. Somente proveniência da fixture sintética.",
-            content: { "text/csv": { schema: { type: "string", format: "binary" } } } },
+          requestBody: { required: true, description: "CSV UTF-8 ou XLSX, com 34 colunas, até 16 MiB e proveniência sintética. XLSX exige homologação persistente com a migration 0006.",
+            content: { "text/csv": { schema: { type: "string", format: "binary" } },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { schema: { type: "string", format: "binary" } } } },
         },
       },
       [pcdfImportPath + "/{id}/consolidacao"]: { post: {
@@ -282,9 +286,10 @@ export function buildOpenApi() {
         parameters: [pcdfId],
       } },
       [pcdfReviewPath]: { get: {
-        ...pcdfOperation("listSyntheticPcdfReview", "Consultar pendências PCDF sintéticas", z.array(pcdfIssue),
+        ...pcdfOperation("listSyntheticPcdfReview", "Consultar pendências PCDF sintéticas", z.union([z.array(pcdfIssue),pcdfReviewPage]),
           [200], pcdfCommonErrors),
-        parameters: Object.entries(pcdfReviewFilters.shape).map(([name, schema]) => ({
+        description: "Consulta em cluster local atestado. Na homologação persistente com a migration 0006, informe pagina para receber items e hasMore e habilitar q, ordem e limite. A consulta legada retorna uma lista.",
+        parameters: Object.entries(pcdfReviewPageQuery.shape).map(([name, schema]) => ({
           name, in: "query", required: false, schema: jsonSchema(schema),
         })),
       } },

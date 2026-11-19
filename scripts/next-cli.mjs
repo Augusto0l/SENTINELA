@@ -14,6 +14,10 @@ const [command, ...args] = process.argv.slice(2);
 // Load private configuration before selecting the listener. Never trust Host alone.
 nextRequire("@next/env").loadEnvConfig(projectRoot, command === "dev", { info() {}, error() {} });
 assertHostedEnvironment();
+if (process.env.SENTINELA_PERSISTENT_HOMOLOGATION === "1"
+  && (command !== "dev" || process.env.SENTINELA_AUTH_PROVIDER !== "local")) {
+  throw new Error("Homologação persistente exige desenvolvimento com o provedor local.");
+}
 delete process.env.SENTINELA_LOCAL_BIND;
 if (command === "dev" && (process.env.SENTINELA_AUTH_PROVIDER === "local" || process.env.SENTINELA_LOCAL_DEMO === "1")) {
   for (let i = args.length - 1; i >= 0; i--) {

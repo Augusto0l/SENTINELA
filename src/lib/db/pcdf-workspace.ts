@@ -8,9 +8,12 @@ import { getLocalPrincipal } from "@/lib/auth/local-server"
 import { hasPermission, type Permission, type Role } from "@/lib/auth/policy"
 import { isolatedPcdfMode } from "@/lib/db/isolated-write-mode"
 import { pcdfDecision, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion,
-  pcdfReviewFilters, pcdfUpload } from "@/contracts/pcdf-workspace"
+  pcdfReviewFilters, pcdfReviewPage, pcdfReviewPageQuery, pcdfUpload } from "@/contracts/pcdf-workspace"
 import { parseAnalyticsSearch, persistentAnalyticsData } from "@/contracts/persistent-analytics"
 import { analyticsSql } from "@/lib/db/analytics-query"
+import { assertPersistentIdentity, persistentPcdfCompletionEnabled, persistentPcdfEnabled, persistentReadConfig, persistentWriters } from "@/lib/db/config"
+import { localAllowed } from "@/lib/auth/local-provider"
+import { persistentIdentitySql } from "@/lib/db/persistent-read"
 
 const maxCsvBytes = 16 * 1024 * 1024
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" }
@@ -21,7 +24,7 @@ const identities: Record<Role, [string, string]> = {
 }
 
 class WorkspaceError extends Error {
-  constructor(readonly status: number) { super("Operação PCDF indisponível.") }
+  constructor(readonly status: number, readonly diagnostic?: string) { super("Operação PCDF indisponível.") }
 }
 
 async function readBody(request: Request, limit: number) {
@@ -47,11 +50,12 @@ async function readBody(request: Request, limit: number) {
   }
 }
 
-function stagePayload(content: Buffer, month: string) {
-  return new Promise<{ batch: object; xmlSha: string; xmlSize: number }>((resolve, reject) => {
+function stagePayload(content: Buffer, month: string, xlsx = false) {
+  return new Promise<{ batch: object; xmlSha: string; xmlSize: number; csv?: string }>((resolve, reject) => {
     const env = { NODE_ENV: process.env.NODE_ENV, PATH: process.env.PATH, SystemRoot: process.env.SystemRoot,
       WINDIR: process.env.WINDIR, TEMP: process.env.TEMP, TMP: process.env.TMP }
-    const child = spawn("python", ["-E", "-B", join(process.cwd(), "database", "local", "pcdf-sandbox", "workspace.py"), month], {
+    const script = xlsx ? ["persistent-homologation", "xlsx.py"] : ["pcdf-sandbox", "workspace.py"]
+    const child = spawn("python", ["-E", "-B", join(process.cwd(), "database", "local", ...script), month], {
       env, windowsHide: true, timeout: 30000, stdio: ["pipe", "pipe", "ignore"],
     })
     const chunks: Buffer[] = []
@@ -64,8 +68,15 @@ function stagePayload(content: Buffer, month: string) {
     child.on("error", () => reject(new WorkspaceError(503)))
     child.stdin.on("error", () => { /* The child reports parse failures via its exit code. */ })
     child.on("close", code => {
-      if (code !== 0) return reject(new WorkspaceError(code === 2 ? 422 : 503))
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8"))) }
+      const output = Buffer.concat(chunks).toString("utf8")
+      if (code !== 0) {
+        let diagnostic: string | undefined
+        if (xlsx && code === 2 && output.length <= 256) {
+          try { diagnostic = z.string().regex(/^[a-z0-9_]{1,100}$/).parse(JSON.parse(output).error) } catch {}
+        }
+        return reject(new WorkspaceError(code === 2 ? 422 : 503, diagnostic))
+      }
+      try { resolve(JSON.parse(output)) }
       catch { reject(new WorkspaceError(503)) }
     })
     child.stdin.end(content)
@@ -91,20 +102,28 @@ function sqlError(error: unknown) {
 export async function pcdfWorkspace(request: Request, operation: Operation, id?: string) {
   let client: Client | undefined
   try {
-    const mode = isolatedPcdfMode()
-    if (!mode || request.headers.get("host") !== new URL(mode.origin).host) throw new WorkspaceError(403)
+    const persistent = persistentPcdfEnabled()
+    const completion = persistentPcdfCompletionEnabled()
+    const mode = persistent ? null : isolatedPcdfMode()
+    const origin = persistent ? process.env.SENTINELA_APP_ORIGIN : mode?.origin
+    if (!origin || request.headers.get("host") !== new URL(origin).host
+      || (persistent && !localAllowed(request.headers.get("host")))) throw new WorkspaceError(403)
     const write = operation === "upload" || operation === "promote" || operation === "decide"
-    if (write && request.headers.get("origin") !== mode.origin) throw new WorkspaceError(403)
+    if (write && request.headers.get("origin") !== origin) throw new WorkspaceError(403)
     const principal = await getLocalPrincipal()
     if (!principal) throw new WorkspaceError(401)
-    if (!principal.localSubject || !hasPermission(principal.role, permissions[operation])) throw new WorkspaceError(403)
-    const [user, passwordKey] = identities[operation === "analytics" ? "Analista" : principal.role]
+    if (principal.source !== "local" || !hasPermission(principal.role, permissions[operation])) throw new WorkspaceError(403)
+    const writer = principal.role === "Analista" ? undefined : persistentWriters[principal.role]
+    if ((!persistent && !principal.localSubject) || (persistent && writer && writer.subject!==principal.localSubject)) throw new WorkspaceError(403)
+    const reader = persistent ? persistentReadConfig(principal.role) : null
+    const [user, passwordKey] = reader ? [writer?.login ?? reader.user, `SENTINELA_PERSISTENT_PASSWORD_${writer?.login ?? reader.user}`]
+      : identities[operation === "analytics" ? "Analista" : principal.role]
     const password = process.env[passwordKey]
-    if (!password) throw new WorkspaceError(503)
-    const manifest = await attestManifest({ manifest: join(mode.root, "manifest.json"), expectedUUID: mode.id,
+    if (!password || (persistent && !/^[a-f0-9]{64}$/.test(password))) throw new WorkspaceError(503)
+    const manifest = mode && await attestManifest({ manifest: join(mode.root, "manifest.json"), expectedUUID: mode.id,
       credentials: { Administrador: { user: "", password: "" }, Operador: { user: "", password: "" } } })
-    if (manifest.pcdf_workspace !== true) throw new WorkspaceError(403)
-    if (operation === "analytics" && manifest.pcdf_workspace_revision !== 2) throw new WorkspaceError(403)
+    if (manifest && (manifest.pcdf_workspace !== true || (operation === "analytics" && manifest.pcdf_workspace_revision !== 2)))
+      throw new WorkspaceError(403)
 
     const search = new URL(request.url).searchParams
     if (new Set(search.keys()).size !== search.size) throw new WorkspaceError(400)
@@ -113,12 +132,19 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     let statement: string, params: unknown[], schema: z.ZodType
     switch (operation) {
       case "upload": {
-        if (bodyType !== "text/csv") throw new WorkspaceError(415)
+        const xlsx = completion && bodyType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if (!xlsx && bodyType !== "text/csv") throw new WorkspaceError(415)
         const { competencia } = z.strictObject({ competencia: pcdfMonth }).parse(query)
         const content = await readBody(request, maxCsvBytes)
-        const { batch, xmlSha, xmlSize } = await stagePayload(content, competencia)
-        statement = "SELECT sentinela_pcdf_lab.upload($1,$2,$3,$4,$5) AS data"
-        params = [principal.localSubject, batch, content, xmlSha, xmlSize]
+        const { batch, xmlSha, xmlSize, csv } = await stagePayload(content, competencia, xlsx)
+        if (xlsx) {
+          if (!csv) throw new WorkspaceError(503)
+          statement = "SELECT sentinela_pcdf_lab.upload_xlsx($1,$2,$3,$4,$5,$6) AS data"
+          params = [principal.localSubject, batch, Buffer.from(csv,"base64"), xmlSha, xmlSize, content]
+        } else {
+          statement = "SELECT sentinela_pcdf_lab.upload($1,$2,$3,$4,$5) AS data"
+          params = [principal.localSubject, batch, content, xmlSha, xmlSize]
+        }
         schema = pcdfUpload
         break
       }
@@ -135,6 +161,15 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
         schema = pcdfPromotion
         break
       case "review": {
+        if (completion && search.has("pagina")) {
+          const { tipo, prioridade, status, q, ordem, pagina, limite = 25 } = pcdfReviewPageQuery.parse(query)
+          statement = "SELECT ARRAY(SELECT sentinela_pcdf_lab.review_page($1,$2,$3,$4,$5,$6,$7)) AS data"
+          params = [tipo, prioridade, status, q, ordem, pagina, limite]
+          schema = z.array(pcdfIssue).max(limite + 1).transform(items => pcdfReviewPage.parse({
+            items: items.slice(0,limite), page: pagina, pageSize: limite, hasMore: items.length > limite && pagina < 10000,
+          }))
+          break
+        }
         const { tipo, prioridade, status } = pcdfReviewFilters.parse(query)
         statement = "SELECT ARRAY(SELECT sentinela_pcdf_lab.workspace_review($1,$2,$3,NULL)) AS data"
         params = [tipo, prioridade, status]
@@ -160,11 +195,16 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
       }
     }
 
-    client = new Client({ host: "127.0.0.1", port: 55432, database: "sentinela_rls_sandbox", user, password, ssl: false,
+    client = new Client({ ...(reader ?? { host: "127.0.0.1", port: 55432, database: "sentinela_rls_sandbox" }), user, password, ssl: false,
       connectionTimeoutMillis: 3000, statement_timeout: 45000, query_timeout: 50000, lock_timeout: 3000 })
     await client.connect()
     await client.query(write ? "BEGIN" : "BEGIN READ ONLY")
-    const { rowCount } = await client.query(`SELECT 1 FROM pg_roles r
+    if (persistent) {
+      const { rows:[identity] } = await client.query(persistentIdentitySql)
+      assertPersistentIdentity(identity,user,write ? "off" : "on")
+      statement=statement.replace("sentinela_pcdf_lab.","sentinela_homolog_pcdf.")
+    } else if (mode && manifest) {
+      const { rowCount } = await client.query(`SELECT 1 FROM pg_roles r
       WHERE r.rolname=current_user AND current_user=$1 AND session_user=$1
         AND NOT (r.rolsuper OR r.rolbypassrls OR r.rolcreatedb OR r.rolcreaterole OR r.rolreplication OR r.rolinherit)
         AND NOT EXISTS(SELECT FROM pg_auth_members WHERE member=r.oid OR roleid=r.oid)
@@ -174,13 +214,15 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
         AND (SELECT system_identifier::text FROM pg_control_system())=$3
         AND abs(extract(epoch FROM pg_postmaster_start_time())::bigint-$4::bigint)<=2`,
     [user, mode.id, manifest.system_id, manifest.start_epoch])
-    if (rowCount !== 1) throw new WorkspaceError(403)
+      if (rowCount !== 1) throw new WorkspaceError(403)
+    } else throw new WorkspaceError(403)
     const result = await client.query(statement, params)
     const validated = schema.safeParse(result.rows[0]?.data)
     if (!validated.success) throw new WorkspaceError(503)
     await client.query("COMMIT")
     const status = operation === "upload" && !(validated.data as z.infer<typeof pcdfUpload>).replay ? 201 : 200
-    return Response.json({ success: true, scope: "sandbox-synthetic-only", data: validated.data }, { status, headers })
+    return Response.json({ success: true, scope: persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only",
+      data: validated.data }, { status, headers })
   } catch (error) {
     await client?.query("ROLLBACK").catch(() => {})
     const status = error instanceof WorkspaceError ? error.status
@@ -188,8 +230,9 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     const message: Record<number, string> = { 400: "Parâmetros ou corpo inválidos.", 401: "Sessão necessária.",
       403: "Operação não autorizada.", 404: "Registro não encontrado.", 409: "Conflito. Atualize a consulta antes de repetir.",
       413: "Arquivo ou corpo excede o limite.", 415: "Formato de envio não aceito.",
-      422: "CSV ou alteração recusados.", 503: "Operação PCDF indisponível." }
-    return Response.json({ success: false, error: { status, message: message[status] } }, { status, headers })
+      422: "Arquivo ou alteração recusados.", 503: "Operação PCDF indisponível." }
+    return Response.json({ success: false, error: { status, message: message[status],
+      ...(error instanceof WorkspaceError && error.diagnostic && { diagnostic: error.diagnostic }) } }, { status, headers })
   } finally {
     await client?.end().catch(() => {})
   }
