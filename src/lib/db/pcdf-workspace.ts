@@ -9,6 +9,8 @@ import { hasPermission, type Permission, type Role } from "@/lib/auth/policy"
 import { isolatedPcdfMode } from "@/lib/db/isolated-write-mode"
 import { pcdfDecision, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion,
   pcdfReviewFilters, pcdfUpload } from "@/contracts/pcdf-workspace"
+import { parseAnalyticsSearch, persistentAnalyticsData } from "@/contracts/persistent-analytics"
+import { analyticsSql } from "@/lib/db/analytics-query"
 
 const maxCsvBytes = 16 * 1024 * 1024
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" }
@@ -70,9 +72,9 @@ function stagePayload(content: Buffer, month: string) {
   })
 }
 
-type Operation = "upload" | "lots" | "promote" | "review" | "decide"
+type Operation = "upload" | "lots" | "promote" | "review" | "decide" | "analytics"
 const permissions: Record<Operation, Permission> = {
-  upload: "importar", lots: "importar", promote: "importar", review: "consultar_central", decide: "corrigir",
+  upload: "importar", lots: "importar", promote: "importar", review: "consultar_central", decide: "corrigir", analytics: "analisar",
 }
 
 function sqlError(error: unknown) {
@@ -96,12 +98,13 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     const principal = await getLocalPrincipal()
     if (!principal) throw new WorkspaceError(401)
     if (!principal.localSubject || !hasPermission(principal.role, permissions[operation])) throw new WorkspaceError(403)
-    const [user, passwordKey] = identities[principal.role]
+    const [user, passwordKey] = identities[operation === "analytics" ? "Analista" : principal.role]
     const password = process.env[passwordKey]
     if (!password) throw new WorkspaceError(503)
     const manifest = await attestManifest({ manifest: join(mode.root, "manifest.json"), expectedUUID: mode.id,
       credentials: { Administrador: { user: "", password: "" }, Operador: { user: "", password: "" } } })
     if (manifest.pcdf_workspace !== true) throw new WorkspaceError(403)
+    if (operation === "analytics" && manifest.pcdf_workspace_revision !== 2) throw new WorkspaceError(403)
 
     const search = new URL(request.url).searchParams
     if (new Set(search.keys()).size !== search.size) throw new WorkspaceError(400)
@@ -146,6 +149,13 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
         params = [principal.localSubject, z.uuid().parse(id), body.versaoEsperada, body.decisao,
           body.decisao === "resolvida" ? body.valor : null, body.justificativa]
         schema = pcdfIssue
+        break
+      }
+      case "analytics": {
+        const analyticsQuery = analyticsSql(parseAnalyticsSearch(search))
+        statement = analyticsQuery.text
+        params = analyticsQuery.values
+        schema = persistentAnalyticsData
         break
       }
     }

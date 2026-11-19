@@ -9,6 +9,7 @@ import {
   RA_BY_CODE,
   GEO_BOUNDS,
   projectLonLat,
+  type RAData,
 } from "./raMapData";
 import type { MockOccurrence } from "../../data/mockOccurrences";
 import { createDensityField, HEAT_GRADIENT, projectHeatRecords } from "@/components/map/heatmapDensity";
@@ -42,6 +43,8 @@ type Props = {
   mapMode?: MapMode;
   mockOccurrences?: MockOccurrence[];
   heatReferenceOccurrences?: readonly MockOccurrence[];
+  officialRegions?: RAData[];
+  heatUnavailable?: boolean;
 };
 
 function colorFor(value: number, min: number, max: number) {
@@ -99,6 +102,8 @@ export default function MapaDF({
   mapMode = "heat",
   mockOccurrences = [],
   heatReferenceOccurrences = mockOccurrences,
+  officialRegions,
+  heatUnavailable = false,
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
@@ -108,11 +113,12 @@ export default function MapaDF({
   const heatCanvasRef = useRef<HTMLCanvasElement>(null);
   const [symbolScale, setSymbolScale] = useState(1);
 
-  const selectedRA = selectedRaCode ? RA_BY_CODE[selectedRaCode] : undefined;
-  const visibleRAs = selectedRA ? [selectedRA] : RAS;
+  const regions = officialRegions ?? RAS;
+  const selectedRA = selectedRaCode ? (officialRegions ? regions.find(region => region.code === selectedRaCode) : RA_BY_CODE[selectedRaCode]) : undefined;
+  const visibleRAs = selectedRA ? [selectedRA] : regions;
   const viewBox = selectedRA ? selectedRA.viewBox : MAP_VIEWBOX;
   // The location picker also uses this component; preserve its existing appearance.
-  const heatmapActive = mapMode === "heat" && !onClickPoint;
+  const heatmapActive = mapMode === "heat" && !onClickPoint && !heatUnavailable;
   const analyticMap = !onClickPoint;
   const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(" ").map(Number);
 
@@ -130,7 +136,7 @@ export default function MapaDF({
     return () => { cancelAnimationFrame(frame); observer.disconnect(); };
   }, [mapMode, viewBox]);
 
-  const values = RAS.map((ra) => occurrencesByRa[ra.code] ?? 0);
+  const values = regions.map((ra) => occurrencesByRa[ra.code] ?? 0);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
 
@@ -144,9 +150,9 @@ export default function MapaDF({
     const context = document.createElement("canvas").getContext("2d");
     if (!context) return null;
     const boundary = new Path2D();
-    for (const ra of RAS) boundary.addPath(new Path2D(ra.path));
+    for (const ra of regions) boundary.addPath(new Path2D(ra.path));
     return { contains: (x: number, y: number) => context.isPointInPath(boundary, x, y, "evenodd") };
-  }, [heatmapActive]);
+  }, [heatmapActive, regions]);
 
   const referenceField = useMemo(() => {
     if (!heatDomain) return null;
@@ -174,14 +180,14 @@ export default function MapaDF({
     const draw = () => {
       if (!svgRef.current) return;
       const boundary = new Path2D();
-      for (const ra of selectedRA ? [selectedRA] : RAS) boundary.addPath(new Path2D(ra.path));
+      for (const ra of selectedRA ? [selectedRA] : regions) boundary.addPath(new Path2D(ra.path));
       renderDensityHeatmap(canvas, svgRef.current, heatField, referenceField.peak, boundary);
     };
     draw();
     const observer = new ResizeObserver(draw);
     if (svgRef.current) observer.observe(svgRef.current);
     return () => observer.disconnect();
-  }, [heatmapActive, heatField, referenceField, viewBox, selectedRA]);
+  }, [heatmapActive, heatField, referenceField, viewBox, selectedRA, regions]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (containerRef.current) {
@@ -206,7 +212,7 @@ export default function MapaDF({
 
   if (mapMode === "satellite") return (
     <SatelliteBoundary>
-      <SatelliteMap selectedRaCode={selectedRaCode} onSelectRa={onSelectRa} occurrencesByRa={occurrencesByRa} />
+      <SatelliteMap selectedRaCode={selectedRaCode} onSelectRa={onSelectRa} occurrencesByRa={occurrencesByRa} official={Boolean(officialRegions)} />
     </SatelliteBoundary>
   );
 
@@ -236,7 +242,7 @@ export default function MapaDF({
                 key={ra.code}
                 role="button"
                 tabIndex={onSelectRa ? 0 : undefined}
-                aria-label={`${ra.displayName}: ${count} ocorrências demonstrativas`}
+                aria-label={`${ra.displayName}: ${count} ocorrências${officialRegions ? "" : " demonstrativas"}`}
                 aria-pressed={selectedRaCode === ra.code}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -276,7 +282,7 @@ export default function MapaDF({
         {/* RA labels when showing all RAs */}
         {!selectedRA && (analyticMap ? mapMode === "heat" : mapMode !== "points") && (
           <g pointerEvents="none" data-testid="ra-count-labels">
-            {RAS.map((ra) => {
+            {regions.map((ra) => {
               const count = occurrencesByRa[ra.code];
               if (!count) return null;
               const badgeW = 38;
@@ -502,10 +508,10 @@ export default function MapaDF({
             {hoveredOcc.natureza}
           </div>
           <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>{hoveredOcc.raName}</div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>
+          {!officialRegions && <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>
             {hoveredOcc.data} — {hoveredOcc.horario}
-          </div>
-          <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "monospace" }}>{hoveredOcc.id}</div>
+          </div>}
+          {!officialRegions && <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "monospace" }}>{hoveredOcc.id}</div>}
         </div>
       )}
     </div>

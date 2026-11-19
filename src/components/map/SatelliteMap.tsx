@@ -8,11 +8,13 @@ import { RA_BY_CODE } from "@/components/map/raMapData"
 import { SATELLITE_ATTRIBUTION, SATELLITE_TILES, satelliteFeatures, satelliteMaskRings } from "@/components/map/satelliteData"
 import styles from "@/components/map/SatelliteMap.module.css"
 import { TILE_REFERRER_POLICY } from "@/lib/maps/tile-policy"
+import { loadOfficialRegions } from "@/components/map/officialRegions"
 
 interface Props {
   selectedRaCode?: string | null
   onSelectRa?: (code: string) => void
   occurrencesByRa: Record<string, number>
+  official?: boolean
 }
 
 function MapFraming({ bounds }: { bounds: LatLngBounds }) {
@@ -44,7 +46,7 @@ function SatelliteTiles({ attempt, onStatus }: { attempt: number; onStatus: (sta
     }} />
 }
 
-function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa }: Props & { geo: RaGeoJSON }) {
+function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, official }: Props & { geo: RaGeoJSON }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
   const [attempt, setAttempt] = useState(0)
   const features = useMemo(() => satelliteFeatures(geo, selectedRaCode), [geo, selectedRaCode])
@@ -85,7 +87,7 @@ function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa }: 
               if (!(element instanceof SVGElement)) return
               element.setAttribute("role", "button")
               element.setAttribute("tabindex", onSelectRa ? "0" : "-1")
-              element.setAttribute("aria-label", `${name}: ${count} ocorrências demonstrativas`)
+              element.setAttribute("aria-label", `${name}: ${count} ocorrências${official ? "" : " demonstrativas"}`)
               element.setAttribute("aria-pressed", String(selectedRaCode === code))
               element.setAttribute("data-ra-code", code)
               const keydown = (event: KeyboardEvent) => {
@@ -103,7 +105,7 @@ function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa }: 
       <ScaleControl position="bottomleft" imperial={false} />
     </MapContainer>
     <div className={`leaflet-control-attribution ${styles.credits}`} dangerouslySetInnerHTML={{ __html: SATELLITE_ATTRIBUTION }} />
-    <div className={styles.imageryNote}>Imagens 2024 · ocorrências demonstrativas</div>
+    <div className={styles.imageryNote}>Imagens 2024 · ocorrências {official ? "persistidas" : "demonstrativas"}</div>
     {status !== "ready" && <div className={styles.status} role="status">
       <p>{status === "loading" ? "Carregando imagens de satélite…" : "Imagens de satélite indisponíveis. Verifique a conexão ou selecione Calor, Pontos ou Clusters."}</p>
       {status === "error" && <button type="button" className={styles.retry} onClick={() => { setStatus("loading"); setAttempt((value) => value + 1) }}>Tentar novamente</button>}
@@ -116,15 +118,18 @@ export default function SatelliteMap(props: Props) {
   const [error, setError] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
-    fetch("/data/ras-df.geojson", { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) })
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10000)])
+    const source = props.official ? loadOfficialRegions(signal) : fetch("/data/ras-df.geojson", { signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Geometria indisponível")
         const data = await response.json() as RaGeoJSON
         if (!data.features?.length) throw new Error("Geometria inválida")
-        if (!controller.signal.aborted) setGeo(data)
-      }).catch(() => { if (!controller.signal.aborted) setError(true) })
+        return data
+      })
+    source.then(data => { if (!controller.signal.aborted) setGeo(data) })
+      .catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
-  }, [])
+  }, [props.official])
   if (!geo) return <div className={styles.fallback} role="status">{error ? "Limites geográficos indisponíveis. Selecione Calor, Pontos ou Clusters para continuar." : "Carregando limites do Distrito Federal…"}</div>
   return <SatelliteContent geo={geo} {...props} />
 }
