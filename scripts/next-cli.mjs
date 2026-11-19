@@ -3,6 +3,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { assertHostedEnvironment } from "./hosted-env.mjs";
 
 const require = createRequire(import.meta.url);
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -12,8 +13,9 @@ const nextRoot = dirname(nextPackage);
 const [command, ...args] = process.argv.slice(2);
 // Load private configuration before selecting the listener. Never trust Host alone.
 nextRequire("@next/env").loadEnvConfig(projectRoot, command === "dev", { info() {}, error() {} });
+assertHostedEnvironment();
 delete process.env.SENTINELA_LOCAL_BIND;
-if (process.env.SENTINELA_AUTH_PROVIDER === "local" && command === "dev") {
+if (command === "dev" && (process.env.SENTINELA_AUTH_PROVIDER === "local" || process.env.SENTINELA_LOCAL_DEMO === "1")) {
   for (let i = args.length - 1; i >= 0; i--) {
     if (args[i] === "--hostname" || args[i] === "-H") args.splice(i, 2);
     else if (args[i].startsWith("--hostname=")) args.splice(i, 1);

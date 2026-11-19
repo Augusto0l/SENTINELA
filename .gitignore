@@ -3,6 +3,14 @@ dist/
 build/
 .cache/
 .env*
+.pgpass
+pgpass.conf
+*.pem
+*.key
+*.pfx
+*.dump
+next-accounts.json
+sentinela-sessions/
 .vite/
 vite.config.*.timestamp-*
 *.tsbuildinfo

@@ -1,0 +1,11 @@
+{
+  "algorithm": "SHA-256",
+  "files": {
+    "database/local/sandbox/control.py": "f5729615ececd490a651006b965edf646dec30052ec8bfb3470257a3ae4eab79",
+    "database/local/sandbox/sql/snapshot_extra.sql": "14a5df87024e068eb282e8ce199e79092c8114e3a0b8c6ec23d7cf67187ad82c",
+    "database/local/sandbox/test_control.py": "1a6d7f11050b008de0d2022bed8ab22ad5dfbd8addd6121bc217fcafded00b3f",
+    "database/local/sandbox/README.md": "4cb3c8da1f20cc83dc7a91e26e05e10888f7d736610aa6d0f9c495d21b4a1053",
+    "database/local/sandbox/revision-plan.json": "ecca06edfe001375102b1caf551127a41204d44860fcd7b4a801b9a53e35d3cf"
+  },
+  "note": "This checksum file excludes itself; no real manifest was modified."
+}
