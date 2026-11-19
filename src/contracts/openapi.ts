@@ -7,6 +7,10 @@ import {
 } from "@/contracts/common"
 import { contractModels } from "@/contracts/examples"
 import { persistentIdSchema } from "@/contracts/persistent-occurrences"
+import { natureCatalogQuerySchema } from "@/contracts/persistent-catalogs"
+import { persistentAnalyticsData, persistentAnalyticsQuery, PERSISTENT_ANALYTICS_PATH } from "@/contracts/persistent-analytics"
+import { pcdfDecision, pcdfImportPath, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion, pcdfResponse,
+  pcdfReviewFilters, pcdfReviewPath, pcdfUpload } from "@/contracts/pcdf-workspace"
 
 export const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 function jsonSchema(schema: z.ZodType) {
@@ -14,6 +18,24 @@ function jsonSchema(schema: z.ZodType) {
   delete value.$schema
   return value
 }
+function pcdfOperation(operationId: string, summary: string, schema: z.ZodType, statuses: number[],
+  errorStatuses: number[]) {
+  const failure = z.strictObject({ success: z.literal(false), error: z.strictObject({ status: z.number(), message: z.string() }) })
+  const json = (model: z.ZodType) => ({ "application/json": { schema: jsonSchema(model) } })
+  return {
+    operationId, summary, "x-implementation-status": "implemented-isolated-sandbox",
+    description: "Cluster descartável atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
+    security: [{ localSession: [] }],
+    responses: {
+      ...Object.fromEntries(statuses.map(status => [status, { description: "Operação concluída no cluster descartável.",
+        content: json(pcdfResponse(schema)) }])),
+      ...Object.fromEntries(errorStatuses.map(status => [status, { description: "Operação recusada ou indisponível.",
+        content: json(failure) }])),
+    },
+  }
+}
+const pcdfId = { name: "id", in: "path", required: true, schema: jsonSchema(persistentIdSchema) }
+const pcdfCommonErrors = [400, 401, 403, 503]
 function media(name: string) {
   return {
     "application/json": {
@@ -145,11 +167,55 @@ export function buildOpenApi() {
       operationId: detail ? "getPersistentOccurrence" : "listPersistentOccurrences",
       summary: detail ? "Consultar ocorrência persistente por UUID" : "Consultar ocorrências persistentes locais",
       "x-implementation-status": "implemented-local-development",
-      description: "GET implementado somente no provedor local em development/loopback. Sessão validada no servidor, permissão analisar, PostgreSQL local via role mínima e RLS sintética. Sem fallback. UUIDs persistentes não equivalem aos catálogos demonstrativos. Página além do total retorna lista vazia; datas inclusivas. Metadado catalogVersion identifica o contrato legado, não homologa catálogos do banco.",
+      description: "GET em development/loopback, com sessão do provedor local, permissão analisar e reader PostgreSQL sujeita à RLS. " +
+        (detail ? "O detalhe rejeita parâmetros de consulta. Ocorrência ausente ou invisível retorna 404." :
+          "Parâmetros desconhecidos ou repetidos são rejeitados. Datas inclusivas; página além do total retorna lista vazia.") +
+        " A consulta usa UUIDs persistentes e retorna erro se a reader estiver indisponível.",
       security: [{ localSession: [] }],
       parameters: detail ? [{ name: "id", in: "path", required: true, schema: jsonSchema(persistentIdSchema) }] : queryParameters("PersistentQuery"),
       responses: { "200": { description: "Leitura PostgreSQL local.", content: media(detail ? "PersistentDetail" : "PersistentList") },
         ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "INTERNAL_ERROR", "SERVICE_UNAVAILABLE", ...(detail ? ["NOT_FOUND" as const] : [])]) },
+    }
+  }
+  function catalogOperation(region: boolean) {
+    return {
+      operationId: region ? "listPersistentRegions" : "listPersistentNatures",
+      summary: region ? "Consultar Regiões Administrativas persistentes" : "Consultar naturezas criminais originais persistentes",
+      "x-implementation-status": "implemented-local-development",
+      description: "GET em development/loopback com sessão local e permissão analisar. Retorna UUIDs e nomes ou descrições no escopo RLS. Ordenação por texto em minúsculas, texto original e UUID, com collation C na ordenação. Catálogo vazio retorna items vazio. " +
+        (region ? "A consulta de RAs rejeita parâmetros." : "A consulta de naturezas aceita busca literal na descrição original e direção de ordenação. Preserva a grafia de origem e não expõe classificação derivada."),
+      security: [{ localSession: [] }],
+      parameters: region ? [] : [
+        { name: "q", in: "query", required: false, schema: jsonSchema(natureCatalogQuerySchema.shape.q),
+          description: "Trecho literal da descrição original, sem distinção entre maiúsculas e minúsculas." },
+        { name: "direction", in: "query", required: false, schema: jsonSchema(natureCatalogQuerySchema.shape.direction),
+          description: "Direção da ordenação por descrição. Padrão asc. UUID asc desempata." },
+      ],
+      responses: { "200": { description: "Catálogo PostgreSQL local visível, possivelmente vazio.", content: media(region ? "RegionCatalog" : "NatureCatalog") },
+        ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "INTERNAL_ERROR", "SERVICE_UNAVAILABLE"]) },
+    }
+  }
+  function plannedWrite(kind: "create" | "update" | "inactivate") {
+    const create = kind === "create", inactive = kind === "inactivate"
+    return {
+      ...operation(create ? "createOccurrence" : inactive ? "inactivateOccurrence" : "updateOccurrence",
+        create ? "PROPOSTA: cadastrar ocorrência manual" : inactive ? "PROPOSTA: inativar logicamente" : "PROPOSTA: editar ocorrência regular",
+        inactive ? "PlannedInactivationResponse" : create ? "PlannedManualResponse" : "PlannedUpdateResponse",
+        create ? 201 : 200, create ? "PlannedManualCreate" : inactive ? "PlannedInactivation" : "PlannedManualUpdate"),
+      "x-isolated-implementation": {
+        scope: "sandbox-synthetic-only",
+        securityScheme: "localSession",
+        description: "A rota Next.js aceita escrita somente em desenvolvimento com contas descartáveis e cluster atestado. O contrato experimental está documentado em database/local/write-sandbox/MUTACOES.md.",
+      },
+      description: "PLANEJADO, indisponível. Contratos UUID substituem o payload demonstrativo somente nestas operações propostas. Requer identidade SQL confiável, escopo e backend transacional auditado ainda não aprovados; login local atual não autoriza escrita. Ver docs/escrita-persistente-planejamento.md. Exemplos não evidenciam execução. Versão divergente ou reutilização incompatível da chave: 409; campos inválidos: 422. Nenhum DELETE físico.",
+      parameters: [
+        ...(!create ? [{ name: "id", in: "path", required: true, schema: jsonSchema(persistentIdSchema) }] : []),
+        { name: "Idempotency-Key", in: "header", required: true, schema: { type: "string", format: "uuid" }, description: "Proposta: UUID por comando; repetição idêntica reapresenta o resultado, payload divergente retorna 409." },
+      ],
+      responses: {
+        [create ? "201" : "200"]: { description: "Formato futuro; não comprova persistência.", content: media(inactive ? "PlannedInactivationResponse" : create ? "PlannedManualResponse" : "PlannedUpdateResponse") },
+        ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "VALIDATION_ERROR", "CONFLICT", "INTERNAL_ERROR", "SERVICE_UNAVAILABLE", ...(!create ? ["NOT_FOUND" as const] : [])]),
+      },
     }
   }
   return {
@@ -159,7 +225,7 @@ export function buildOpenApi() {
       title: "SENTINELA — contratos propostos",
       version: CONTRACT_VERSION,
       description:
-        "GET de ocorrências implementados no PostgreSQL local de desenvolvimento. Demais operações propostas continuam não implementadas. Exemplos são fictícios; as telas permanecem demonstrativas.",
+        "Ocorrências, catálogos e analytics com leitura local. Importação PCDF e Central de Revisão no cluster descartável. As operações futuras estão marcadas individualmente.",
     },
     servers: [
       {
@@ -170,39 +236,64 @@ export function buildOpenApi() {
     "x-cross-field-validation":
       "Datas ordenadas, pares de ordenação, contagens e estados são verificados nos schemas Zod; JSON Schema não expressa todas essas relações.",
     paths: {
+      [PERSISTENT_ANALYTICS_PATH]: { get: {
+        operationId: "readPersistentAnalytics",
+        summary: "Consultar agregados e projeções espaciais PostgreSQL",
+        description: "GET em development/loopback com sessão local e permissão analisar. Agrega ocorrências ativas visíveis à reader sob RLS. Natureza e categoria devem corresponder na mesma associação. Parâmetros desconhecidos ou repetidos são rejeitados. Pontos validados limitados a 5000.",
+        "x-implementation-status": "implemented-local-development",
+        "x-isolated-implementation": {
+          scope: "sandbox-synthetic-only",
+          schema: jsonSchema(pcdfResponse(persistentAnalyticsData)),
+          description: "Com PCDF isolado habilitado, a mesma consulta usa somente ocorrências sintéticas consolidadas.",
+        },
+        security: [{ localSession: [] }],
+        parameters: Object.entries(persistentAnalyticsQuery.shape).map(([name,schema]) => ({
+          name, in: "query", required: false, schema: jsonSchema(schema),
+        })),
+        responses: { "200": { description: "Consulta analítica concluída.", content: media("PersistentAnalytics") },
+          ...errorRefs(["BAD_REQUEST","UNAUTHORIZED","FORBIDDEN","INTERNAL_ERROR","SERVICE_UNAVAILABLE"]) },
+      } },
+      "/api/v1/catalogos/regioes-administrativas": { get: catalogOperation(true) },
+      "/api/v1/catalogos/naturezas-criminais": { get: catalogOperation(false) },
       "/api/v1/ocorrencias": {
         get: persistentOperation(false),
-        post: operation(
-          "createOccurrence",
-          "Cadastrar ocorrência (futuro)",
-          "OccurrenceResponse",
-          201,
-          "OccurrenceCreate",
-        ),
+        post: plannedWrite("create"),
       },
       "/api/v1/ocorrencias/{id}": {
         get: persistentOperation(true),
-        patch: operation(
-          "updateOccurrence",
-          "Atualizar campos da ocorrência",
-          "OccurrenceResponse",
-          200,
-          "OccurrenceUpdate",
-          undefined,
-          true,
-        ),
+        patch: plannedWrite("update"),
       },
       "/api/v1/ocorrencias/{id}/inativacao": {
-        post: operation(
-          "inactivateOccurrence",
-          "Inativar logicamente, sem exclusão física",
-          "OccurrenceResponse",
-          200,
-          "Inactivation",
-          undefined,
-          true,
-        ),
+        post: plannedWrite("inactivate"),
       },
+      [pcdfImportPath]: {
+        get: pcdfOperation("listSyntheticPcdfLots", "Consultar lotes PCDF sintéticos", z.array(pcdfLot), [200], pcdfCommonErrors),
+        post: {
+          ...pcdfOperation("uploadSyntheticPcdf", "Persistir CSV PCDF sintético em staging", pcdfUpload,
+            [200, 201], [...pcdfCommonErrors, 409, 413, 415, 422]),
+          parameters: [{ name: "competencia", in: "query", required: true, schema: jsonSchema(pcdfMonth) }],
+          requestBody: { required: true, description: "UTF-8, 34 colunas e até 16 MiB. Somente proveniência da fixture sintética.",
+            content: { "text/csv": { schema: { type: "string", format: "binary" } } } },
+        },
+      },
+      [pcdfImportPath + "/{id}/consolidacao"]: { post: {
+        ...pcdfOperation("promoteSyntheticPcdf", "Consolidar identidades aprovadas do lote", pcdfPromotion,
+          [200], [...pcdfCommonErrors, 404, 409, 422]),
+        parameters: [pcdfId],
+      } },
+      [pcdfReviewPath]: { get: {
+        ...pcdfOperation("listSyntheticPcdfReview", "Consultar pendências PCDF sintéticas", z.array(pcdfIssue),
+          [200], pcdfCommonErrors),
+        parameters: Object.entries(pcdfReviewFilters.shape).map(([name, schema]) => ({
+          name, in: "query", required: false, schema: jsonSchema(schema),
+        })),
+      } },
+      [pcdfReviewPath + "/{id}"]: { patch: {
+        ...pcdfOperation("decideSyntheticPcdfReview", "Registrar decisão administrativa versionada", pcdfIssue,
+          [200], [...pcdfCommonErrors, 404, 409, 413, 415, 422]),
+        parameters: [pcdfId],
+        requestBody: { required: true, content: { "application/json": { schema: jsonSchema(pcdfDecision) } } },
+      } },
       "/api/v1/importacoes": {
         post: {
           ...operation(

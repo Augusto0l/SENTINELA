@@ -1,6 +1,69 @@
 # Contratos executáveis da API — v0.1.0
 
-Etapa 3 da Sprint 3, 28/10/2026. **Proposta de integração**, sem CRUD, banco, autenticação, upload remoto ou transação operacional. Os schemas são executáveis; os endpoints `/api/v1/**` são apenas documentados. Não foram conectados às telas. Exemplos são fictícios.
+O contrato reúne as propostas da Sprint 3 e os GETs persistentes locais da Sprint 4. Os exemplos são fictícios. O OpenAPI identifica o estado de cada operação em `x-implementation-status`.
+
+## Leituras persistentes implementadas
+
+Os GETs abaixo exigem Next.js em desenvolvimento, loopback, provedor local, sessão válida no cookie `sentinela-local-session` e permissão `analisar`. Administrador, Operador e Analista usam a mesma reader PostgreSQL sob RLS. Os handlers respondem com `Cache-Control: private, no-store`.
+
+| Método e caminho | Parâmetros | Resposta 200 |
+| --- | --- | --- |
+| GET `/api/v1/catalogos/regioes-administrativas` | Nenhum | Lista de `id` (UUID) e `nome` no escopo da reader. |
+| GET `/api/v1/catalogos/naturezas-criminais` | `q` de 1 a 120 caracteres após trim, `direction=asc\|desc` com padrão `asc` | Lista de `id` e `descricao` original. |
+| GET `/api/v1/ocorrencias` | `raId`, `naturezaId`, `startDate`, `endDate`, `identificacao`, `local`, `page` de 1 a 1.000.000, `pageSize` de 1 a 100, `sortBy` e `direction` | Itens e paginação. Padrões: página 1, tamanho 25, ordenação `data desc`. Campos de ordenação: `data`, `horario`, `identificacao`, `local`, `ra`. Datas são inclusivas. |
+| GET `/api/v1/ocorrencias/{id}` | UUID no caminho | Detalhe da ocorrência visível. |
+| GET `/api/v1/analytics/persistente` | `startDate`, `endDate`, `ra` (código), `nature` e `category` (UUID), `hour` (`0-6`, `6-12`, `12-18`, `18-24`) | Agregados, séries, opções de filtro e projeção espacial limitada a 5.000 pontos. |
+
+Sucessos usam `{success:true,data,meta}`. Os handlers devolvem `400` para entrada inválida, incluindo query desconhecida, repetida ou enviada a uma rota que não a aceita, `401` para sessão ausente, expirada ou inválida no provedor local, `403` para acesso não autorizado, `404` no detalhe ausente ou invisível, `503` para reader indisponível e `500` para erro interno. O proxy local recusa métodos não autorizados com `403` e um envelope simples. A confirmação HTTP operacional das 37 RAs depende da configuração legítima da reader.
+
+## Fluxos experimentais
+
+O Next.js disponibiliza `POST /api/v1/ocorrencias`,
+`PATCH /api/v1/ocorrencias/{id}` e
+`POST /api/v1/ocorrencias/{id}/inativacao` no modo de escrita isolada.
+Fora desse modo, as mutações permanecem bloqueadas. O modo usa sessão no
+cookie, origem exata em loopback e contas descartáveis do próprio cluster.
+Cadastro aceita a chave UUID `Idempotency-Key`. Edição e inativação exigem
+versão esperada e justificativa ou motivo. O OpenAPI identifica esse modo
+em `x-isolated-implementation`; seus schemas de escrita operacional
+continuam planejados. Os formatos e códigos da variante isolada estão
+descritos no [contrato do laboratório](../../database/local/write-sandbox/MUTACOES.md).
+
+O cadastro e a edição do Next.js isolado exigem `local`, `endereco`
+e `bairroOuSetor` como campos distintos. Edição envia esses valores em
+`alteracoes`. O cliente recebe o UUID e a versão confirmados. A autoria
+individual sintética vem da sessão e do vínculo provisionado no banco.
+No cadastro, reenviar a mesma chave com os mesmos dados reapresenta o
+recibo original com HTTP 201. Alterar apenas o endereço ou o bairro ou setor
+com a mesma chave também produz HTTP 409. A chave está vinculada ao perfil
+SQL do laboratório. A edição concorrente com versão desatualizada retorna
+HTTP 409. A sessão ausente, encerrada ou expirada retorna HTTP 401.
+
+Os ensaios de escrita e staging vivem em `database/local/write-sandbox` e `database/local/pcdf-sandbox`. Seus serviços e procedures são exclusivos de clusters descartáveis. Administrador e Operador sintéticos podem cadastrar, editar e inativar ocorrências elegíveis no laboratório. A prévia da interface continua identificada como demonstração.
+
+## Importação PCDF e Central no cluster descartável
+
+| Rota | Regra | Resultado |
+| --- | --- | --- |
+| GET `/api/v1/importacoes/pcdf` | Administrador ou Operador | 200 com até 100 lotes e contagens. |
+| POST `/api/v1/importacoes/pcdf?competencia=AAAA-MM` | Administrador ou Operador, corpo `text/csv` UTF-8, 34 colunas e até 16 MiB | 201 no recebimento, 200 no reenvio idêntico. |
+| POST `/api/v1/importacoes/pcdf/{id}/consolidacao` | Administrador ou Operador, UUID da execução | 200 com ocorrências e associações criadas, linhas consolidadas e pendentes. |
+| GET `/api/v1/central-revisao` | Três perfis, filtros `tipo`, `prioridade` e `status` opcionais | 200, até 100 itens por prioridade. |
+| PATCH `/api/v1/central-revisao/{id}` | Administrador, JSON com decisão, versão esperada, justificativa e valor quando houver correção | 200 com a decisão auditada. |
+
+O envelope de sucesso é `{ success: true, scope: "sandbox-synthetic-only", data }`.
+As rotas exigem sessão local do ensaio. Nas mutações o `Origin` deve
+coincidir com a origem de loopback configurada. Sessão ausente retorna 401,
+perfil inválido retorna 403, versão obsoleta ou colisão de origem retorna
+409, mídia inválida retorna 415, arquivo acima do limite retorna 413,
+arquivo ou valor recusado retorna 422 e indisponibilidade retorna 503.
+O OpenAPI identifica as operações operacionais ainda propostas.
+
+Na Central, `occurrenceId` contém o vínculo com o caso consolidado
+quando ele existe. `canResolve` indica se a pendência aceita correção na
+Central do laboratório. Esse escopo cobre horário, local e flagrante
+desconhecido antes da promoção. O sistema preserva o histórico das
+decisões depois de consolidar e mantém a edição operacional separada.
 
 ## Base e rastreabilidade
 
@@ -48,7 +111,7 @@ Os adaptadores convertem data brasileira/ISO e coordenadas string/número sem al
 
 ## Consulta, ordenação e período
 
-Parâmetros opcionais: `search`, `page`, `pageSize`, `sortBy`, `direction`, `includeInactive`, `period`, `startDate`, `endDate`, `ra`, `nature`, `hour`. `sortBy` reutiliza os campos existentes (`id`, `data`, `horario`, `natureza`, `raName`, `local`), acompanhado de `asc`/`desc`. A semântica de ordenação por natureza para registros com vários vínculos ainda exige homologação; o schema não elege natureza principal. Não foi implementada consulta de banco.
+O modelo demonstrativo de filtros usa `search`, `page`, `pageSize`, `sortBy`, `direction`, `includeInactive`, `period`, `startDate`, `endDate`, `ra`, `nature`, `hour`. Seus campos de ordenação são `id`, `data`, `horario`, `natureza`, `raName` e `local`. A leitura PostgreSQL usa os parâmetros da tabela acima e não elege natureza principal.
 
 Página inicia em 1; tamanho permitido de 1 a 100 é um limite técnico proposto, compatível com a paginação demonstrativa. O consumidor futuro deve definir explicitamente seus padrões e ordenação estável. A resposta inclui `items` e `pagination` com `page`, `pageSize`, `total`, `totalPages`; página vazia usa `totalPages=1`. IDs não se repetem na página, e as quantidades devem corresponder aos metadados. O contrato rejeita páginas fora dos metadados; a UI atual continua ajustando a página local por sua própria regra.
 
@@ -82,7 +145,7 @@ Resultados demonstrativos conservam `simulated`, `pending`, `rejected`, `possibl
 
 ## Respostas e erros
 
-Sucesso: `{success:true, data, meta}`. Meta declara versão de contrato/catálogo e execução: demonstrativo ou proposto sempre exigem persisted=false; operacional é um tipo previsto para a implementação futura e não é selecionado pelos exemplos demonstrativos.
+Sucessos declaram versão de contrato, catálogo e execução em `meta`. Exemplos demonstrativos ou propostos usam `persisted=false`. Os GETs persistentes usam `mode: "operacional"` e `persisted: true` em respostas bem-sucedidas, inclusive no desenvolvimento local.
 
 Erro: `{success:false, error:{code,status,message,details,requestId?}}`. `details` tem caminho, código e mensagem. Não há stack, credenciais ou payload sensível obrigatório. Relação de código/status validada em runtime:
 
@@ -100,20 +163,20 @@ Erro: `{success:false, error:{code,status,message,details,requestId?}}`. `detail
 | 500 | INTERNAL_ERROR | Erro interno seguro |
 | 503 | SERVICE_UNAVAILABLE | Serviço indisponível |
 
-Leituras/alterações propostas usam 200, criação 201. Autenticação Bearer e autorização por perfil/escopo estão documentadas **somente como requisitos futuros**, sem tokens reais, Supabase Auth ou RLS implementados.
+As operações planejadas usam 200 para leitura ou alteração e 201 para criação. O esquema Bearer descreve a autenticação futura. Os GETs locais implementados usam o cookie e a RLS descritos acima.
 
 ### Endpoint que já existe
 
-`GET /api/ocorrencias/geocode` é o proxy funcional de localização anterior a esta etapa. Retorna `{results:[{id,label,latitude,longitude,approximate}]}` em 200 e `{error:string}` em 400, 429 ou 503; 429 inclui Retry-After=2. Recebe `q` (5–240 caracteres, com letras), e opcionalmente `cep`, `street`, `district`; dados postais têm validações adicionais no handler existente. Não exige autenticação real. Usa cache e um serviço externo. **Não usa o novo envelope**, não foi modificado e continua fora do namespace versionado desta proposta. Os testes existentes de rota/provedor permanecem na suíte completa.
+`GET /api/ocorrencias/geocode` fica fora do OpenAPI v0.1.0 e usa um envelope simples. O proxy bloqueia o modo local com `403`. O handler exige acesso autenticado e mantém a consulta externa bloqueada enquanto o escopo de negócio estiver desabilitado. Validação de endereço, cache e respostas do provedor são exercitados separadamente nos testes do handler.
 
 ## OpenAPI e validação
 
-[Especificação gerada](openapi-v0.1.0.json): OpenAPI 3.1.1, 11 caminhos, 13 operações e 23 modelos nomeados. Todas as operações têm `x-implementation-status: planned`. O servidor `https://sentinela.invalid` é reservado e não operacional. Não há publicação Swagger nem handlers `/api/v1`.
+[Especificação gerada](openapi-v0.1.0.json) em OpenAPI 3.1.1. Os cinco GETs acima usam `implemented-local-development`; a tabela abaixo lista operações `planned`. O servidor `https://sentinela.invalid` é reservado para documentação.
 
 | Método | Caminho proposto | Contrato principal |
 | --- | --- | --- |
-| GET/POST | `/api/v1/ocorrencias` | Consulta/Listagem e cadastro |
-| GET/PATCH | `/api/v1/ocorrencias/{id}` | Detalhes e atualização |
+| POST | `/api/v1/ocorrencias` | Cadastro |
+| PATCH | `/api/v1/ocorrencias/{id}` | Atualização |
 | POST | `/api/v1/ocorrencias/{id}/inativacao` | Motivo e retorno da ocorrência |
 | POST | `/api/v1/importacoes` | Identificação/criação de lote |
 | GET | `/api/v1/importacoes/{id}` | Estado, diagnóstico e resultado |

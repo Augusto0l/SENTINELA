@@ -12,6 +12,8 @@ import { chromium } from "playwright-core"
 
 const { contractModels } = await import("../src/contracts/examples.ts")
 
+const { CATALOG_PATHS } = await import("../src/contracts/persistent-catalogs.ts")
+
 const { contractError } = await import("../src/contracts/common.ts")
 
 export async function checkOccurrenceInterface({
@@ -41,7 +43,8 @@ export async function checkOccurrenceInterface({
   page.on("pageerror", (e) => errors.push(e.message))
 
   let mode = "real",
-    delayedDetail = false
+    delayedDetail = false, catalogMode = "real"
+  const catalogRequests = []
 
   const meta = contractModels.PersistentDetail.example.meta
 
@@ -72,6 +75,22 @@ export async function checkOccurrenceInterface({
 
     if (url.origin !== origin) return route.abort()
 
+    const kind = Object.keys(CATALOG_PATHS).find(k => CATALOG_PATHS[k] === url.pathname)
+    if (kind) {
+      catalogRequests.push({method:route.request().method(),url:url.href})
+      const capturedCatalogMode = catalogMode
+      if (capturedCatalogMode === "real") return route.continue()
+      if (capturedCatalogMode === "network") return route.abort()
+      if (capturedCatalogMode === "invalid") return route.fulfill({json:{unexpected:true}})
+      if (/^error\d+$/.test(capturedCatalogMode)) {
+        const status=Number(capturedCatalogMode.slice(5))
+        return route.fulfill({status,json:contractError({401:"UNAUTHORIZED",403:"FORBIDDEN",503:"SERVICE_UNAVAILABLE"}[status],"Teste sint\u00e9tico")})
+      }
+      if(capturedCatalogMode === "delay")await new Promise(r=>setTimeout(r,600))
+      const example=contractModels[kind === "regioes" ? "RegionCatalog" : "NatureCatalog"].example
+      const data=capturedCatalogMode === "empty" ? {items:[]} : example.data
+      try { return await route.fulfill({json:{success:true,data,meta}}) } catch { return }
+    }
     if (!url.pathname.startsWith("/api/v1/ocorrencias")) return route.continue()
 
     requests.push({ method: route.request().method(), url: url.href })
@@ -201,15 +220,18 @@ export async function checkOccurrenceInterface({
       securityOnly ? "real-http-no-database" : "real-http-postgresql",
     )
 
-    assert(
-      await page
-        .getByRole("button", { name: "Nova ocorrência", exact: true })
-        .isDisabled(),
-    )
+    const demoCreate = page.getByRole("link", {
+      name: "Novo cadastro demonstrativo",
+      exact: true,
+    })
+    if (role === "Analista") assert.equal(await demoCreate.count(), 0)
+    else assert.equal(await demoCreate.getAttribute("href"), "/ocorrencias/nova")
+    pass("create_entry_demonstration_only")
 
     if (role !== "Administrador") return checks
 
     mode = "empty"
+    catalogMode = "empty"
     await reload()
     await waitText("Nenhuma ocorrência disponível na base local.")
 
@@ -218,6 +240,10 @@ export async function checkOccurrenceInterface({
         .getByRole("button", { name: "Próxima página", exact: true })
         .isDisabled(),
     )
+    for(const label of ["Regi\u00e3o Administrativa","Natureza criminal original"])assert(await page.getByRole("combobox",{name:label,exact:true}).isDisabled())
+    await waitText("Nenhuma regi\u00e3o vis\u00edvel no cat\u00e1logo persistente.")
+    await waitText("Nenhuma natureza vis\u00edvel no cat\u00e1logo persistente.")
+    pass("empty_catalogs_disabled_without_mock_options")
     pass("empty_and_disabled_pagination")
     await page.getByRole("searchbox", {name:"Buscar localiza\u00e7\u00e3o",exact:true}).fill("sem correspondencia")
     await page.getByRole("button", {name:"Aplicar filtros",exact:true}).click()
@@ -228,7 +254,10 @@ export async function checkOccurrenceInterface({
     pass("filtered_empty_distinguished_from_empty_database")
 
     mode = "delay"
+    catalogMode = "delay"
     await reload()
+    await waitText("Carregando regi\u00f5es")
+    assert(await page.getByRole("combobox",{name:"Regi\u00e3o Administrativa",exact:true}).isDisabled())
     await waitText("Carregando ocorrências")
     await page.waitForFunction(
       () => document.querySelectorAll("tbody tr").length === 25,
@@ -237,6 +266,9 @@ export async function checkOccurrenceInterface({
     pass("initial_loading_and_25_rows")
 
     mode = "filled"
+    catalogMode = "filled"
+    await page.getByRole("combobox",{name:"Regi\u00e3o Administrativa",exact:true}).locator('option[value="10000000-0000-4000-8000-000000000001"]').waitFor({state:"attached"})
+    pass("catalog_loading_and_readable_persisted_options")
 
     await waitText("26 registros")
 
@@ -270,6 +302,7 @@ export async function checkOccurrenceInterface({
     await page.getByRole("button", {name:"Pr\u00f3xima p\u00e1gina",exact:true}).click()
     await waitText("P\u00e1gina 2 de 2")
     const start = requests.length
+    const catalogStart = catalogRequests.length
 
     await page
       .getByRole("searchbox", { name: "Buscar identificação", exact: true })
@@ -280,15 +313,15 @@ export async function checkOccurrenceInterface({
       .fill("local sintético")
 
     await page
-      .getByRole("textbox", {
-        name: "Região Administrativa (UUID)",
+      .getByRole("combobox", {
+        name: "Regi\u00e3o Administrativa",
         exact: true,
       })
-      .fill("10000000-0000-4000-8000-000000000001")
+      .selectOption("10000000-0000-4000-8000-000000000001")
 
     await page
-      .getByRole("textbox", { name: "Natureza criminal (UUID)", exact: true })
-      .fill("30000000-0000-4000-8000-000000000001")
+      .getByRole("combobox", { name: "Natureza criminal original", exact: true })
+      .selectOption("30000000-0000-4000-8000-000000000001")
 
     await page.getByLabel("Data inicial", { exact: true }).fill("2026-01-01")
     await page.getByLabel("Data final", { exact: true }).fill("2026-12-31")
@@ -312,6 +345,10 @@ export async function checkOccurrenceInterface({
       assert(applied.searchParams.has(key))
 
     assert.equal(applied.searchParams.get("page"), "1")
+    assert.equal(applied.searchParams.get("raId"),"10000000-0000-4000-8000-000000000001")
+    assert.equal(applied.searchParams.get("naturezaId"),"30000000-0000-4000-8000-000000000001")
+    assert.equal(catalogRequests.length,catalogStart)
+    pass("combined_filters_real_UUIDs_no_catalog_refetch_pagination_reset")
     pass("combined_filters_apply_no_typing_requests")
 
     await page.getByLabel("Data inicial", { exact: true }).fill("2026-12-31")
@@ -330,6 +367,8 @@ export async function checkOccurrenceInterface({
       .click()
     await waitText("Página 1 de 2")
     assert(!new URL(requests.at(-1).url).searchParams.has("local"))
+    for(const label of ["Regi\u00e3o Administrativa","Natureza criminal original"])assert.equal(await page.getByRole("combobox",{name:label,exact:true}).inputValue(),"")
+    assert.equal(catalogRequests.length,catalogStart)
     pass("clear_filters")
 
     await page
@@ -489,6 +528,24 @@ export async function checkOccurrenceInterface({
     await reload()
     await waitText("Página 1 de 2")
 
+    for(const failure of ["error401","error403","error503","network","invalid"]) {
+      catalogMode=failure
+      await reload()
+      await page.locator("form").getByRole("alert").first().waitFor()
+      for(const label of ["Regi\u00e3o Administrativa","Natureza criminal original"]){
+        const select=page.getByRole("combobox",{name:label,exact:true})
+        assert(await select.isDisabled());assert.equal(await select.locator("option").count(),1)
+      }
+      if(failure==="error401")assert(await page.locator("form").getByRole("link",{name:"Entrar novamente",exact:true}).count()>=1)
+      pass(`catalog_${failure}_no_fallback`)
+    }
+    catalogMode="filled"
+    await page.locator("form").getByRole("button",{name:"Tentar novamente",exact:true}).first().click()
+    await page.getByRole("combobox",{name:"Regi\u00e3o Administrativa",exact:true}).locator('option[value="10000000-0000-4000-8000-000000000001"]').waitFor({state:"attached"})
+    await reload()
+    await waitText("P\u00e1gina 1 de 2")
+    pass("catalog_retry_recovers")
+
     mode = "shrink"
     await page
       .getByRole("button", { name: "Próxima página", exact: true })
@@ -552,7 +609,7 @@ export async function checkOccurrenceInterface({
       assert.equal(await page.locator(".system-topbar").getByText("PostgreSQL local \u00b7 leitura", {exact:true}).count(),0)
     }
     pass("shared_header_dashboard_and_map_unchanged")
-    assert(requests.every((r) => r.method === "GET"))
+    assert([...requests,...catalogRequests].every((r) => r.method === "GET"))
     assert.equal(errors.length, 0)
     pass("no_data_writes_or_browser_errors")
 

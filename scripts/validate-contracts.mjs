@@ -20,5 +20,37 @@ for (const file of ["../components.json", "../package.json", "../tsconfig.json",
   JSON.parse(readFileSync(new URL(file, import.meta.url), "utf8"));
 }
 console.log("JSONs válidos; catálogo v0.1.0: 37 áreas, 8 naturezas, IDs únicos e homologação pendente explícita.");
+const pcdf = JSON.parse(readFileSync(new URL("../docs/catalogos/pcdf-inventario-v1.json", import.meta.url), "utf8"));
+assert.equal(pcdf.status, "inventario-agregado-sem-homologacao");
+assert.match(pcdf.source.reportSha256, /^[a-f0-9]{64}$/);
+for (const [items, expected] of [[pcdf.originalNatures, 41], [pcdf.originalCategories, 19]]) {
+  assert.equal(items.length, expected);
+  assert.equal(new Set(items.map(item => item.label)).size, expected);
+  assert.ok(items.every(item => item.label.trim() && Number.isSafeInteger(item.count) && item.count > 0));
+  assert.equal(items.reduce((sum, item) => sum + item.count, 0), 369660);
+}
+assert.equal(new Set(pcdf.requestedCategories.map(item => item.name)).size, 20);
+assert.equal(pcdf.requestedCategories.length, 20);
+for (const example of pcdf.documentedExamples) {
+  assert.ok(pcdf.originalCategories.some(item => item.label === example.pcdfCategory));
+  const source = pcdf.originalNatures.find(item => item.label === example.original);
+  assert.ok(source && pcdf.requestedCategories.some(item => item.name === example.requested && item.reportedCount === source.count));
+}
+console.log("Inventário agregado PCDF: 41 naturezas, 19 categorias de origem, 20 previstas e dois totais reconciliados de 369.660.");
+const matrix = JSON.parse(readFileSync(new URL("../docs/catalogos/pcdf-correspondencias-v1.json", import.meta.url), "utf8"));
+assert.equal(matrix.sha256Relatorio, pcdf.source.reportSha256);
+assert.equal(matrix.regrasAprovadas, 0);
+assert.deepEqual(matrix.linhas.map(row => row.natureza), pcdf.originalNatures.map(row => row.label));
+assert.equal(new Set(matrix.linhas.map(row => row.id)).size, 41);
+for (const row of matrix.linhas) {
+  const source = pcdf.documentedExamples.find(example => example.original === row.natureza);
+  assert.equal(row.status, source ? "documentada" : "pendente");
+  assert.equal(row.categoriaPcdf, source?.pcdfCategory ?? null);
+  assert.equal(row.categoriaSentinela, source?.requested ?? null);
+  assert.equal(row.tentativa, null);
+  assert.equal(Boolean(row.evidencia), Boolean(source));
+  assert.ok(row.justificativa.trim());
+}
+console.log("Matriz PCDF: 2 relações documentadas, 39 pendentes e nenhuma regra de carga aprovada.");
 const { validateApiContracts } = await import("./validate-api-contracts.mjs");
 console.log("Contratos e OpenAPI válidos:", await validateApiContracts());

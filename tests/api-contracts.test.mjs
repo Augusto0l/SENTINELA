@@ -464,6 +464,6 @@ test("contratos: códigos HTTP e erros de validação são padronizados", () => 
 })
 test("contratos: OpenAPI válido, sincronizado e todos os exemplos aceitos por Zod e AJV", async () => {
   const result = await validateApiContracts()
-  assert.equal(result.operations, 13)
+  assert.equal(result.operations, 21)
   assert.ok(result.schemas >= 23 && result.payloads >= 29)
 })

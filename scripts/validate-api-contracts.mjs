@@ -52,8 +52,13 @@ export async function validateApiContracts() {
     new Set(operations.map((operation) => operation.operationId)).size,
     operations.length,
   )
-  for (const operation of operations)
-    assert.equal(operation["x-implementation-status"], ["getPersistentOccurrence", "listPersistentOccurrences"].includes(operation.operationId) ? "implemented-local-development" : "planned")
+  const local = ["getPersistentOccurrence", "listPersistentOccurrences", "listPersistentRegions", "listPersistentNatures", "readPersistentAnalytics"]
+  const isolated = ["listSyntheticPcdfLots", "uploadSyntheticPcdf", "promoteSyntheticPcdf", "listSyntheticPcdfReview", "decideSyntheticPcdfReview"]
+  for (const operation of operations) {
+    const expected = local.includes(operation.operationId) ? "implemented-local-development"
+      : isolated.includes(operation.operationId) ? "implemented-isolated-sandbox" : "planned"
+    assert.equal(operation["x-implementation-status"], expected)
+  }
   return {
     schemas: Object.keys(contractModels).length,
     paths: Object.keys(document.paths).length,
