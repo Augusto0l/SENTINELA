@@ -1,11 +1,10 @@
 // Isolated Next preview; no accounts, authentication bypass, SQL or real API data.
 import "./contracts-runtime.mjs"
 import assert from "node:assert/strict"
-import { spawn } from "node:child_process"
-import { createServer } from "node:net"
 import { randomUUID } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { chromium } from "playwright-core"
+import { freePort, httpValidation } from "./http-validation-output.mjs"
 const { SYNTHETIC_CATALOGS: catalogs, syntheticRecord } = await import("../src/features/occurrences/simulation.ts")
 const { catalogVersion } = await import("../src/contracts/common.ts")
 // Optional public catalog projection produced by the authenticated sandbox SQL test.
@@ -14,21 +13,20 @@ const nativeCatalog = process.env.SENTINELA_BROWSER_CATALOG_EVIDENCE
 if (nativeCatalog) assert(nativeCatalog.result === "PASS" && nativeCatalog.scope === "sandbox-only" && nativeCatalog.catalog_items?.length === 37)
 const getCatalogs = nativeCatalog ? { ...catalogs, regions: nativeCatalog.catalog_items } : catalogs
 const origin = "http://127.0.0.1:3316", id = randomUUID(), output = "tmp/occurrence-workflows-" + id
+const validation = httpValidation(id, { port: 3316, evidence: output, addStub: true })
 let child, browser, serverLog = "", stage = "preflight"
 const checks = [], errors = [], requests = []
 const pass = name => checks.push({ name, result: "PASS" })
 await mkdir(output, { recursive: true })
-const originalNextEnv = await readFile("next-env.d.ts")
 try {
-  await new Promise((resolve, reject) => { const s = createServer(); s.once("error", reject); s.listen(3316, "127.0.0.1", () => s.close(resolve)) })
-  await writeFile(`tmp/next-env-http-${id}.d.ts`, '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n')
-  await writeFile(`tmp/tsconfig-http-${id}.json`, JSON.stringify({ extends: "../tsconfig.json", compilerOptions: { incremental: false }, include: ["../src/**/*.ts", "../src/**/*.tsx", `./next-env-http-${id}.d.ts`, `../.next-http-validation-${id}/types/**/*.ts`] }))
+  await freePort(3316)
+  await validation.prepare()
   const env = { ...process.env, NODE_ENV: "development", NEXT_TELEMETRY_DISABLED: "1", SENTINELA_HTTP_VALIDATION_ID: id,
     SENTINELA_AUTH_PROVIDER: "preview", SENTINELA_LOCAL_DEMO: "1", SENTINELA_APP_ORIGIN: origin,
     NEXT_PUBLIC_SUPABASE_URL: "", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "", SENTINELA_LOCAL_ACCOUNTS_FILE: "",
     SENTINELA_LOCAL_READER_URL: "", SENTINELA_DATABASE_URL: "", SENTINELA_DATABASE_SSLROOTCERT: "" }
   for (const key of Object.keys(env)) if (key.startsWith("PG")) delete env[key]
-  child = spawn(process.execPath, ["scripts/next-cli.mjs", "dev", "--hostname", "127.0.0.1", "--port", "3316"], { env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] })
+  child = validation.start(env, ["ignore", "pipe", "pipe"])
   for (const stream of [child.stdout, child.stderr]) stream.on("data", data => { serverLog = (serverLog + data).slice(-20000) })
   let ready = false
   for (let i = 0; i < 120; i++) {
@@ -37,6 +35,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500))
   }
   assert(ready)
+  validation.proveListener()
   browser = await chromium.launch({ channel: "chrome", headless: true })
   const page = await browser.newPage({ viewport: { width: 1366, height: 1000 } })
   page.on("pageerror", e => errors.push(e.message))
@@ -188,8 +187,10 @@ try {
   await writeFile(`${output}/result.json`, JSON.stringify({ result: "FAIL", stage, message: String(error.message).slice(0, 1000), checks }, null, 2))
   console.error("FAIL workflow browser stage: " + stage); process.exitCode = 1
 } finally {
-  if (browser) await browser.close()
-  if (child && child.exitCode === null) await new Promise(resolve => spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" }).on("close", resolve))
-  await writeFile("next-env.d.ts", originalNextEnv)
-  await writeFile(`${output}/server.log`, serverLog)
+  try { await browser?.close() }
+  finally {
+    await validation.stop()
+    await writeFile(`${output}/server.log`, serverLog)
+    await validation.finish()
+  }
 }

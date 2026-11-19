@@ -1,11 +1,11 @@
+import "../../../scripts/contracts-runtime.mjs"
 import assert from "node:assert/strict"
 import { randomBytes, randomUUID, scryptSync, createHash } from "node:crypto"
-import { spawn, spawnSync } from "node:child_process"
 import { dirname, join } from "node:path"
 import { readFile, writeFile, unlink } from "node:fs/promises"
 import { setTimeout as delay } from "node:timers/promises"
 import { chromium } from "playwright-core"
-import { freePort, processProof, listenerProof } from "../../../scripts/homologate-local-reader.mjs"
+import { freePort, httpValidation } from "../../../scripts/http-validation-output.mjs"
 const { attestManifest } = await import("./service.ts")
 
 const {config, subjects, analyst, pcdf} = JSON.parse(await new Promise(resolve => {
@@ -21,21 +21,17 @@ const accounts = profiles.map((role, i) => {
 })
 const accountsFile = join(dirname(config.manifest), "next-accounts.json")
 const id = randomUUID()
-const types = "next-env.d.ts"
-const previousTypes = await readFile(types).catch(() => null)
+const validation = httpValidation(id)
 const checks = []
 const sessionFiles = []
-let child, identity, browser, stage = "preflight", ownedAccounts = false, stopped = true
+let browser, stage = "preflight", ownedAccounts = false, stopped = true
 let result
 try {
   await attestManifest(config)
   await freePort()
+  await validation.prepare()
   await writeFile(accountsFile, JSON.stringify({ accounts }), { flag: "wx" })
   ownedAccounts = true
-  await writeFile(`tmp/tsconfig-http-${id}.json`, JSON.stringify({
-    extends: "../tsconfig.json", compilerOptions: { incremental: false },
-    include: ["../src/**/*.ts", "../src/**/*.tsx", `../.next-http-validation-${id}/dev/types/**/*.ts`],
-  }))
   const env = { ...process.env, NODE_ENV: "development", SENTINELA_AUTH_PROVIDER: "local",
     SENTINELA_APP_ORIGIN: origin, SENTINELA_LOCAL_ACCOUNTS_FILE: accountsFile,
     SENTINELA_SANDBOX_WRITE: "1", SENTINELA_SANDBOX_WRITE_ID: config.expectedUUID,
@@ -47,10 +43,8 @@ try {
     NEXT_PUBLIC_SUPABASE_URL: "", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "", NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
     SUPABASE_SERVICE_ROLE_KEY: "", PGHOST: "", PGPASSWORD: "" }
   stage = "next_start"
-  child = spawn(process.execPath, ["scripts/next-cli.mjs", "dev", "--port", "3317"], { env, stdio: "ignore", windowsHide: true })
+  const child = validation.start(env, "ignore")
   stopped = false
-  child.on("error", () => {})
-  identity = processProof(child.pid)
   const deadline = Date.now() + 120000
   let ready = false
   while (!ready && Date.now() < deadline && child.exitCode === null) {
@@ -58,7 +52,7 @@ try {
     if (!ready) await delay(500)
   }
   assert(ready)
-  listenerProof(child.pid)
+  validation.proveListener()
 
   const postAuth = (action, values, cookie) => fetch(origin + "/auth/" + action, {
     method: "POST", redirect: "manual",
@@ -364,20 +358,13 @@ try {
 } finally {
   await browser?.close().catch(() => {})
   try {
-    if (child) {
-      if (child.exitCode === null) {
-        assert.deepEqual(processProof(child.pid), identity)
-        spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, timeout: 15000, stdio: "ignore" })
+    try { await validation.finish() }
+    finally {
+      stopped = validation.isStopped()
+      if (stopped && ownedAccounts) for (const path of [accountsFile, ...sessionFiles]) {
+        await unlink(path).catch(error => { if (error.code !== "ENOENT") throw error })
       }
-      for (let i=0; i<20 && !stopped; i++) {
-        try { await freePort(); stopped = true } catch { await delay(300) }
-      }
-      assert(stopped)
     }
-    if (ownedAccounts) for (const path of [accountsFile, ...sessionFiles]) {
-      await unlink(path).catch(error => { if (error.code !== "ENOENT") throw error })
-    }
-    if (previousTypes && (await readFile(types, "utf8")).includes(`.next-http-validation-${id}/`)) await writeFile(types, previousTypes)
   } catch { result = { ...result, result: "FAIL", cleanup: "UNCONFIRMED" } }
 }
 process.stdout.write(JSON.stringify({ ...result, stopped }))

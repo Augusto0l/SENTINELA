@@ -5,8 +5,8 @@ import { randomUUID, randomBytes, scryptSync, createHash } from "node:crypto"
 import { mkdir, writeFile, readFile, unlink, realpath } from "node:fs/promises"
 import { join, resolve, relative, isAbsolute } from "node:path"
 import { fileURLToPath } from "node:url"
-import { createServer } from "node:net"
-import { spawn, spawnSync } from "node:child_process"
+import { spawnSync } from "node:child_process"
+import { freePort, httpValidation } from "./http-validation-output.mjs"
 const { persistentListResponseSchema } = await import("../src/contracts/persistent-occurrences.ts")
 const { CATALOG_PATHS, catalogResponseSchemas } = await import("../src/contracts/persistent-catalogs.ts")
 const { PERSISTENT_ANALYTICS_PATH, persistentAnalyticsResponse } = await import("../src/contracts/persistent-analytics.ts")
@@ -30,19 +30,6 @@ async function privateRoot(path) {
   await mkdir(path,{recursive:false})
   powershell(`$ErrorActionPreference='Stop';$p=$env:SENTINELA_PRIVATE_TEST_ROOT;$a=New-Object Security.AccessControl.DirectorySecurity;$a.SetAccessRuleProtection($true,$false);foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User.Value,'S-1-5-18','S-1-5-32-544')){$a.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};[IO.Directory]::SetAccessControl($p,$a)`,{...osEnv(),SENTINELA_PRIVATE_TEST_ROOT:path})
 }
-export async function freePort() {
-  await new Promise((ok,bad)=>{const server=createServer();server.once("error",bad);server.listen({host:"127.0.0.1",port,exclusive:true},()=>server.close(ok))})
-}
-export function processProof(pid) {
-  return JSON.parse(powershell(`$ErrorActionPreference='Stop';$p=Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}';if(!$p){throw 'Missing'};@{pid=$p.ProcessId;path=$p.ExecutablePath;start=([DateTimeOffset]$p.CreationDate).ToUnixTimeMilliseconds()}|ConvertTo-Json -Compress`))
-}
-export function listenerProof(rootPid) {
-  const result=JSON.parse(powershell(`$ErrorActionPreference='Stop';$l=@(Get-NetTCPConnection -State Listen|Where-Object LocalPort -eq ${port});$ps=@(Get-CimInstance Win32_Process -Filter "Name='node.exe'"|Select-Object ProcessId,ParentProcessId);@{listeners=@($l|Select-Object LocalAddress,OwningProcess);processes=$ps}|ConvertTo-Json -Depth 5 -Compress`))
-  assert.equal(result.listeners.length,1);assert.equal(result.listeners[0].LocalAddress,"127.0.0.1")
-  let pid=result.listeners[0].OwningProcess;const seen=new Set()
-  while(pid!==rootPid){assert(!seen.has(pid));seen.add(pid);const row=result.processes.find(p=>p.ProcessId===pid);assert(row,"Unidentified listener process");pid=row.ParentProcessId}
-  return processProof(result.listeners[0].OwningProcess)
-}
 export function safeError(body) {
   errorSchema.parse(body)
   assert(!/SELECT |FROM sentinela|password|postgresql:\/\/|ECONN|syntax error/i.test(JSON.stringify(body)))
@@ -65,7 +52,8 @@ export async function main(securityOnly=false, noSessionOnly=false) {
   await mkdir(base,{recursive:true});const privateDir=join(base,id);await privateRoot(privateDir)
   assert.equal(await realpath(privateDir),resolve(privateDir))
   const outside=relative(root,privateDir);assert(outside.startsWith("..")||isAbsolute(outside),"Private test files must stay outside repository")
-  const reports=[], reportPath=join(privateDir,"report.json"), generated=[], previousTypes=await readFile(join(root,"next-env.d.ts")).catch(()=>null)
+  const reports=[], reportPath=join(privateDir,"report.json"), generated=[]
+  const validation=httpValidation(id,{port,evidence:privateDir})
   const mode=noSessionOnly?"HTTP_WITHOUT_ACCOUNTS":securityOnly?"HTTP_SECURITY_ONLY_NO_DATABASE":"HTTP_AND_REAL_POSTGRESQL"
   const record=async(name,result,extra={})=>{reports.push({name,result,...extra});await writeFile(reportPath,JSON.stringify({id,mode,databaseTested:reports.some(t=>t.name==="postgresql_real_identity_and_repository"&&t.result==="PASS"),tests:reports},null,2))}
   const password=noSessionOnly?"":randomBytes(32).toString("hex")
@@ -77,7 +65,7 @@ export async function main(securityOnly=false, noSessionOnly=false) {
     SENTINELA_DATABASE_URL:"",SENTINELA_DATABASE_SSLROOTCERT:"",NEXT_PUBLIC_SUPABASE_URL:"",NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:"",NEXT_PUBLIC_SUPABASE_ANON_KEY:"",SUPABASE_SERVICE_ROLE_KEY:""}
   const expectedCatalogs = {}
   let expectedAnalytics
-  let child, childIdentity, serverIdentity
+  let child, serverIdentity
   try {
     if(!securityOnly) {
       Object.assign(process.env,{NODE_ENV:"development",SENTINELA_AUTH_PROVIDER:"local",SENTINELA_LOCAL_BIND:"127.0.0.1"})
@@ -103,14 +91,11 @@ export async function main(securityOnly=false, noSessionOnly=false) {
       assertOperationalRegions(expectedCatalogs.regioes.items,bindings)
       await record("postgresql_catalog_37_persisted_bindings","PASS",{items:37})
     }
-    await mkdir(join(root,"tmp"),{recursive:true})
-    await writeFile(join(root,`tmp/tsconfig-http-${id}.json`),JSON.stringify({extends:"../tsconfig.json",compilerOptions:{incremental:false},include:["../src/**/*.ts","../src/**/*.tsx",`../.next-http-validation-${id}/dev/types/**/*.ts`]},null,2))
-    child=spawn(process.execPath,["scripts/next-cli.mjs","dev","--port",String(port)],{cwd:root,env,stdio:["ignore","pipe","pipe"],windowsHide:true})
+    await validation.prepare()
+    child=validation.start(env,["ignore","pipe","pipe"])
     // Drain pipes continuously, but never persist raw server output or credentials.
     child.stdout.on("data",()=>{});child.stderr.on("data",()=>{})
     let spawnError=false;child.on("error",()=>{spawnError=true})
-    childIdentity=processProof(child.pid)
-    assert.equal(resolve(childIdentity.path).toLowerCase(),resolve(process.execPath).toLowerCase())
     const deadline=Date.now()+180000
     let ready=false
     while(Date.now()<deadline&&!ready){
@@ -118,7 +103,7 @@ export async function main(securityOnly=false, noSessionOnly=false) {
       try{const response=await fetch(origin+"/login",{signal:AbortSignal.timeout(5000),redirect:"manual"});ready=response.status===200}catch{}
       if(!ready)await new Promise(r=>setTimeout(r,500))
     }
-    assert(ready,"Test server readiness timeout");serverIdentity=listenerProof(child.pid)
+    assert(ready,"Test server readiness timeout");serverIdentity=validation.proveListener()
     await record("isolated_next_loopback_identity","PASS")
     async function request(name,path,expected,cookie) {
       const response=await fetch(origin+path,{headers:cookie?{cookie}:{},redirect:"manual",signal:AbortSignal.timeout(60000)})
@@ -192,31 +177,16 @@ export async function main(securityOnly=false, noSessionOnly=false) {
   } catch {
     await record("execution","FAIL");throw new Error("Qualification failed; sanitized report preserved")
   } finally {
-    let closed=!child
-    if(childIdentity) {
-      try {
-        const current=processProof(child.pid)
-        assert.deepEqual(current,childIdentity)
-        const result=spawnSync("taskkill.exe",["/PID",String(child.pid),"/T","/F"],{env:osEnv(),windowsHide:true,encoding:"utf8",timeout:15000})
-        // taskkill's exit status alone does not attest process/listener shutdown.
-        // Windows may release the listener after taskkill returns. Never kill twice.
-        const deadline=Date.now()+10000
-        while(Date.now()<deadline&&!closed) {
-          const pids=[...new Set([child.pid,serverIdentity?.pid].filter(Number.isInteger))]
-          const absent=powershell(`$p=@(Get-Process -Id ${pids.join(",")} -ErrorAction SilentlyContinue);if($p.Count -eq 0){'absent'}else{'present'}`)==="absent"
-          if(absent) {try {await freePort();closed=true}catch { /* bounded observation only */ }}
-          if(!closed)await new Promise(r=>setTimeout(r,250))
-        }
-        assert(closed,"Owned process/listener shutdown not confirmed")
-        await record("own_test_server_stopped","PASS",{terminationExit:result.status})
-      } catch {await record("own_test_server_shutdown","UNKNOWN",{pid:child?.pid,serverPid:serverIdentity?.pid})}
+    try {
+      await validation.finish()
+      if(child) await record("own_test_server_stopped","PASS")
+    } catch(error) {
+      await record("own_test_server_cleanup","UNKNOWN",{pid:child?.pid,serverPid:serverIdentity?.pid,reason:error.message.split("\n")[0]})
     }
-    if(closed) {
+    if(validation.isStopped()) {
       for(const file of generated){assert(!relative(privateDir,resolve(file)).startsWith(".."));await unlink(file).catch(e=>{if(e.code!=="ENOENT")throw e})}
       await record(noSessionOnly?"no_test_accounts_written":"ephemeral_accounts_and_sessions_removed","PASS")
     }
-    const types=join(root,"next-env.d.ts");const current=await readFile(types,"utf8").catch(()=>"")
-    if(previousTypes&&current.includes(`.next-http-validation-${id}/`))await writeFile(types,previousTypes)
     console.log("Sanitized report: "+reportPath)
   }
   assert(!reports.some(x=>["FAIL","UNKNOWN"].includes(x.result)),"Qualification/cleanup incomplete")
