@@ -1,11 +1,11 @@
 "use client";
 import dynamic from "next/dynamic";
 import PageSkeleton from "@/components/PageSkeleton";
-import type { DemoFilters } from "@/data/demoAnalytics";
+import type { AnalyticSelection } from "@/components/analytics/usePersistentAnalytics";
 
 // This screen imports browser-generated mocks at module scope.
 const CrimeMap = dynamic(() => import("./CrimeMap"), { ssr: false, loading: () => <PageSkeleton /> });
 
-export default function CrimeMapEntry({ initialRaCode, initialFilters }: { initialRaCode?: string; initialFilters?: DemoFilters }) {
-  return <CrimeMap key={JSON.stringify([initialRaCode, initialFilters])} initialRaCode={initialRaCode} initialFilters={initialFilters} />;
+export default function CrimeMapEntry({ initialRaCode, initialFilters, persistent }: { initialRaCode?: string; initialFilters?: AnalyticSelection; persistent?: boolean }) {
+  return <CrimeMap key={JSON.stringify([initialRaCode, initialFilters, persistent])} initialRaCode={initialRaCode} initialFilters={initialFilters} persistent={persistent} />;
 }
