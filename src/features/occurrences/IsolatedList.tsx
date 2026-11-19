@@ -10,8 +10,8 @@ import IsolatedCreate from "./IsolatedCreate"
 import type { IsolatedOccurrence } from "@/lib/db/isolated-occurrence-read"
 import styles from "@/features/Occurrences.module.css"
 
-export default function IsolatedList({ rows, write, unavailable = false }: {
-  rows: IsolatedOccurrence[]; write: boolean; unavailable?: boolean
+export default function IsolatedList({ rows, write, unavailable = false, persistent = false }: {
+  rows: IsolatedOccurrence[]; write: boolean; unavailable?: boolean; persistent?: boolean
 }) {
   const router = useRouter()
   const [selected, setSelected] = useState<string>()
@@ -44,7 +44,7 @@ export default function IsolatedList({ rows, write, unavailable = false }: {
       {record.fonte && <p>Importação PCDF sintética · {record.naturezas.length} associações de natureza</p>}
       <p>{record.endereco ?? "Endereço não informado"} · {record.bairro ?? "Bairro ou setor não informado"}</p>
       {write && record.elegivel && (action
-        ? <IsolatedCreate key={record.id + record.versao + action} initial={record} action={action} onSaved={() => {
+        ? <IsolatedCreate key={record.id + record.versao + action} persistent={persistent} initial={record} action={action} onSaved={() => {
             setNotice(action === "edit" ? "Ocorrência atualizada." : "Ocorrência inativada.")
             close(); router.refresh()
           }} />

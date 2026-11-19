@@ -1,12 +1,18 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import Button from "@/components/ui/button"
 import styles from "./SimulationWorkspace.module.css"
 import type { IsolatedOccurrence } from "@/lib/db/isolated-occurrence-read"
+import { readCatalog } from "@/features/occurrences/client"
+import { natureCatalogDataSchema, regionCatalogDataSchema } from "@/contracts/persistent-catalogs"
 
-export default function IsolatedCreate({ initial, action, onSaved }: {
-  initial?: IsolatedOccurrence; action?: "edit" | "inactivate"; onSaved?: () => void
+const manualOptions = ["A", "B"].map((label, index) => ({
+  id: "31000000-0000-4000-8000-00000000000" + (index + 1), descricao: "Natureza " + label,
+}))
+
+export default function IsolatedCreate({ initial, action, onSaved, persistent = false }: {
+  initial?: IsolatedOccurrence; action?: "edit" | "inactivate"; onSaved?: () => void; persistent?: boolean
 } = {}) {
   const command = useRef<{ body: string; key: string } | null>(null)
   const running = useRef(false)
@@ -14,9 +20,22 @@ export default function IsolatedCreate({ initial, action, onSaved }: {
   const [message, setMessage] = useState("")
   const [error, setError] = useState(false)
   const [operation, setOperation] = useState<"create" | "edit" | "inactivate">(action ?? "create")
+  const [catalogs, setCatalogs] = useState<{ regions: { id: string; nome: string }[]; natures: { id: string; descricao: string }[] }>()
+  const [catalogError, setCatalogError] = useState(false)
+  useEffect(() => {
+    if (!persistent) return
+    const controller = new AbortController()
+    Promise.all([readCatalog("regioes", controller.signal), readCatalog("naturezas", controller.signal)])
+      .then(([regions, natures]) => {
+        if (!controller.signal.aborted) setCatalogs({ regions: regionCatalogDataSchema.parse(regions).items,
+          natures: natureCatalogDataSchema.parse(natures).items.filter(nature => manualOptions.some(option => option.id === nature.id)) })
+      }).catch(() => { if (!controller.signal.aborted) setCatalogError(true) })
+    return () => controller.abort()
+  }, [persistent])
+  const catalogPending = persistent && !catalogs && operation !== "inactivate"
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (running.current) return
+    if (running.current || catalogPending) return
     const form = new FormData(event.currentTarget)
     const hour = String(form.get("horario"))
     const fields = {
@@ -42,11 +61,11 @@ export default function IsolatedCreate({ initial, action, onSaved }: {
       const path = operation === "create" ? base : base + "/" + encodeURIComponent(String(form.get("id"))) + (operation === "inactivate" ? "/inativacao" : "")
       const response = await fetch(path, {
         method: operation === "edit" ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json", ...(operation === "create" && { "Idempotency-Key": command.current.key }) }, body,
+        headers: { "Content-Type": "application/json", ...((persistent || operation === "create") && { "Idempotency-Key": command.current.key }) }, body,
       })
       const result = await response.json()
       const persisted = response.status === (operation === "create" ? 201 : 200)
-        && result.persisted === true && result.scope === "sandbox-synthetic-only"
+        && result.persisted === true && result.scope === (persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only")
       setError(!persisted)
       if (persisted) onSaved?.()
       setMessage(persisted ? `Registro sintético gravado no cluster isolado. Identificador: ${result.data.id}. Versão: ${result.data.versao}.`
@@ -63,7 +82,7 @@ export default function IsolatedCreate({ initial, action, onSaved }: {
     }
   }
   return <form className={styles.form} onSubmit={submit}>
-    <p role="note">Escrita persistente no cluster descartável. Use somente dados sintéticos.</p>
+    <p role="note">Escrita persistente {persistent ? "na homologação local" : "no cluster descartável"}. Use somente dados sintéticos.</p>
     {!action && <label>Operação<select disabled={busy} value={operation} onChange={event => {
       setOperation(event.target.value as typeof operation); setMessage("")
     }}><option value="create">Cadastrar</option><option value="edit">Editar registro elegível</option><option value="inactivate">Inativar registro elegível</option></select></label>}
@@ -83,19 +102,20 @@ export default function IsolatedCreate({ initial, action, onSaved }: {
       <label>Bairro ou setor<input name="bairro" defaultValue={initial?.bairro ?? ""} required maxLength={100} /></label>
       <label>Latitude<input name="latitude" defaultValue={initial?.latitude ?? undefined} type="number" step="any" min="-90" max="90" required /></label>
       <label>Longitude<input name="longitude" defaultValue={initial?.longitude ?? undefined} type="number" step="any" min="-180" max="180" required /></label>
-      <label>Região Administrativa<select name="ra" defaultValue={initial?.ra ?? undefined} required>
+      <label>Região Administrativa<select key={catalogs ? "loaded" : "initial"} name="ra" defaultValue={initial?.ra ?? undefined} required>
         <option value="">Selecione a região de ensaio</option>
-        <option value="11000000-0000-4000-8000-000000000001">Região sintética de ensaio</option>
+        {persistent ? catalogs?.regions.map(region => <option key={region.id} value={region.id}>{region.nome}</option>)
+          : <option value="11000000-0000-4000-8000-000000000001">Região sintética de ensaio</option>}
       </select></label>
       <fieldset><legend>Naturezas sintéticas</legend>
-        {["A", "B"].map((label, index) => {
-          const id = "31000000-0000-4000-8000-00000000000" + (index + 1)
+        {(persistent ? catalogs?.natures ?? [] : manualOptions).map(({ id, descricao }) => {
           return <label key={id}><input type="checkbox" name="naturezas" value={id}
-            defaultChecked={initial?.naturezas.some(link => link.naturezaId === id)} /> Natureza {label}</label>
+            defaultChecked={initial?.naturezas.some(link => link.naturezaId === id)} /> {descricao}</label>
         })}
       </fieldset>
     </fieldset>}
-    <Button type="submit" disabled={busy}>{busy ? "Gravando…" : operation === "inactivate" ? "Inativar ocorrência sintética" : "Gravar ocorrência sintética"}</Button>
+    {catalogPending && <p role={catalogError ? "alert" : "status"}>{catalogError ? "Catálogo indisponível." : "Carregando catálogos…"}</p>}
+    <Button type="submit" disabled={busy || catalogPending}>{busy ? "Gravando…" : operation === "inactivate" ? "Inativar ocorrência sintética" : "Gravar ocorrência sintética"}</Button>
     <p role={error ? "alert" : "status"}>{message}</p>
   </form>
 }

@@ -6,8 +6,11 @@ import { getLocalPrincipal } from "@/lib/auth/local-server"
 import { isolatedWriteMode, isIsolatedMutation } from "@/lib/db/isolated-write-mode"
 import { hasPermission } from "@/lib/auth/policy"
 import { apiError } from "@/lib/db/http"
+import { persistentCrudEnabled } from "@/lib/db/config"
+import { persistentOccurrenceMutation } from "@/lib/db/persistent-crud"
 
 export async function isolatedOccurrenceMutation(request: Request) {
+  if (persistentCrudEnabled()) return persistentOccurrenceMutation(request)
   const mode = isolatedWriteMode()
   const path = new URL(request.url).pathname
   if (!mode || !isIsolatedMutation(path, request.method)) return apiError("FORBIDDEN", "Escrita isolada indisponível.")
