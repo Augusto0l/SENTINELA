@@ -15,16 +15,18 @@ LOGIN = "pcdf_fixture_login"
 RESTORE_PORT = 55482
 
 
-def role_sql(password=None):
+def scram(password):
     # PostgreSQL accepts a SCRAM verifier. No cleartext password is sent as SQL.
-    suffix = ""
-    if password is not None:
-        salt = secrets.token_bytes(16)
-        salted = pbkdf2_hmac("sha256", password.encode(), salt, 4096)
-        client = hmac.digest(salted, b"Client Key", "sha256")
-        server = hmac.digest(salted, b"Server Key", "sha256")
-        salt64, stored64, server64 = (b64encode(value).decode() for value in (salt, sha256(client).digest(), server))
-        suffix = f" PASSWORD 'SCRAM-SHA-256$4096:{salt64}${stored64}:{server64}'"
+    salt = secrets.token_bytes(16)
+    salted = pbkdf2_hmac("sha256", password.encode(), salt, 4096)
+    client = hmac.digest(salted, b"Client Key", "sha256")
+    server = hmac.digest(salted, b"Server Key", "sha256")
+    salt64, stored64, server64 = (b64encode(value).decode() for value in (salt, sha256(client).digest(), server))
+    return f"SCRAM-SHA-256$4096:{salt64}${stored64}:{server64}"
+
+
+def role_sql(password=None):
+    suffix = f" PASSWORD '{scram(password)}'" if password is not None else ""
     login = "LOGIN" if password is not None else "NOLOGIN"
     return f"CREATE ROLE {LOGIN} {login} NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS{suffix};"
 
@@ -106,10 +108,28 @@ ROLE_EVIDENCE_SQL = """SELECT jsonb_agg(jsonb_build_array(rolname,rolcanlogin,ro
   (SELECT count(*) FROM pg_auth_members WHERE roleid=r.oid OR member=r.oid))
   ORDER BY rolname)
   FROM pg_roles r WHERE rolname IN ('sentinela_local_reader','pcdf_receiver_fixture',
-                                   'pcdf_fixture_login','pcdf_pilot_service')"""
+                                   'pcdf_fixture_login','pcdf_pilot_service',
+                                   'pcdf_pilot_executor','pcdf_pilot_writer')"""
+
+PILOT_MEMBERSHIP_SQL = """SELECT jsonb_agg(jsonb_build_array(pg_get_userbyid(roleid),pg_get_userbyid(member),
+  pg_get_userbyid(grantor),inherit_option,set_option,admin_option) ORDER BY roleid,member)
+  FROM pg_auth_members WHERE roleid='pcdf_pilot_service'::regrole"""
+
+PILOT_ROLE_SQL = """CREATE ROLE pcdf_pilot_executor NOLOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION;
+  CREATE ROLE pcdf_pilot_writer NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION;
+  GRANT pcdf_pilot_service TO pcdf_pilot_executor WITH INHERIT TRUE, SET FALSE, ADMIN FALSE;
+  REVOKE CONNECT ON DATABASE postgres, template0, template1 FROM PUBLIC;
+  ALTER ROLE pcdf_pilot_executor SET log_min_error_statement = 'panic';
+  ALTER ROLE pcdf_pilot_executor SET log_error_verbosity = 'terse';
+  ALTER ROLE pcdf_pilot_executor SET log_statement = 'none';
+  ALTER ROLE pcdf_pilot_executor SET log_min_duration_statement = -1;"""
 
 
 def restore_and_compare(source, admin, runner, commands, fixture_secret=None):
+    qualified_pilot = bool(source.get("pilot_executor_schema_sha256"))
+    if qualified_pilot:
+        import pilot_runtime as runtime
+
     control.attest(source, admin, run=runner)
     directory = Path(source["root"]) / "evidence"
     archive = directory / ("pcdf-" + secrets.token_hex(8) + ".dump")
@@ -117,10 +137,11 @@ def restore_and_compare(source, admin, runner, commands, fixture_secret=None):
     archive_hash = backup.digest(archive)
     catalog = fingerprint_schema(commands, source, admin)
     role_evidence = control.psql(source, admin, run=runner, sql=ROLE_EVIDENCE_SQL)
+    membership = control.psql(source, admin, run=runner, sql=PILOT_MEMBERSHIP_SQL) if qualified_pilot else None
     tables = json.loads(control.psql(source, admin, run=runner, sql="""
       SELECT jsonb_agg(format('%I.%I', schemaname, tablename) ORDER BY schemaname, tablename)
-      FROM pg_tables WHERE schemaname IN ('sentinela','sentinela_pcdf_receiver_fixture')"""))
-    control.require(len(tables) == (20 if fixture_secret else 19), "Unexpected backup inventory")
+      FROM pg_tables WHERE schemaname IN ('sentinela','sentinela_pcdf_receiver_fixture','sentinela_pcdf_pilot')"""))
+    control.require(len(tables) == 19 + bool(fixture_secret) + 3 * qualified_pilot, "Unexpected backup inventory")
 
     restore = None
     restore_admin = secrets.token_urlsafe(40)
@@ -142,6 +163,8 @@ def restore_and_compare(source, admin, runner, commands, fixture_secret=None):
         restore["runtime_files"][config.name] = control.digest(config)
         if fixture_secret:
             allow_fixture_login(restore)
+        if qualified_pilot:
+            runtime.setup_hba(restore)
         control.save(restore)
         control.start(restore, restore_admin, run=restore_runner)
         control.attest(restore, restore_admin, database="postgres", run=restore_runner)
@@ -151,6 +174,8 @@ def restore_and_compare(source, admin, runner, commands, fixture_secret=None):
             if fixture_secret else
             "CREATE ROLE pcdf_pilot_service NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT NOCREATEDB NOCREATEROLE;"
         )
+        if qualified_pilot:
+            roles += PILOT_ROLE_SQL
         control.psql(restore, restore_admin, database="postgres", sql=roles, run=restore_runner)
         control.psql(restore, restore_admin, database="postgres",
                      sql=f"CREATE DATABASE {control.DB} TEMPLATE template0 ENCODING 'UTF8'", run=restore_runner)
@@ -167,6 +192,9 @@ def restore_and_compare(source, admin, runner, commands, fixture_secret=None):
         control.require(fingerprint_schema(commands, restore, restore_admin) == catalog, "Schema differs after restore")
         control.require(control.psql(restore, restore_admin, run=restore_runner, sql=ROLE_EVIDENCE_SQL)
                         == role_evidence, "Role attributes or database grants differ after restore")
+        if qualified_pilot:
+            control.require(control.psql(restore, restore_admin, run=restore_runner, sql=PILOT_MEMBERSHIP_SQL)
+                            == membership, "Restored inheritance differs")
         for table in tables:
             control.PORT = original_port
             left = ordered_rows(source, admin, runner, table)
@@ -176,6 +204,31 @@ def restore_and_compare(source, admin, runner, commands, fixture_secret=None):
             # The replay port has identical ACLs and authenticates the login.
             # Its stage guard deliberately rejects writes outside the original fixture port.
             control.require(permissions(commands, restore, restored_service_secret) == 15, "Restored permissions differ")
+        elif qualified_pilot:
+            test_secret = secrets.token_urlsafe(40)
+
+            def role_stdin(exe, args, password=None):
+                return commands.call(exe, args, password=password, input=runtime.fixture_role(test_secret))
+
+            control.psql(restore, restore_admin, file="-", run=role_stdin)
+            try:
+                def test(statement):
+                    return login_sql(commands, restore, test_secret, statement, role=runtime.FIXTURE)
+
+                control.require(json.loads(test(runtime.effective_sql(runtime.FIXTURE))) == [
+                    runtime.FIXTURE, runtime.FIXTURE, source['database'], '127.0.0.1', restore_port,
+                    restore['uuid'], True, True, True], "Restored effective permissions differ")
+                receipt["restoredDenials"] = runtime.verify_denials(test)
+                for other in ("postgres", "template0", "template1"):
+                    try:
+                        login_sql(commands, restore, test_secret, "SELECT 1", database=other, role=runtime.FIXTURE)
+                    except RuntimeError:
+                        control.require(commands.events[-1]["exit_code"] == 2, "Expected connection refusal")
+                    else:
+                        raise AssertionError("Restored other-database login accepted")
+                receipt["restoredOtherDatabaseDenials"] = 3
+            finally:
+                control.psql(restore, restore_admin, sql=f"DROP ROLE {runtime.FIXTURE}", run=restore_runner)
         else:
             dedicated.inspect(restore, restore_admin, restore_runner)
         receipt.update(result="PASS", tables=len(tables), restore=restore["uuid"],
@@ -202,6 +255,16 @@ def main():
     args = parser.parse_args()
     control.BASE, control.PORT, control.DB = dedicated.BASE, dedicated.PORT, dedicated.DATABASE
     cluster = control.load(args.dedicated_backup)
+    if cluster.get("pilot_executor_schema_sha256"):
+        from pilot_runtime import Pilot
+
+        pilot = Pilot(args.dedicated_backup)
+        with pilot.running():
+            state = pilot.inspect()
+            control.require(not state['active'], "Deactivate the executor before recovery qualification")
+            result = restore_and_compare(pilot.cluster, pilot.admin, pilot.runner, pilot.commands)
+        print(json.dumps(result))
+        return
     control.require(cluster["phase"] == "STOPPED", "Dedicated cluster must be stopped")
     key = Path(cluster["root"]) / "admin.dpapi"
     control.no_links(key)

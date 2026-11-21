@@ -18,9 +18,10 @@ REPO = ROOT.parents[1]
 SPEC = json.loads((ROOT / 'security-spec.json').read_text(encoding='utf-8'))
 RA_V2_TEMPLATE = ROOT / 'ra-catalog-v2/install.sql'
 SANDBOX_GUARD = ROOT / 'sandbox/sql/guard.sql'
-# Privileged functions are already qualified in these disposable-cluster
-# scripts. Pin the expanded SQL, including the guard and grants.
-QUALIFIED_SANDBOX_SQL = {
+# Pin the qualified local functions together with their guards, grants and includes.
+QUALIFIED_LOCAL_SQL = {
+    ROOT / 'pcdf-sandbox/pilot-executor.sql': '8e483068d1bc014e293b10709f29bed04a5562d7af1aefa57b3bc2f75066a1b5',
+    ROOT / 'pcdf-sandbox/receiver-service-fixture.sql': '6a5d7f7b0e431440c736522b7fcf06db9632ac2bbf7a0541124848053a06c2fb',
     ROOT / 'pcdf-sandbox/workspace.sql': '6d1b8c4f2ef26a96f1c480a45cd847c7075a5531d753a431bf4656a2285e4a64',
     ROOT / 'write-sandbox/003_individual_address.sql': 'dc4cdb9dca32c0fbbb9cc9280ff552349cd46c4559c675c2777a7bb5ec03010e',
     ROOT / 'write-sandbox/004_workspace_read.sql': '3e088c4b0b88be8c67bdcf65f52dc56a73e94d6d968eb3ac23e70770975277dc',
@@ -204,8 +205,8 @@ class StaticSecurityTests(unittest.TestCase):
         for path in ROOT.rglob('*.sql'):
             text = expand(path)
             self.assertNotRegex(text.upper(), r'\bDISABLE\s+(?:TRIGGER|ROW LEVEL)|\bNO\s+FORCE\b|\bDROP\s+(?:SCHEMA|TABLE|TRIGGER|ROLE)')
-            if path in QUALIFIED_SANDBOX_SQL:
-                self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), QUALIFIED_SANDBOX_SQL[path], str(path))
+            if path in QUALIFIED_LOCAL_SQL:
+                self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), QUALIFIED_LOCAL_SQL[path], str(path))
             else:
                 self.assertNotRegex(text.upper(), r'\bSECURITY\s+DEFINER\b')
             nodes = json.loads(parser.parse_sql_json(text))['stmts']

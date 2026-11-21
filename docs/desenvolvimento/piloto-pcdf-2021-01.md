@@ -1,89 +1,84 @@
-# Procedimento do primeiro piloto real PCDF — janeiro de 2021
+# Primeiro piloto PCDF em staging — janeiro de 2021
 
-**PREPARAÇÃO DO PILOTO COM PENDÊNCIAS**
+**PREPARAÇÃO TÉCNICA CONCLUÍDA — AGUARDANDO AUTORIZAÇÕES.**
 
-**APROVAÇÃO INDEPENDENTE DO MANIFESTO PENDENTE.**
+A ativação do piloto depende de três decisões institucionais. O responsável pelos dados aprova o manifesto por canal independente, a área de segurança autoriza a identidade de operação e a autoridade competente libera a carga de janeiro. O destino é `127.0.0.1:55481/sentinela_pcdf_piloto`, PostgreSQL 17.11 e PostGIS 3.6.2. A instância tem diretório, credenciais, listener e backups próprios.
 
-O piloto deve provar recepção íntegra de uma competência em staging PostgreSQL/PostGIS isolado, com auditoria e recuperação. A execução exige autorização específica. Cada competência posterior depende de sua própria conferência e liberação.
-
-| Metadado | Valor registrado no manifesto integral |
+| Metadado | Valor do manifesto original |
 | --- | --- |
 | Competência | Janeiro de 2021 |
 | Arquivo | `pcdf_naturezas_2021-01.csv` |
 | Associações | 6.393 |
 | Tamanho | 2.948.416 bytes |
-| Layout | PCDF v1.0, 34 campos, dos quais 18 originais, 10 derivados e seis técnicos |
+| Layout | PCDF v1.0, 34 campos, incluindo 18 originais, 10 derivados e seis técnicos |
 | SHA-256 do CSV | `e202df3622fbd5f0b4ae53e7a8f435bce9ad58ff30a43a3c248ce2d369fd3770` |
 
-A referência do relatório de encerramento do produtor coincidiu com os bytes do manifesto na conferência em leitura. Esse resultado documenta a integridade do artefato consultado. A autoridade institucional ainda precisa aprovar a combinação de manifesto, competência e ambiente para execução. A leitura do XML e do CSV como parte da preparação real permanece sujeita a essa autorização. [Contrato v1.0](../contratos/importacao-pcdf-v1.0.md) · [Preparação do receptor](preparacao-receptor-pcdf-real.md)
+O custodiante deve fornecer o SHA-256 do manifesto original pelo canal de aprovação. A confirmação dos bytes do CSV e do XML pertence à execução autorizada. [Contrato v1.0](../contratos/importacao-pcdf-v1.0.md) · [Histórico do receptor](preparacao-receptor-pcdf-real.md)
 
-## Destino e provisão
+## Executor e privilégios
 
-- O sandbox na porta 55432 é recriado pelo controlador para qualificar com fixtures e é encerrado depois do ensaio. Reproduzir a qualificação de referência com `python -B database/local/pcdf-sandbox/qualify-manifest.py --isolated-only`, em loopback e com ACL privada. O SQL `receiver-staging-fixture.sql` é específico desse laboratório e depende do papel e da versão de tratamento da fixture. [Controlador](../../database/local/sandbox/control.py)
-- A rodada de finalização confirmou as sete verificações no sandbox, com 6.399 linhas sintéticas em staging, zero promoções, 19 tabelas com RLS forçada e 34 FKs no núcleo. O recibo local é `receiver-result.json` no sandbox `rls-sandbox-052a043b-987a-43f9-b364-5d2ec7fd2190`.
-- Na preparação da infraestrutura, um novo ensaio verificou uma aprovação Ed25519 de escopo sintético, distinta da aprovação de janeiro. Comparou no PostgreSQL as 6.393 linhas de volume com a fixture, campo a campo, incluindo os 18 originais em suas colunas próprias. Foram 6.393 IDs distintos, zero divergências e zero consolidações. O recibo desta rodada é `receiver-result.json` no sandbox `rls-sandbox-e303b629-7554-41f0-b726-d802bbae25f4`.
-- A homologação persistente em 55473 permanece como referência sintética preexistente. O destino preparado para o piloto é `127.0.0.1:55481/sentinela_pcdf_piloto`, PostgreSQL 17.11/PostGIS 3.6.2, com diretório persistente próprio em `.cache/pcdf-pilot-dedicated` no worktree. O provisionamento instalou a baseline versionada, confirmou 19 tabelas com RLS forçada e 34 FKs e encerrou o cluster. Origem, staging, auditoria de carga e ocorrências ficaram vazios.
-- O provisionamento bloqueia a reutilização automática de diretório existente. O controlador cria ACL privada, exige SCRAM, atesta a identidade do cluster pelo UUID, identificador de sistema, diretório, porta e PID e registra a configuração atestada. A credencial administrativa local está protegida com DPAPI para a conta Windows que provisionou o cluster. O recibo `pilot-environment.json` e o manifesto local ficam no diretório privado, fora do Git.
-- O responsável PostgreSQL deve reservar instância e armazenamento exclusivos, provisionar com a baseline versionada aplicável ao destino, validar PostgreSQL/PostGIS, FKs, índices, gatilhos, ledger e RLS habilitada e forçada. Atestar identidade do banco e do cluster, endpoint, diretório privado e isolamento da rede, dos backups e das credenciais. Conferir as tabelas de extração, lote, execução, origem, staging, pendências e auditoria antes de habilitar a operação. Validar restauração do backup em ambiente separado. [Migrations](../../database/migrations) · [Modelagem](../banco/modelagem-postgresql-postgis-v1.0.md)
-- O preflight administrativo atesta o ambiente e pode verificar a aprovação assinada, as evidências do manifesto e os bytes da entrega. A escrita qualificada no laboratório usa o login SCRAM sintético `pcdf_fixture_login` e duas funções específicas para registrar a tentativa e receber a entrega. A ativação real ainda exige ligar o executor no destino dedicado às autorizações institucionais e a um login próprio. O papel `pcdf_pilot_service` permanece inativo e o staging do destino real permanece vazio.
-- O DBA e o responsável por segurança devem atribuir uma identidade técnica exclusiva e autenticação pelo mecanismo institucional de segredos, com entrega privada, rotação e revogação. O serviço deve poder executar apenas a recepção autorizada, leitura necessária à idempotência e reconciliação e gravação limitada a origem, staging, pendências e auditoria. Confirmar ausência de `SUPERUSER`, `BYPASSRLS`, privilégios de DDL, consolidação, publicação e acesso por contas demonstrativas. Testar concessões e recusas com a identidade efetiva antes de disponibilizar os dados reais.
+| Identidade | Acesso |
+| --- | --- |
+| `pcdf_pilot_executor` | Identidade institucional reservada. Permanece `NOLOGIN` e sem senha até registro da autorização. Quando habilitada, autentica por SCRAM em loopback somente neste banco e herda `pcdf_pilot_service` com `INHERIT TRUE, SET FALSE, ADMIN FALSE`. |
+| `pcdf_pilot_service` | Papel `NOLOGIN`. Tem `CONNECT` no destino, `USAGE` no schema `sentinela_pcdf_pilot` e `EXECUTE` nas três funções expostas pelo serviço. |
+| `pcdf_pilot_writer` | Proprietário `NOLOGIN` e sem membros das três funções `SECURITY DEFINER`, com `search_path = pg_catalog, pg_temp` e referências internas qualificadas. Tem leitura e inserção nas tabelas de origem, lote, execução, staging e auditoria conforme RLS, inserção de pendências e leitura de colunas da identidade autorizada. |
+| `pcdf_pilot_qualification` | Login de ensaio, efêmero e com validade. Usa a mesma herança de permissões e as mesmas funções. A autorização sintética, a competência, a fonte e o serviço de auditoria têm valores próprios. O teste exige estado anterior ao registro da âncora institucional e é encerrado com a remoção do papel, do ator e do registro sintético. |
 
-### Comandos disponíveis
+O instalador é aplicado por administrador sobre a baseline atestada. Ele exige o banco, endereço, porta e inventário de bancos esperados. A qualificação do destino confere o UUID e identificador de sistema, as configurações fixadas no manifesto local, o PID, o binário, o diretório, a disponibilidade da porta e a ausência de tablespaces externos. O controlador usa a credencial administrativa protegida com DPAPI e a ACL privada do diretório local. A conexão que recebe e reconcilia é autenticada como o executor restrito.
 
-No worktree, com Python 3.12, Node 22 e PostgreSQL 17.11. A provisão é para um diretório novo. A verificação de ambiente inicia apenas a instância própria, verifica identidade e catálogo e a encerra. A inspeção pressupõe staging vazio, na fase anterior à ingestão.
+`record_attempt(document, request)` registra o operador, a identidade autenticada, a autorização, os hashes e o UUID de correlação. `receive(document, request)` exige essa tentativa e valida a autorização vigente no banco, o login, a competência e os hashes do manifesto, do CSV, do XML e do JSONB exato preparado pelo receptor. A gravação afeta somente origem, lote, execução, staging, pendências e auditoria. `reconcile(document, request)` exige o recibo auditado e devolve contagens e divergências do lote autorizado. A rotina comum de staging é `SECURITY INVOKER`, inacessível ao login e chamada internamente como `pcdf_pilot_writer`.
+
+A RLS permanece habilitada e forçada nas 19 tabelas do núcleo. As políticas vinculam os registros ao serviço de origem, permitem pendências sem vínculo de consolidação e restringem a auditoria ao serviço correspondente. As 34 FKs do núcleo permanecem validadas, além da FK do novo registro de autorização para o ator cadastrado. O executor tem acesso recusado a tabelas, criação de objetos, schemas e tabelas temporárias, alteração de RLS, exclusões, truncamento, consolidação, catálogo de autorizações, funções internas, contas administrativas e outros bancos. O piloto tem escopo exclusivo de staging. Dashboard, mapas e promoção de ocorrências ficam fora da autorização.
+
+## Provisão, verificação e backup
+
+No worktree, use Python 3.12, Node 22 e PostgreSQL 17.11. `pilot_environment.py --provision` cria a baseline somente em diretório novo. Use o manifesto privado do cluster de origem da porta 55481 nos comandos abaixo. O verificador do executor atesta a baseline, o schema instalado e as permissões antes de abrir o fluxo de autorização. Cada comando inicia apenas sua instância configurada e confirma seu encerramento.
 
 ```powershell
-python -B database/local/pcdf-sandbox/pilot_environment.py --provision
-python -B database/local/pcdf-sandbox/pilot_environment.py --verify <manifesto-local-do-cluster>
-python -B database/local/pcdf-sandbox/pilot_preflight.py --cluster <manifesto-local-do-cluster>
-python -B database/local/pcdf-sandbox/qualify-manifest.py --isolated-only
-python -B database/local/pcdf-sandbox/pilot_recovery.py --dedicated-backup <manifesto-local-do-cluster>
+python -B database/local/pcdf-sandbox/pilot_runtime.py --cluster <manifesto-local> --provision
+python -B database/local/pcdf-sandbox/pilot_runtime.py --cluster <manifesto-local>
+python -B database/local/pcdf-sandbox/pilot_preflight.py --cluster <manifesto-local>
+python -B database/local/pcdf-sandbox/pilot_qualify.py --cluster <manifesto-local>
+python -B database/local/pcdf-sandbox/pilot_recovery.py --dedicated-backup <manifesto-local>
 ```
 
-A conta `pcdf_pilot_service` foi provida em estado `NOLOGIN`, sem membros, criação de schema, escrita no núcleo ou bypass de RLS. O login de laboratório não é membro do papel de escrita. Tem somente `CONNECT`, `USAGE` no schema de serviço e `EXECUTE` nas duas funções. O proprietário dessas funções é um papel `NOLOGIN` sem bypass e sujeito à RLS. As funções cruzam a aprovação sintética mantida pelo administrador do laboratório com hashes de manifesto, CSV, XML e do payload exato preparado pelo receptor. O código não registra a senha em SQL nem em evidências.
+A qualificação usa exclusivamente fixtures geradas em memória, login SCRAM temporário e transações revertidas. O teste entre duas conexões observa espera pelo lock transacional e demonstra a retentativa após a reversão da primeira. O teste de idempotência na mesma transação compara o recibo repetido e confirma o reaproveitamento do lote e da execução. O teste no laboratório 55432 cobre o reenvio concorrente com commit. A assinatura Ed25519 de ensaio é validada em escopo sintético, recusado pelo verificador institucional.
 
-Para falha de inicialização ou encerramento, preservar diretório, manifesto local e evidências. O controlador atesta PID, marcador, diretório e identificador do sistema antes de parar. Em estado ambíguo, o DBA deve verificar a instância e preservar os arquivos antes de qualquer recuperação.
+O backup usa `pg_dump -Fc` com origem atestada e recibo privado de tamanho e SHA-256. A restauração usa `pg_restore --exit-on-error --single-transaction` em um cluster novo com identidade e diretório próprios na porta 55483. Antes de restaurar o schema, o procedimento recria os papéis sem copiar senhas, com a identidade operacional desativada, e reaplica as regras de conexão. A verificação compara ACLs, herança, privilégios efetivos, funções, gatilhos, índices, constraints, RLS e conteúdo ordenado das 22 tabelas. Um login sintético temporário repete as recusas no destino restaurado. O objeto de autorização recuperado conserva o UUID original, e as funções permanecem bloqueadas no endpoint de restauração. Qualquer uso após recuperação requer reatestação do destino e autorização vinculada à sua identidade efetiva.
 
-### Backup e restauração
+Preserve o dump, o recibo e os logs em diretório privado fora do Git. Em falha de início, encerramento ou recuperação, use os eventos de atestação, PID e identificação do sistema para confirmar o estado antes de iniciar novamente. Preserve a origem e os backups existentes. Execute a restauração de verificação somente no cluster isolado. [Controlador](../../database/local/sandbox/control.py) · [Restauração](../../database/local/pcdf-sandbox/pilot_recovery.py)
 
-O ensaio usa `pg_dump -Fc` após atestar a origem, registra tamanho e SHA-256 em recibo ao lado do arquivo privado e usa `pg_restore --exit-on-error --single-transaction` em um segundo cluster com identidade e diretório próprios. O laboratório sintético usa 55432 e restauração em 55482. O destino vazio reservado ao piloto usa 55481 e restauração em 55483. O procedimento recria papéis sem importar senhas e repõe as concessões de conexão do ambiente. Compara o schema incluindo ACLs, funções, gatilhos, índices, constraints e RLS e compara cada tabela recuperada por conteúdo ordenado. O backup, o recibo e a restauração ficam em diretórios privados fora do Git. Os artefatos devem ser preservados para revisão e o teste institucional deve ser repetido após alterações no ambiente ativado.
+## Checklist de autorização
 
-O backup verificado do destino dedicado é `pcdf-2dc7f67517078523.dump`, com 140.693 bytes. O recibo homônimo registra o SHA-256, a versão 17.11, o cluster de origem e o cluster restaurado na porta 55483. As 19 tabelas, o schema e as concessões dos papéis coincidiram após restaurar. Esse backup contém o estado vazio de recepção e os dados de configuração da baseline. O backup separado do laboratório contém as fixtures e a auditoria sintética.
-
-A rodada final gravou e reconciliou 6.393 associações pelo login efetivo, em 6.399 linhas sintéticas totais no staging. Houve zero divergências e zero consolidações. O login teve 15 recusas de operação ou conexão verificadas na origem e novamente na restauração. A tentativa sem evento de auditoria foi recusada, e rollback, retentativa e reenvio concorrente passaram. O backup `pcdf-ac52163bff4b0793.dump` tem 2.895.825 bytes. Sua restauração recuperou as 19 tabelas do núcleo e a tabela de aprovações sintéticas. Schema, papéis, grants e dados ordenados coincidiram. Os recibos estão no sandbox local `rls-sandbox-0a33e111-06ff-4572-8e5b-99425dc41fae`. As quatro instâncias usadas na qualificação e nas restaurações ficaram paradas ao final.
-
-## Aprovação e pré-importação
-
-1. O custodiante do SENTINELA-DADOS identifica a versão da entrega e transmite por canal institucional autenticado, separado do canal de transferência, a referência SHA-256 do manifesto original. A autoridade responsável pelo uso dos dados aprova formalmente competência, origem, versão do manifesto, ambiente atestado, conta de serviço, janela e escopo de staging. Os nomes dos titulares responsáveis ainda precisam ser designados pela equipe.
-2. O responsável institucional mantém a chave Ed25519 privada no canal de aprovação e fornece a chave pública PEM e seu SHA-256 por fonte confiável separada do pacote de dados. O registro JSON assinado contém `escopo` igual a `pcdf-2021-01-staging`, `destino` igual ao UUID atestado do cluster, `aprovado_em` e `expira_em` em ISO 8601 com fuso, `referencia`, `aprovador`, `versao_layout` igual a `1.0` e `manifesto_sha256`. A assinatura Ed25519 separada tem 64 bytes brutos e cobre exatamente os bytes do JSON. O operador fornece o hash da chave fixado pela instituição via `--chave-sha256`. O hash calculado do manifesto recebido serve como comparação de integridade. A igualdade com o relatório técnico, isoladamente, evidencia integridade documental.
-3. Confirmar destino, papel efetivo, RLS, backup recuperável e auditoria. Obter pelo canal de transferência autorizado apenas o CSV mensal selecionado, o manifesto e o XML correspondente. Manter os originais em armazenamento privado imutável referenciado por hash, com controles de retenção e acesso. Limitar logs a metadados permitidos, contagens e diagnósticos sem dados de linha.
-4. Validar o manifesto original contra o hash aprovado e exigir evidência de reconciliação e preflight conforme o estado. Conferir SHA-256 e tamanho do XML por fluxo e SHA-256 e tamanho do CSV original. Validar cabeçalho, ordem dos 34 campos, competência, 6.393 associações, IDs técnicos distintos, aba e posição lógica. Uma divergência bloqueia a operação antes de gravar.
-
-Com as entradas autorizadas em área privada, fornecer `--manifesto`, `--aprovacao`, `--assinatura`, `--chave`, `--chave-sha256`, `--cluster` e, para conferir a entrega, `--csv` e `--xml`. O preflight abre CSV e XML somente após atestar o destino, verificar a assinatura, o vínculo e a vigência e aprovar o manifesto recebido. O JSON de saída indica `PENDENTE` (código 2) quando faltam entradas ou ativação, `REPROVADO` (código 1) em caso de divergência e `APROVADO` (código 0) somente quando todos os requisitos estiverem aprovados. Nesta versão a execução real continua pendente mesmo quando os controles de leitura passam. As chaves geradas pelo ensaio têm escopo exclusivo de fixture.
-
-## Recepção e reconciliação
-
-1. Registrar tentativa auditável com serviço, operador autorizado, referência da aprovação, competência, hashes, data e identificador de correlação. Registrar extração, lote, execução e suas referências aos originais. Gravar as associações da competência em uma transação até staging, com diagnóstico das pendências e vínculo de proveniência por linha.
-2. Recuperar 6.393 snapshots e 6.393 IDs técnicos distintos. Comparar os 34 valores transportados e os 18 originais em suas colunas próprias, incluindo vazio, zeros à esquerda, Unicode e posições. Conferir vínculo reverso ao arquivo original e à posição lógica do XML. Verificar que as naturezas múltiplas e os registros incompletos foram preservados e que o estado de pendência corresponde às regras.
-3. Emitir relatório privado com contagens esperadas e obtidas, hashes verificados, resultados de comparação, pendências, eventos de auditoria e resultado da transação. Aceitar somente com zero divergência, zero perda, zero consolidação e zero publicação para Dashboard ou mapas. A aprovação pós-piloto compete ao responsável pelos dados e à equipe técnica de homologação.
-
-## Idempotência e recuperação
-
-| Situação | Tratamento e evidência |
+| Responsável | Aprovar e fornecer |
 | --- | --- |
-| Mesmo CSV ou lote já recebido | Conferir hash, competência, versão e contexto da extração. Devolver os IDs do lote e da execução existentes e auditar o reenvio. |
-| Reenvio concorrente | Serializar sob lock transacional e validar unicidade. Verificar um lote e uma execução de sucesso, com resultado correlacionável para cada tentativa. |
-| Manifesto, hash ou estrutura inválida | Bloquear o lote, registrar diagnóstico seguro e encaminhar a divergência ao custodiante. Uma linha incompleta mas estruturalmente válida permanece no fluxo de staging. |
-| Falha de banco ou interrupção antes do commit | Garantir rollback da competência. Manter o evento de tentativa e registrar o SQLSTATE ou o desfecho conhecido. Confirmar se houve commit antes de tentar novamente. |
-| Queda após commit, sem recibo do cliente | Consultar chave do lote e executar a regra de replay quando o contexto coincidir. |
-| Nova tentativa após rollback | Confirmar ausência de staging parcial, confirmar a autorização vigente e repetir a competência na íntegra. Mudanças de bytes, versão ou contexto exigem tratamento explícito da divergência. |
+| Custodiante e aprovador independente | SHA-256 dos bytes do manifesto original, referência formal da aprovação e assinatura Ed25519 para `pcdf-2021-01-staging` vinculada ao UUID atestado. A instituição entrega a chave pública e seu SHA-256 por canal separado da entrega. |
+| Segurança e DBA | Autorização nominativa do responsável operacional, referência institucional dessa decisão, UUID do cadastro ativo de perfil `Operador` e vínculo com `pcdf_pilot_executor`. O DBA registra a impressão da chave pública confiável e entrega a credencial SCRAM pelo cofre institucional. |
+| Autoridade do piloto | Autorização assinada `pcdf-2021-01-execucao-staging` para o CSV de janeiro, os hashes indicados, a identidade autorizada, o UUID atestado e o destino `127.0.0.1:55481/sentinela_pcdf_piloto`. Permite validação, recepção, auditoria e reconciliação. Bloqueia DDL, escrita direta, exclusão, consolidação, Dashboard e mapas. |
 
-Os procedimentos de recuperação preservam os artefatos, eventos e registros existentes. A estratégia normal é rollback, consulta do estado durável e retentativa idempotente.
+Cada JSON assinado contém `escopo`, `destino` (UUID do cluster), `aprovado_em` e `expira_em` (ISO 8601 com fuso), `referencia`, `aprovador`, `versao_layout` (`1.0`) e `manifesto_sha256`. A autorização da carga contém também `aprovacao_sha256` (hash do JSON de aprovação), `autorizacao_identidade` (referência institucional), `operador` (responsável distinto do aprovador do manifesto), `ator_id` (UUID), `login` (`pcdf_pilot_executor`), `banco` (`sentinela_pcdf_piloto`), `porta` (55481), `competencia` (`2021-01`), `arquivo`, `csv_sha256` e `consolidacao` (`false`). Cada assinatura separada tem 64 bytes brutos e cobre os bytes do respectivo JSON. A chave privada permanece sob controle do signatário institucional.
 
-## Bloqueios e continuidade
+## Execução futura e reconciliação
 
-A execução depende do destino dedicado atestado, operação administrativa real qualificada e habilitada por autorização, identidade técnica provisionada e testada, aprovação independente do manifesto, canal privado, backup recuperável, auditoria e autorização formal para janeiro. Qualquer falha nesses requisitos ou divergência de pré-validação bloqueia a carga.
+1. O DBA confere as evidências de autorização e registra a âncora obtida por canal independente com `pilot_runtime.py --cluster <manifesto-local> --enroll-key-sha256 <sha256-institucional>`. Guarde os três artefatos da entrega em área privada imutável referenciada pelos hashes. Os logs e recibos devem registrar metadados de controle e contagens.
+2. Execute `pilot_preflight.py` com `--cluster`, `--manifesto`, `--aprovacao`, `--assinatura`, `--chave`, `--autorizacao`, `--assinatura-autorizacao`, `--csv` e `--xml`. A chave confere com a âncora instalada pelo DBA. A opção `--chave-sha256` permite uma conferência adicional. O programa abre CSV e XML após conferir as duas assinaturas, o escopo, a janela e o manifesto. Valida hash, tamanho, competência, cabeçalho, 34 campos, 6.393 associações, IDs, aba e posição lógica.
+3. O DBA usa os mesmos argumentos com `--registrar` e fornece ao processo a credencial SCRAM aleatória ASCII emitida pelo cofre, por meio da variável `SENTINELA_PCDF_EXECUTOR_PASSWORD`. O registro vincula ambos os documentos assinados aos bytes preparados e à identidade ativa no cadastro. A ativação tem prazo de validade e é revertida se a conexão de conferência falhar. As sessões de serviço usam configuração de log restrita para evitar que SQL de entrega seja copiado em diagnósticos.
+4. Com `APROVADO`, execute o preflight com os mesmos argumentos, `--executar` e `--requisicao <uuid>`. A função de tentativa é registrada em uma transação separada. A recepção e a reconciliação usam a conexão SCRAM restrita e a mesma transação de staging. Uma divergência interrompe o commit. Guarde o recibo privado com os IDs de lote, execução e correlação, hashes e contagens.
+5. Aceite apenas 6.393 IDs técnicos distintos, 34 campos preservados, os 18 originais literais, vínculos de proveniência conferidos, zero perda, zero divergência, zero consolidação e zero publicação. Confira pendências e evidências de auditoria com o custodiante. Use `pilot_runtime.py --cluster <manifesto-local> --deactivate` ao final da janela para revogar o login e retirar a autorização ativa, preservando a trilha de auditoria.
+6. Em falha antes do commit, confirme a reversão pelo estado durável. Após queda sem recibo, retente com o mesmo UUID e a mesma entrega enquanto a aprovação estiver vigente. O reenvio retorna o recibo anterior ou reutiliza o mesmo lote e execução. Mudanças de hash, competência, autorização ou contexto exigem nova avaliação.
 
-O teste do preflight retornou `PENDENTE` para o cluster dedicado atestado sem aprovação institucional e `REPROVADO` para um manifesto local de destino inexistente. O mecanismo de assinatura está preparado. O custódio da chave, a autoridade que assina e o DBA que libera a identidade efetiva devem ser designados antes da carga.
+O preflight responde `APROVADO` com código 0 quando todos os requisitos aplicáveis são comprovados, `PENDENTE` com código 2 quando falta uma condição de operação, e `REPROVADO` com código 1 em caso de inconsistência ou falha de segurança. Um resultado aprovado da qualificação sintética tem validade exclusivamente para a demonstração técnica.
 
-Fevereiro de 2021 é a próxima competência candidata. Considerá-la após o aceite documentado de janeiro e repetir integralmente os controles. Uma autorização futura para consolidar depende de homologação separada de identidade policial, classificações e critérios territoriais.
+## Evidências da qualificação de 21/11/2026
+
+- O recibo `pilot-executor-84e4a70f-996a-4a21-ac08-2944a2c28ccb.json` registra 20 verificações aprovadas na porta 55481, no cluster `bd54f847-4c26-487a-b74d-5f626570ce14`, identificador de sistema `7710716912058263580`. O login temporário autenticou por SCRAM. Houve 22 recusas SQL e quatro recusas em conexões para outros bancos. As 6.393 linhas sintéticas e seus 6.393 IDs distintos foram reconciliados com os 34 campos e os 18 originais, sem divergências. Origem, staging, auditoria e ocorrências voltaram às contagens iniciais de zero. O cluster foi encerrado.
+- O recibo `pcdf-eda41c5a45c84fd4.json` registra a restauração em 55483 no cluster `78fa8e70-cb9c-4300-b441-b85050d4e11c`. O dump tem 174.332 bytes e SHA-256 `d0a9c9e1b79a49db3624a998171126e62fae51d68cef2bb71e674bf401fc0740`. Houve correspondência de schema, dados e grants nas 22 tabelas, 22 recusas SQL e três recusas de acesso a outros bancos no destino restaurado.
+- O laboratório 55432 repetiu nove verificações, incluindo reenvio concorrente com commit e restauração em 55482. O recibo `receiver-result.json` em `rls-sandbox-a87a8730-c27f-462a-8b80-78ee65c96dd2` registra 6.393 linhas reconciliadas e zero consolidações.
+- O preflight devolveu `PENDENTE` para a execução institucional no destino atestado sem aprovação, inclusive quando recebeu caminhos de CSV e XML indisponíveis. Um manifesto local de destino inexistente resultou em `REPROVADO`.
+- A regressão aprovou 424 testes automatizados, com 253 no Node e 171 em Python. Também passaram verificação da baseline, TypeScript, ESLint, contratos/OpenAPI, rotas estáticas e build de produção.
+
+## Evidências anteriores preservadas
+
+- Laboratório 55432, `receiver-result.json` em `rls-sandbox-052a043b-987a-43f9-b364-5d2ec7fd2190` e `rls-sandbox-e303b629-7554-41f0-b726-d802bbae25f4`. Qualificação do receptor, assinatura sintética, 6.393 IDs distintos e zero divergências ou promoções.
+- Laboratório 55432, `receiver-result.json` e `pcdf-ac52163bff4b0793.dump` em `rls-sandbox-0a33e111-06ff-4572-8e5b-99425dc41fae`. Login sintético efetivo, 15 recusas na origem e na restauração 55482, 6.399 linhas de staging e zero consolidações.
+- Destino 55481, `pcdf-2dc7f67517078523.dump` e recibo homônimo. A restauração anterior em 55483 comparou as 19 tabelas, antes da instalação do executor.

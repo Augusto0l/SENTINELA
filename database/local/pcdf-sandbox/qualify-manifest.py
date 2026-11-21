@@ -10,13 +10,15 @@ from pathlib import Path
 import secrets
 import subprocess
 import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
 from manifest_receiver import HEADERS, LINE_VERSION, ORIGINALS, TECHNICAL, compact_json, line_id, prepare_month
 from pipeline import InvalidFile, MAX_BYTES, XML_FIXTURE
-from pilot_preflight import approval, report as preflight_report
+from pilot_preflight import (CSV_SHA256, EXECUTION_SCOPE, NAME, approval, release_matches,
+                             report as preflight_report, signed_inputs)
 import pilot_recovery
 from qualify import HERE, backup, control, fixture
 from workspace import prepare_synthetic
@@ -105,6 +107,34 @@ def synthetic_approval(manifest, target):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_execution_release_binds_independent_approval_operator_and_destination(self):
+        args = SimpleNamespace(**{name: name for name in ("chave", "aprovacao", "autorizacao", "assinatura",
+                                                         "assinatura_autorizacao")})
+        record = b"unit test approval bytes"
+        manifest = {"manifesto_sha256": "3" * 64, "aprovador": "Aprovador de ensaio",
+                    "aprovado_em": "2026-08-01T00:00:00+00:00", "expira_em": "2026-08-31T00:00:00+00:00"}
+        release = {**manifest, "aprovacao_sha256": sha256(record).hexdigest(), "referencia": "test/pilot",
+                   "banco": "sentinela_pcdf_piloto", "porta": 55481, "login": "pcdf_pilot_executor",
+                   "competencia": "2021-01", "arquivo": NAME, "csv_sha256": CSV_SHA256, "consolidacao": False,
+                   "operador": "Operador de ensaio", "ator_id": str(uuid4()), "autorizacao_identidade": "test/actor",
+                   "aprovado_em": "2026-08-02T00:00:00+00:00", "expira_em": "2026-08-26T00:00:00+00:00"}
+        with patch("pilot_preflight.read_bounded", side_effect=[b"key fixture", record, b"load fixture", b"a", b"b"]), \
+             patch("pilot_preflight.approval", side_effect=[manifest, release]) as verify:
+            binding = signed_inputs(args, "test-cluster", "pin")
+        self.assertEqual(verify.call_args_list[1].args[-1], EXECUTION_SCOPE)
+        self.assertEqual(verify.call_args_list[0].args[-2:], ("pin", "test-cluster"))
+        self.assertEqual(binding["starts_at"], release["aprovado_em"])
+        self.assertEqual(binding["expires_at"], release["expira_em"])
+        self.assertTrue(release_matches(binding, binding))
+        self.assertFalse(release_matches({**binding, "payload": "alterado"}, {**binding, "payload": "aprovado"}))
+        for key, value in (("operador", manifest["aprovador"]), ("aprovacao_sha256", "5" * 64),
+                           ("login", "pcdf_pilot_qualification"), ("competencia", "2026-08"),
+                           ("porta", 55432), ("consolidacao", True), ("autorizacao_identidade", "")):
+            with self.subTest(key=key), patch("pilot_preflight.read_bounded", return_value=record), \
+                 patch("pilot_preflight.approval", side_effect=[manifest, {**release, key: value}]), \
+                 self.assertRaises(InvalidFile):
+                signed_inputs(args, "test-cluster", "pin")
+
     def test_preflight_never_promotes_an_unresolved_requirement(self):
         passed = {"resultado": "APROVADO"}
         self.assertEqual(preflight_report([])["resultado"], "REPROVADO")
@@ -305,6 +335,8 @@ def qualify_database():
     service_sql = HERE / "receiver-service-fixture.sql"
     cluster["artifacts"][str(sql.relative_to(control.REPO))] = control.digest(sql)
     cluster["artifacts"][str(service_sql.relative_to(control.REPO))] = control.digest(service_sql)
+    shared = HERE / "receiver-stage.sql"
+    cluster["artifacts"][str(shared.relative_to(control.REPO))] = control.digest(shared)
     control.save(cluster)
     evidence = Path(cluster["root"]) / "evidence"
     report = {"result": "FAIL", "checks": [], "data": "synthetic"}
