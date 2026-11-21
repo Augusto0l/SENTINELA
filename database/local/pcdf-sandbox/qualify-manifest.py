@@ -1,18 +1,21 @@
 """Synthetic qualification with producer-format CSV, manifesto and XML bytes."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 import csv
 from hashlib import sha256
 import io
 import json
 from pathlib import Path
 import secrets
+import subprocess
 import sys
 import unittest
 from uuid import uuid4
 
 from manifest_receiver import HEADERS, LINE_VERSION, ORIGINALS, TECHNICAL, compact_json, line_id, prepare_month
 from pipeline import InvalidFile, MAX_BYTES, XML_FIXTURE
+from pilot_preflight import approval
 from qualify import HERE, backup, control, fixture
 from workspace import prepare_synthetic
 
@@ -81,7 +84,41 @@ def prepare(content, month=MONTH, rows=5, manifest=None, xml=XML):
     return prepare_month(content, month, raw, sha256(raw).hexdigest(), (xml[:10], xml[10:]))
 
 
+def synthetic_approval(manifest, target):
+    now = datetime.now(timezone.utc)
+    raw = compact_json({"escopo": "pcdf-fixture", "destino": target,
+                        "aprovado_em": (now - timedelta(minutes=1)).isoformat(),
+                        "expira_em": (now + timedelta(minutes=5)).isoformat(),
+                        "referencia": "fixture/approval", "aprovador": "Ensaio sintetico",
+                        "versao_layout": "1.0", "manifesto_sha256": sha256(manifest).hexdigest()}).encode()
+    signed = subprocess.run(["node", "-e", """
+      const {generateKeyPairSync, sign}=require('node:crypto');
+      const {publicKey,privateKey}=generateKeyPairSync('ed25519');
+      const record=Buffer.from(require('node:fs').readFileSync(0,'utf8'),'hex');
+      process.stdout.write(JSON.stringify([publicKey.export({type:'spki',format:'pem'}),
+        sign(null,record,privateKey).toString('hex')]));
+    """], input=raw.hex(), text=True, capture_output=True, check=True, timeout=8)
+    pem, signature = json.loads(signed.stdout)
+    return raw, bytes.fromhex(signature), pem.encode("ascii"), sha256(pem.encode("ascii")).hexdigest()
+
+
 class ManifestTests(unittest.TestCase):
+    def test_approval_rejects_wrong_scope_target_key_expiry_and_signature(self):
+        signed = synthetic_approval(b"fixture", "sandbox-test")
+        grant = approval(*signed, "sandbox-test", scope="pcdf-fixture")
+        self.assertEqual(grant["manifesto_sha256"], sha256(b"fixture").hexdigest())
+        with self.assertRaises(InvalidFile):
+            approval(*signed, "sandbox-test")
+        with self.assertRaises(InvalidFile):
+            approval(*signed, "other", scope="pcdf-fixture")
+        with self.assertRaises(InvalidFile):
+            approval(*signed, "sandbox-test", scope="pcdf-fixture",
+                     now=datetime.now(timezone.utc) + timedelta(hours=1))
+        with self.assertRaises(InvalidFile):
+            approval(*signed[:3], "0" * 64, "sandbox-test", scope="pcdf-fixture")
+        with self.assertRaises(InvalidFile):
+            approval(signed[0] + b" ", *signed[1:], "sandbox-test", scope="pcdf-fixture")
+
     def test_contract_and_literals(self):
         self.assertEqual((len(HEADERS), len(ORIGINALS), len(TECHNICAL)), (34, 18, 6))
         self.assertEqual(len(set(HEADERS) - set(ORIGINALS) - set(TECHNICAL)), 10)
@@ -281,6 +318,19 @@ def qualify_database():
         report["checks"].append(name)
         print(name, flush=True)
 
+    def reconcile(receipt, content):
+        recovered = query(f"""SELECT jsonb_agg(jsonb_build_object('raw',s.campos_csv,
+          'originals',o.fields,'state',s.estado) ORDER BY s.registro_csv)
+          FROM sentinela.linhas_staging s JOIN sentinela.linhas_origem l ON l.id=s.linha_origem_id
+          CROSS JOIN LATERAL (SELECT jsonb_object_agg(k,to_jsonb(l)->k) AS fields
+            FROM jsonb_object_keys(s.campos_csv) k WHERE k IN ({','.join(repr(k) for k in ORIGINALS)})) o
+          WHERE s.execucao_id='{receipt["run"]}'""")
+        reader = csv.DictReader(io.StringIO(content.decode(), newline=""), delimiter=";")
+        for expected, row in zip(reader, recovered, strict=True):
+            assert row["raw"] == expected and row["originals"] == {key: expected[key] for key in ORIGINALS}
+            assert row["state"] == "bloqueada"
+        return len(recovered)
+
     try:
         control.create(cluster, run=runner)
         control.start(cluster, password, run=runner)
@@ -362,14 +412,22 @@ def qualify_database():
         large = csv_fixture(positions=positions, xml_hash=large_hash,
                             overrides={i: {"local": "Setor de teste " * 17} for i in positions})
         assert len(large) >= 2976684
-        large_manifest = manifest_for({MONTH: (large, len(positions))}, large_xml)
-        large_payload = prepare(large, rows=len(positions), manifest=large_manifest, xml=large_xml)
+        large_manifest = compact_json(manifest_for({MONTH: (large, len(positions))}, large_xml)).encode()
+        signed = synthetic_approval(large_manifest, cluster["uuid"])
+        grant = approval(*signed, cluster["uuid"], scope="pcdf-fixture")
+        large_payload = prepare_month(large, MONTH, large_manifest, grant["manifesto_sha256"], (large_xml,))
         volume = stage(large_payload, record(large_payload))
         assert volume["records"] == 6393 and not volume["replay"]
         assert query(f"""SELECT jsonb_build_array(count(*), count(DISTINCT linha_origem_id))
           FROM sentinela.linhas_staging WHERE execucao_id='{volume["run"]}'""") == [6393, 6393]
+        matched = reconcile(volume, large)
+        assert matched == 6393
+        assert query("""SELECT json_build_array(
+          (SELECT count(*) FROM sentinela.ocorrencias),
+          (SELECT count(*) FROM sentinela.ocorrencia_naturezas))""") == [0, 0]
         mark("volume_6393_rows_and_independent_extraction")
-        report.update(result="PASS", stagingRows=6399, promoted=0, volumeBytes=len(large))
+        report.update(result="PASS", stagingRows=6399, promoted=0, volumeBytes=len(large),
+                      comparedRows=matched, differences=0, syntheticApproval="ed25519")
     except (Exception, KeyboardInterrupt) as error:
         report["error"] = type(error).__name__
         if commands.events:
