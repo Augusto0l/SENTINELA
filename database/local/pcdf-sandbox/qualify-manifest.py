@@ -53,10 +53,10 @@ def csv_fixture(month=MONTH, positions=(2, 3, 4, 5, 6), overrides=None, xml_hash
     return buffer.getvalue().encode()
 
 
-def manifest_for(files, xml=XML):
+def manifest_for(files, xml=XML, *, finalized=False):
     counts = {month: rows for month, (_, rows) in files.items()}
     total = sum(counts.values())
-    return {"fonte": {"nome": "fixture.xml", "aba": "NATUREZAS", "sha256": sha256(xml).hexdigest(), "bytes": len(xml)},
+    manifest = {"fonte": {"nome": "fixture.xml", "aba": "NATUREZAS", "sha256": sha256(xml).hexdigest(), "bytes": len(xml)},
             "status": "reconciliado", "versao_layout": "1.0", "versao_tratamento": TREATMENT,
             "layout": {"colunas": list(HEADERS), "originais": 18, "derivadas": 10, "tecnicas": 6},
             "identificador_linha": {"versao": LINE_VERSION, "hash": "SHA-256"},
@@ -68,6 +68,12 @@ def manifest_for(files, xml=XML):
                              "linhas_estruturais_vazias": 0, "ids_tecnicos_distintos": total,
                              "valores_originais_conferidos": total * 18, "conferida_integralmente": True,
                              "erros_transformacao": 0, "linhas_fisicas_lidas": total + 1, "cabecalhos_lidos": 1}}
+    if finalized:
+        manifest.update(status="validado", execucao={"hash_fonte_reconferido": True}, preflight={
+            "status": "aprovado", "fonte": dict(manifest["fonte"]),
+            "estrutura_xml": {"linhas_lidas": total, "linhas_estruturais_vazias": 0},
+        })
+    return manifest
 
 
 def prepare(content, month=MONTH, rows=5, manifest=None, xml=XML):
@@ -152,15 +158,72 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(InvalidFile, "contagem_csv_divergente"):
             prepare(content, rows=6)
         with self.assertRaisesRegex(InvalidFile, "csv_divergente_manifesto"):
-            prepare(content + b" ", manifest=manifest)
+            prepare(content[:-1] + b" ", manifest=manifest)
         with self.assertRaisesRegex(InvalidFile, "xml_divergente_manifesto"):
             prepare(content, manifest=manifest, xml=XML[::-1])
+        for xml in (XML[:-1], XML + b" "):
+            with self.subTest(xml_size=len(xml)), self.assertRaisesRegex(InvalidFile, "xml_divergente_manifesto"):
+                prepare(content, manifest=manifest, xml=xml)
 
     def test_limits(self):
         with self.assertRaisesRegex(InvalidFile, "limite_competencia"):
             prepare(b"X" * (MAX_BYTES + 1), rows=0)
         with self.assertRaisesRegex(InvalidFile, "limite_competencia"):
             prepare(csv_fixture(), rows=10001)
+
+    def test_manifest_terminal_statuses(self):
+        content = csv_fixture()
+        for finalized, status in ((False, "reconciliado"), (True, "validado")):
+            with self.subTest(status=status):
+                manifest = manifest_for({MONTH: (content, 5)}, finalized=finalized)
+                result = prepare(content, manifest=manifest)
+                self.assertEqual(result["manifest"]["status"], status)
+                self.assertEqual(len(result["batch"]["rows"]), 5)
+        for status in ("aprovado", "interrompido", "em_validacao", "VALIDADO", None):
+            with self.subTest(status=status), self.assertRaisesRegex(InvalidFile, "manifesto_inconsistente"):
+                prepare(content, manifest={**manifest, "status": status})
+
+    def test_validated_requires_final_evidence(self):
+        content = csv_fixture()
+        cases = (
+            ("preflight", "status", "interrompido"),
+            ("execucao", "hash_fonte_reconferido", 1),
+            ("reconciliacao", "conferida_integralmente", False),
+            ("reconciliacao", "ids_tecnicos_distintos", 4),
+        )
+        for section, key, value in cases:
+            with self.subTest(key=key), self.assertRaisesRegex(InvalidFile, "manifesto_inconsistente"):
+                manifest = manifest_for({MONTH: (content, 5)}, finalized=True)
+                manifest[section][key] = value
+                prepare(content, manifest=manifest)
+        for key, value in (("sha256", "0" * 64), ("bytes", len(XML) + 1)):
+            with self.subTest(key=key), self.assertRaisesRegex(InvalidFile, "manifesto_inconsistente"):
+                manifest = manifest_for({MONTH: (content, 5)}, finalized=True)
+                manifest["preflight"]["fonte"][key] = value
+                prepare(content, manifest=manifest)
+        for key, value in (("linhas_lidas", 4), ("linhas_estruturais_vazias", 1)):
+            with self.subTest(key=key), self.assertRaisesRegex(InvalidFile, "manifesto_inconsistente"):
+                manifest = manifest_for({MONTH: (content, 5)}, finalized=True)
+                manifest["preflight"]["estrutura_xml"][key] = value
+                prepare(content, manifest=manifest)
+        unproven = manifest_for({MONTH: (content, 5)})
+        unproven["status"] = "validado"
+        with self.assertRaisesRegex(InvalidFile, "manifesto_inconsistente"):
+            prepare(content, manifest=unproven)
+
+    def test_validated_preserves_hash_and_provenance_checks(self):
+        content = csv_fixture()
+        manifest = manifest_for({MONTH: (content, 5)}, finalized=True)
+        raw = compact_json(manifest).encode()
+        with self.assertRaisesRegex(InvalidFile, "manifesto_nao_aprovado"):
+            prepare_month(content, MONTH, raw + b"\n", sha256(raw).hexdigest(), (XML,))
+        with self.assertRaisesRegex(InvalidFile, "csv_divergente_manifesto"):
+            prepare(content + b" ", manifest=manifest)
+        with self.assertRaisesRegex(InvalidFile, "xml_divergente_manifesto"):
+            prepare(content, manifest=manifest, xml=XML[::-1])
+        wrong_origin = csv_fixture(overrides={2: {"linha_origem_id": "0" * 64}})
+        with self.assertRaisesRegex(InvalidFile, "proveniencia_linha_invalida"):
+            prepare(wrong_origin, manifest=manifest_for({MONTH: (wrong_origin, 5)}, finalized=True))
 
 
 def qualify_database():
@@ -242,7 +305,8 @@ def qualify_database():
         july = csv_fixture("2026-07", (7,), overrides={7: {"numero_registro": "000001"}})
         august = csv_fixture()
         september = csv_fixture("2026-09", (7,))
-        manifest = manifest_for({"2026-07": (july, 1), MONTH: (august, 5), "2026-09": (september, 1)})
+        manifest = manifest_for({"2026-07": (july, 1), MONTH: (august, 5), "2026-09": (september, 1)},
+                                finalized=True)
         encoded_manifest = compact_json(manifest).encode()
         (evidence / "fixture.xml").write_bytes(XML)
         (evidence / "fixture-manifest.json").write_bytes(encoded_manifest)

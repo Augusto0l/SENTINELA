@@ -61,7 +61,8 @@ def read_manifest(content, approved_sha):
         manifest = json.loads(content.decode("utf-8"), object_pairs_hook=unique_object)
         source = manifest["fonte"]
         layout = manifest["layout"]
-        require(manifest["versao_layout"] == "1.0" and manifest["status"] == "reconciliado")
+        status = manifest["status"]
+        require(manifest["versao_layout"] == "1.0" and status in ("reconciliado", "validado"))
         require(layout["colunas"] == list(HEADERS))
         require([layout[key] for key in ("originais", "derivadas", "tecnicas")] == [18, 10, 6])
         identifier = manifest["identificador_linha"]
@@ -109,6 +110,17 @@ def read_manifest(content, approved_sha):
                 and count(check["linhas_fisicas_lidas"]) == exported + quarantined + structural
                     + count(check["cabecalhos_lidos"], 1)
                 and check["conferida_integralmente"] is True)
+        if status == "validado":
+            # The producer marks its final delivery only after comparing it with preflight.
+            preflight = manifest["preflight"]
+            preflight_source = preflight["fonte"]
+            structure = preflight["estrutura_xml"]
+            require(preflight["status"] == "aprovado"
+                    and manifest["execucao"]["hash_fonte_reconferido"] is True
+                    and preflight_source["sha256"] == source["sha256"]
+                    and count(preflight_source["bytes"], 1) == source["bytes"]
+                    and count(structure["linhas_lidas"]) == exported + quarantined
+                    and count(structure["linhas_estruturais_vazias"]) == structural)
     except InvalidFile:
         raise
     except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
