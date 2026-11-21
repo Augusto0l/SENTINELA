@@ -6,7 +6,7 @@ import { z } from "zod"
 import { attestManifest } from "../../../database/local/write-sandbox/service.ts"
 import { getLocalPrincipal } from "@/lib/auth/local-server"
 import { hasPermission, type Permission, type Role } from "@/lib/auth/policy"
-import { isolatedPcdfMode } from "@/lib/db/isolated-write-mode"
+import { isolatedPcdfMode, generalImportMode } from "@/lib/db/isolated-write-mode"
 import { pcdfDecision, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion,
   pcdfReviewFilters, pcdfReviewPage, pcdfReviewPageQuery, pcdfUpload } from "@/contracts/pcdf-workspace"
 import { parseAnalyticsSearch, persistentAnalyticsData } from "@/contracts/persistent-analytics"
@@ -14,6 +14,8 @@ import { analyticsSql } from "@/lib/db/analytics-query"
 import { assertPersistentIdentity, persistentPcdfCompletionEnabled, persistentPcdfEnabled, persistentReadConfig, persistentWriters } from "@/lib/db/config"
 import { localAllowed } from "@/lib/auth/local-provider"
 import { persistentIdentitySql } from "@/lib/db/persistent-read"
+import { generalDetail, generalHistory, generalReceipt, generalUploadLimit } from "@/contracts/general-import"
+import { GeneralImportError, generalInput, prepareGeneralImport } from "@/lib/db/general-import-input"
 
 const maxCsvBytes = 16 * 1024 * 1024
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" }
@@ -84,8 +86,11 @@ function stagePayload(content: Buffer, month: string, xlsx = false) {
 }
 
 type Operation = "upload" | "lots" | "promote" | "review" | "decide" | "analytics"
+  | "general-upload" | "general-lots" | "general-detail" | "general-review" | "general-decide"
 const permissions: Record<Operation, Permission> = {
   upload: "importar", lots: "importar", promote: "importar", review: "consultar_central", decide: "corrigir", analytics: "analisar",
+  "general-upload": "importar", "general-lots": "importar", "general-detail": "importar",
+  "general-review": "consultar_central", "general-decide": "corrigir",
 }
 
 function sqlError(error: unknown) {
@@ -101,14 +106,17 @@ function sqlError(error: unknown) {
 
 export async function pcdfWorkspace(request: Request, operation: Operation, id?: string) {
   let client: Client | undefined
+  let registered: [string, string] | undefined
   try {
-    const persistent = persistentPcdfEnabled()
+    const general = operation.startsWith("general-")
+    const persistent = !general && persistentPcdfEnabled()
     const completion = persistentPcdfCompletionEnabled()
-    const mode = persistent ? null : isolatedPcdfMode()
+    const mode = persistent ? null : general ? generalImportMode() : isolatedPcdfMode()
     const origin = persistent ? process.env.SENTINELA_APP_ORIGIN : mode?.origin
     if (!origin || request.headers.get("host") !== new URL(origin).host
       || (persistent && !localAllowed(request.headers.get("host")))) throw new WorkspaceError(403)
     const write = operation === "upload" || operation === "promote" || operation === "decide"
+      || operation === "general-upload" || operation === "general-decide"
     if (write && request.headers.get("origin") !== origin) throw new WorkspaceError(403)
     const principal = await getLocalPrincipal()
     if (!principal) throw new WorkspaceError(401)
@@ -122,7 +130,8 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     if (!password || (persistent && !/^[a-f0-9]{64}$/.test(password))) throw new WorkspaceError(503)
     const manifest = mode && await attestManifest({ manifest: join(mode.root, "manifest.json"), expectedUUID: mode.id,
       credentials: { Administrador: { user: "", password: "" }, Operador: { user: "", password: "" } } })
-    if (manifest && (manifest.pcdf_workspace !== true || (operation === "analytics" && manifest.pcdf_workspace_revision !== 2)))
+    if (manifest && (general ? manifest.general_import !== true
+      : manifest.pcdf_workspace !== true || (operation === "analytics" && manifest.pcdf_workspace_revision !== 2)))
       throw new WorkspaceError(403)
 
     const search = new URL(request.url).searchParams
@@ -130,7 +139,53 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     const query = Object.fromEntries(search)
     const bodyType = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase()
     let statement: string, params: unknown[], schema: z.ZodType
+    let intake: { metadata: Awaited<ReturnType<typeof prepareGeneralImport>>["metadata"]; content: Buffer } | undefined
     switch (operation) {
+      case "general-upload": {
+        z.strictObject({}).parse(query)
+        const key = z.uuid().parse(request.headers.get("idempotency-key"))
+        const input = generalInput(request, bodyType)
+        const content = await readBody(request, generalUploadLimit)
+        const prepared = await prepareGeneralImport(content, input)
+        intake = { metadata: prepared.metadata, content }
+        statement = "SELECT sentinela_import_lab.receive($1,$2,$3) AS data"
+        params = [principal.localSubject, key, { summary: prepared.summary, rows: prepared.rows }]
+        schema = generalReceipt
+        break
+      }
+      case "general-lots": {
+        z.strictObject({}).parse(query)
+        statement = "SELECT sentinela_import_lab.history() AS data"
+        params = []
+        schema = generalHistory
+        break
+      }
+      case "general-detail": {
+        const { pagina } = z.strictObject({ pagina: z.string().regex(/^[1-9]\d{0,2}$/).default("1") }).parse(query)
+        statement = "SELECT sentinela_import_lab.detail($1,$2) AS data"
+        params = [z.uuid().parse(id), (Number(pagina) - 1) * 25]
+        schema = generalDetail
+        break
+      }
+      case "general-review": {
+        const { tipo, prioridade, status, q, ordem, pagina, limite = 25 } = pcdfReviewPageQuery.parse(query)
+        statement = "SELECT ARRAY(SELECT sentinela_import_lab.review($1,$2,$3,$4,$5,NULL,$6,$7)) AS data"
+        params = [tipo, prioridade, status, q, ordem, (pagina - 1) * limite, limite + 1]
+        schema = z.array(pcdfIssue).max(limite + 1).transform(items => pcdfReviewPage.parse({
+          items: items.slice(0, limite), page: pagina, pageSize: limite, hasMore: items.length > limite && pagina < 10000,
+        }))
+        break
+      }
+      case "general-decide": {
+        z.strictObject({}).parse(query)
+        if (bodyType !== "application/json") throw new WorkspaceError(415)
+        const body = pcdfDecision.parse(JSON.parse((await readBody(request, 8192)).toString("utf8")))
+        statement = "SELECT sentinela_import_lab.decide($1,$2,$3,$4,$5,$6) AS data"
+        params = [principal.localSubject, z.uuid().parse(id), body.versaoEsperada, body.decisao,
+          body.decisao === "resolvida" ? body.valor : null, body.justificativa]
+        schema = pcdfIssue
+        break
+      }
       case "upload": {
         const xlsx = completion && bodyType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         if (!xlsx && bodyType !== "text/csv") throw new WorkspaceError(415)
@@ -216,23 +271,34 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     [user, mode.id, manifest.system_id, manifest.start_epoch])
       if (rowCount !== 1) throw new WorkspaceError(403)
     } else throw new WorkspaceError(403)
+    if (intake) {
+      const key = [String(params[0]), String(params[1])] as [string, string]
+      await client.query("SELECT sentinela_import_lab.begin_request($1,$2,$3,$4,$5)",
+        [...key, intake.metadata, intake.content, params[2]])
+      await client.query("COMMIT")
+      registered = key
+      await client.query("BEGIN")
+    }
     const result = await client.query(statement, params)
+    if (operation === "general-detail" && !result.rows[0]?.data) throw new WorkspaceError(404)
     const validated = schema.safeParse(result.rows[0]?.data)
     if (!validated.success) throw new WorkspaceError(503)
     await client.query("COMMIT")
-    const status = operation === "upload" && !(validated.data as z.infer<typeof pcdfUpload>).replay ? 201 : 200
+    registered = undefined
+    const status = (operation === "upload" || operation === "general-upload") && !(validated.data as { replay: boolean }).replay ? 201 : 200
     return Response.json({ success: true, scope: persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only",
       data: validated.data }, { status, headers })
   } catch (error) {
     await client?.query("ROLLBACK").catch(() => {})
-    const status = error instanceof WorkspaceError ? error.status
-      : error instanceof SyntaxError || error instanceof z.ZodError ? 400 : sqlError(error)
+    if (registered) await client?.query("SELECT sentinela_import_lab.fail($1,$2)", registered).catch(() => {})
+    const status = error instanceof WorkspaceError || error instanceof GeneralImportError ? error.status
+      : error instanceof SyntaxError || error instanceof URIError || error instanceof z.ZodError ? 400 : sqlError(error)
     const message: Record<number, string> = { 400: "Parâmetros ou corpo inválidos.", 401: "Sessão necessária.",
       403: "Operação não autorizada.", 404: "Registro não encontrado.", 409: "Conflito. Atualize a consulta antes de repetir.",
       413: "Arquivo ou corpo excede o limite.", 415: "Formato de envio não aceito.",
       422: "Arquivo ou alteração recusados.", 503: "Operação PCDF indisponível." }
     return Response.json({ success: false, error: { status, message: message[status],
-      ...(error instanceof WorkspaceError && error.diagnostic && { diagnostic: error.diagnostic }) } }, { status, headers })
+      ...((error instanceof WorkspaceError || error instanceof GeneralImportError) && error.diagnostic && { diagnostic: error.diagnostic }) } }, { status, headers })
   } finally {
     await client?.end().catch(() => {})
   }

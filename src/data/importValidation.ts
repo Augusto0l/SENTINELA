@@ -8,9 +8,9 @@ export function normalizeImportName(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 const aliases: Record<ImportField, string[]> = {
-  data: ["data", "data da ocorrência", "data ocorrência", "dt ocorrência", "data fato"],
+  data: ["data", "data da ocorrência", "data ocorrência", "dt ocorrência", "data fato", "data do fato"],
   horario: ["hora", "horário", "hora da ocorrência", "hora ocorrência", "hora fato"],
-  naturezas: ["natureza", "naturezas", "natureza criminal", "naturezas criminais", "tipo do crime", "crime"],
+  naturezas: ["natureza", "naturezas", "natureza criminal", "naturezas criminais", "tipo do crime", "tipo de crime", "crime"],
   ra: ["RA", "região administrativa", "regiao_administrativa", "raCode", "código RA"],
   local: ["local", "endereço", "endereço/local", "local/endereço", "logradouro", "local da ocorrência"],
   latitude: ["latitude", "lat"], longitude: ["longitude", "lon", "lng", "long"],
@@ -37,7 +37,7 @@ export function importMappingErrors(headers: string[], mapping: ImportMapping): 
   return errors;
 }
 function normalizedDate(value: string | number | boolean | null, date1904: boolean): string {
-  if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 2958465) {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value < 2958466) {
     const date = SSF.parse_date_code(value, { date1904 });
     if (date) return `${String(date.d).padStart(2, "0")}/${String(date.m).padStart(2, "0")}/${String(date.y).padStart(4, "0")}`;
   }

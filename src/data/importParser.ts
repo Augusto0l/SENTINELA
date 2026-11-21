@@ -1,7 +1,7 @@
 import { read, utils } from "xlsx";
 import type { WorkBook } from "xlsx";
 import { IMPORT_LIMITS } from "@/data/importTypes";
-import type { ImportCell, ImportRow, ImportTable } from "@/data/importTypes";
+import type { CsvDelimiter, ImportCell, ImportRow, ImportTable } from "@/data/importTypes";
 import { validateImportFiles } from "@/data/importFile";
 
 function checkCellLimits(rows: ImportRow[]) {
@@ -30,31 +30,37 @@ function tableFromRows(rows: ImportRow[], metadata: Omit<ImportTable, "headers" 
   checkCellLimits(rows);
   return { ...metadata, headers, headerLine: header.line, rows: records };
 }
-function detectDelimiter(text: string): string {
-  let quoted = false;
-  const scores = new Map([[";", 0], [",", 0], ["\t", 0]]);
+export class AmbiguousCsvDelimiter extends Error {
+  constructor() { super("Selecione o separador do CSV para confirmar como ler as colunas."); }
+}
+
+function detectDelimiter(text: string, strict: boolean): CsvDelimiter {
+  let quoted = false, hasText = false;
+  const scores = new Map<CsvDelimiter, number>([[";", 0], [",", 0], ["\t", 0]]);
   for (let index = 0; index < text.length; index++) {
     const char = text[index];
     if (char === '"') {
-      if (quoted && text[index + 1] === '"') { index++; continue; }
+      if (quoted && text[index + 1] === '"') { hasText = true; index++; continue; }
       quoted = !quoted;
-    }
-    if (!quoted) {
-      if (scores.has(char)) scores.set(char, scores.get(char)! + 1);
-      if (char === "\n" || char === "\r") {
-        if ([...scores.values()].some(score => score > 0)) break;
-      }
-    }
+    } else if (!quoted && (char === ";" || char === "," || char === "\t")) {
+      scores.set(char, scores.get(char)! + 1);
+    } else if (!quoted && (char === "\n" || char === "\r")) {
+      if (hasText) break;
+      for (const delimiter of scores.keys()) scores.set(delimiter, 0);
+    } else if (char.trim()) hasText = true;
   }
   const [delimiter, score] = [...scores].sort((a, b) => b[1] - a[1])[0];
   if (score === 0) throw new Error("CSV sem separador reconhecido (vírgula, ponto e vírgula ou tabulação).");
+  if (strict && [...scores.values()].filter(value => value > 0).length > 1) throw new AmbiguousCsvDelimiter();
   return delimiter;
 }
-export function parseImportCsv(input: string, encoding = "UTF-8"): ImportTable {
+export function parseImportCsv(input: string, encoding = "UTF-8", delimiterChoice?: CsvDelimiter, strict = false): ImportTable {
   const text = input.replace(/^\uFEFF/, "");
   if (!text.trim()) throw new Error("Arquivo CSV vazio.");
   if (text.includes("\0")) throw new Error("CSV inválido: conteúdo binário ou codificação não suportada.");
-  const delimiter = detectDelimiter(text);
+  if (/^\s*(?:<\?xml\b|<!doctype\b|<html\b|<workbook\b|%PDF-)/i.test(text))
+    throw new Error("O conteúdo não corresponde a um CSV.");
+  const delimiter = delimiterChoice ?? detectDelimiter(text, strict);
   const rows: ImportRow[] = [];
   let cells: ImportCell[] = [], value = "", quoted = false, closed = false, line = 1, rowLine = 1, totalCells = 0, totalText = 0;
   const endCell = () => {
@@ -91,7 +97,7 @@ export function parseImportCsv(input: string, encoding = "UTF-8"): ImportTable {
   }
   if (quoted) throw new Error(`CSV inválido: aspas não fechadas na linha ${rowLine}.`);
   if (value.length || cells.length || closed) endRow();
-  const table = tableFromRows(rows, { date1904: false, sheetName: "CSV", sheetNames: ["CSV"], encoding });
+  const table = tableFromRows(rows, { date1904: false, sheetName: "CSV", sheetNames: ["CSV"], encoding, delimiter });
   for (const row of table.rows) if (row.cells.length !== table.headers.length) row.structuralError = `Quantidade de colunas diferente do cabeçalho (${row.cells.length}/${table.headers.length}).`;
   return table;
 }
@@ -109,6 +115,7 @@ export function inspectImportZip(buffer: ArrayBuffer) {
   if (view.getUint16(end + 4, true) || view.getUint16(end + 6, true) || count !== view.getUint16(end + 8, true) || count > 2048 || count === 0 || size === 0xffffffff || offset === 0xffffffff || offset + size !== end) throw invalid();
   let cursor = offset, expanded = 0;
   const names = new Set<string>();
+  const entries: { method: number; dataStart: number; compressed: number; uncompressed: number }[] = [];
   for (let index = 0; index < count; index++) {
     if (cursor + 46 > end || view.getUint32(cursor, true) !== 0x02014b50) throw invalid();
     const flags = view.getUint16(cursor + 8, true), method = view.getUint16(cursor + 10, true);
@@ -127,9 +134,33 @@ export function inspectImportZip(buffer: ArrayBuffer) {
     const localName = new TextDecoder().decode(bytes.subarray(local + 30, local + 30 + view.getUint16(local + 26, true)));
     if (name !== localName) throw invalid();
     if (names.has(name)) throw invalid();
+    entries.push({ method, dataStart, compressed, uncompressed });
     names.add(name); cursor += 46 + nameLength + extra + comment;
   }
   if (cursor !== end || !names.has("[Content_Types].xml") || !names.has("xl/workbook.xml")) throw invalid();
+  return entries;
+}
+
+export async function verifyImportWorkbookSize(buffer: ArrayBuffer) {
+  // The ZIP directory is supplied by the uploader. Verify actual expansion before SheetJS parses it.
+  for (const { method, dataStart, compressed, uncompressed } of inspectImportZip(buffer)) {
+    if (method === 0 && compressed === uncompressed) continue;
+    if (method !== 8) throw new Error("Tamanho inválido de entrada XLSX.");
+    const stream = new Blob([buffer.slice(dataStart, dataStart + compressed)]).stream();
+    const reader = stream.pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+    let actual = 0;
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        actual += value.byteLength;
+        if (actual > uncompressed) throw new Error("XLSX expandido além do tamanho declarado.");
+      }
+      if (actual !== uncompressed) throw new Error("Tamanho expandido do XLSX divergente.");
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+  }
 }
 export function readImportWorkbook(buffer: ArrayBuffer): WorkBook {
   inspectImportZip(buffer);
@@ -166,12 +197,12 @@ export function decodeImportCsv(buffer: ArrayBuffer): { text: string; encoding: 
   try { return { text: new TextDecoder("utf-8", { fatal: true }).decode(buffer), encoding: "UTF-8" }; }
   catch { return { text: new TextDecoder("windows-1252", { fatal: true }).decode(buffer), encoding: "Windows-1252" }; }
 }
-export function readImportBuffer(name: string, buffer: ArrayBuffer): { table: ImportTable; workbook: WorkBook | null } {
+export function readImportBuffer(name: string, buffer: ArrayBuffer, delimiter?: CsvDelimiter, strict = false): { table: ImportTable; workbook: WorkBook | null } {
   const error = validateImportFiles([{ name, size: buffer.byteLength }]);
   if (error) throw new Error(error);
   if (/\.csv$/i.test(name)) {
     const { text, encoding } = decodeImportCsv(buffer);
-    return { table: parseImportCsv(text, encoding), workbook: null };
+    return { table: parseImportCsv(text, encoding, delimiter, strict), workbook: null };
   }
   const workbook = readImportWorkbook(buffer);
   // A primeira planilha pode estar vazia; ainda é possível escolher outra na interface.

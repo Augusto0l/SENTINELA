@@ -8,6 +8,7 @@
 .content h2 { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
 .content ul { padding-left: 20px; list-style: disc; }
 .card { background: var(--theme-111d2e); border: 1px solid var(--theme-1e3a5f); border-radius: 12px; padding: 20px; margin-bottom: 16px; min-width: 0; }
+.historyItem { border-top: 1px solid var(--theme-1e3a5f); padding: 14px 0; margin-top: 10px; overflow-wrap: anywhere; }
 .notice { background: var(--theme-0d1728); border: 1px solid var(--theme-1e3a5f); border-radius: 8px; padding: 12px; }
 .error { color: var(--theme-f59e0b); background: var(--theme-0d1728); border: 1px solid var(--theme-f59e0b); padding: 12px; border-radius: 8px; margin: 12px 0; overflow-wrap: anywhere; }
 .steps { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 14px 0; font-size: 12px; color: var(--theme-94a3b8); }

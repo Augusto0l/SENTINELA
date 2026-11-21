@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { z } from "zod"
+import { OFFICIAL_PCDF_BLOCK } from "@/data/importSource"
+import { generalImportPath } from "@/contracts/general-import"
 
 const envelope = z.strictObject({ success: z.literal(true), scope: z.enum(["sandbox-synthetic-only","homologacao-persistente-sintetica"]), data: z.unknown() })
 
@@ -20,9 +22,15 @@ export async function requestPcdf<T extends z.ZodType>(url: string, shape: T, in
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", ...init })
   if (!response.ok) {
     let message = errors[response.status] ?? "Serviço PCDF indisponível."
+    if (url.startsWith(generalImportPath)) {
+      if (response.status === 413) message = "O arquivo excede o limite de 8 MiB."
+      if (response.status === 503) message = "Importação indisponível. Consulte o histórico antes de repetir o envio."
+    }
     if (response.status === 422) {
       const details = await response.json().catch(() => null)
       const diagnosis = typeof details?.error?.diagnostic === "string" ? details.error.diagnostic : ""
+      if (diagnosis === "pcdf_institucional") throw new PcdfHttpError(422, OFFICIAL_PCDF_BLOCK)
+      if (diagnosis === "estrutura_ou_mapeamento") throw new PcdfHttpError(422, "Confira o formato, a planilha, o separador e o mapeamento do arquivo.")
       const cell = /^linha_(\d+)_coluna_(\d+)_(use_texto|formula_recusada|texto_invalido)$/.exec(diagnosis)
       if (cell) {
         const instruction = cell[3] === "use_texto" ? "Informe o valor como texto."

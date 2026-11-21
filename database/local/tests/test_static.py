@@ -20,6 +20,7 @@ RA_V2_TEMPLATE = ROOT / 'ra-catalog-v2/install.sql'
 SANDBOX_GUARD = ROOT / 'sandbox/sql/guard.sql'
 # Pin the qualified local functions together with their guards, grants and includes.
 QUALIFIED_LOCAL_SQL = {
+    ROOT / 'write-sandbox/005_general_import.sql': 'c7778aacd67c7f3017402d61a8e9e341334d6f1ce187ae518a8f0d962a539bde',
     ROOT / 'pcdf-sandbox/pilot-executor.sql': '8e483068d1bc014e293b10709f29bed04a5562d7af1aefa57b3bc2f75066a1b5',
     ROOT / 'pcdf-sandbox/receiver-service-fixture.sql': '6a5d7f7b0e431440c736522b7fcf06db9632ac2bbf7a0541124848053a06c2fb',
     ROOT / 'pcdf-sandbox/workspace.sql': '6d1b8c4f2ef26a96f1c480a45cd847c7075a5531d753a431bf4656a2285e4a64',

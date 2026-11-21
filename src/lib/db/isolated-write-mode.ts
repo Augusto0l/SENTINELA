@@ -1,5 +1,6 @@
 import { join } from "node:path"
 import { pcdfImportPath, pcdfReviewPath } from "@/contracts/pcdf-workspace"
+import { generalImportPath, generalReviewPath } from "@/contracts/general-import"
 
 export function isolatedWriteMode(env = process.env) {
   const id = env.SENTINELA_SANDBOX_WRITE_ID
@@ -22,6 +23,18 @@ export function isIsolatedMutation(path: string, method: string) {
 
 export function isolatedPcdfMode(env = process.env) {
   return env.SENTINELA_SANDBOX_PCDF === "1" ? isolatedWriteMode(env) : null
+}
+
+export function generalImportMode(env = process.env) {
+  return env.SENTINELA_SANDBOX_GENERAL_IMPORT === "1" ? isolatedWriteMode(env) : null
+}
+
+export function isGeneralImportEndpoint(path: string, method: string) {
+  const child = path.slice(generalImportPath.length + 1)
+  return (path === generalImportPath && (method === "GET" || method === "POST"))
+    || (method === "GET" && (path === generalReviewPath ||
+      (path.startsWith(generalImportPath + "/") && /^[0-9a-f-]{36}$/i.test(child))))
+    || (method === "PATCH" && path.startsWith(generalReviewPath + "/") && /^[0-9a-f-]{36}$/i.test(child.slice(8)))
 }
 
 export function isPcdfEndpoint(path: string, method: string) {

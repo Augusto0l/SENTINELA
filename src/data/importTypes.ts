@@ -7,11 +7,12 @@ export const IMPORT_LABELS: Record<ImportField, string> = {
 };
 export const IMPORT_LIMITS = { rows: 10_000, columns: 64, cells: 200_000, cellLength: 4_000, text: 16 * 1024 * 1024, expanded: 100 * 1024 * 1024, timeout: 60_000 } as const;
 export type ImportMapping = Record<ImportField, number>;
+export type CsvDelimiter = ";" | "," | "\t";
 export interface ImportCell { value: string | number | boolean | null; formula?: string; error?: boolean }
 export interface ImportRow { line: number; cells: ImportCell[]; structuralError?: string }
 export interface ImportTable {
   headers: string[]; headerLine: number; rows: ImportRow[]; date1904: boolean;
-  sheetName: string; sheetNames: string[]; encoding?: string; sheetError?: string;
+  sheetName: string; sheetNames: string[]; encoding?: string; sheetError?: string; delimiter?: CsvDelimiter;
 }
 export interface ImportIssue { field: ImportField | "linha"; column: number | null; message: string }
 export interface ImportRecord {
@@ -30,7 +31,7 @@ export interface ImportResult {
   total: number; simulated: number; pending: number; rejected: number; possibleDuplicates: number; persisted: false;
 }
 export type ImportWorkerRequest =
-  | { type: "load"; file: File }
+  | { type: "load"; file: File; delimiter?: CsvDelimiter; persistent?: boolean }
   | { type: "sheet"; name: string }
   | { type: "validate"; mapping: ImportMapping };
 export type ImportWorkerResponse =

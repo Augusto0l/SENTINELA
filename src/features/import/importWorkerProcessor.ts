@@ -1,5 +1,6 @@
-import { readImportBuffer, tableFromWorkbook } from "@/data/importParser"
+import { readImportBuffer, tableFromWorkbook, verifyImportWorkbookSize } from "@/data/importParser"
 import { analyzeImport } from "@/data/importValidation"
+import { isInstitutionalPcdf, OFFICIAL_PCDF_BLOCK } from "@/data/importSource"
 import type {
   ImportTable,
   ImportWorkerJob,
@@ -13,6 +14,7 @@ export function createImportWorkerProcessor() {
   let table: ImportTable | null = null
   let workbook: WorkBook | null = null
   let generation = 0
+  let persistentName = ""
   return async function process(
     job: ImportWorkerJob,
   ): Promise<ImportWorkerReply | null> {
@@ -32,11 +34,16 @@ export function createImportWorkerProcessor() {
       if (message.type === "load") {
         table = null
         workbook = null
+        persistentName = message.persistent ? message.file.name : ""
+        if (persistentName && isInstitutionalPcdf(persistentName, [])) throw new Error(OFFICIAL_PCDF_BLOCK)
         const buffer = await message.file.arrayBuffer()
         if (current !== generation) return null
-        const parsed = readImportBuffer(message.file.name, buffer)
+        if (message.persistent && /\.xlsx$/i.test(message.file.name)) await verifyImportWorkbookSize(buffer)
+        if (current !== generation) return null
+        const parsed = readImportBuffer(message.file.name, buffer, message.delimiter, message.persistent)
         table = parsed.table
         workbook = parsed.workbook
+        if (persistentName && isInstitutionalPcdf(persistentName, table.headers)) throw new Error(OFFICIAL_PCDF_BLOCK)
         return tableReply()
       }
       if (message.type === "sheet") {
@@ -44,6 +51,7 @@ export function createImportWorkerProcessor() {
         if (!workbook) throw new Error("Selecione um arquivo XLSX novamente.")
         try {
           table = tableFromWorkbook(workbook, message.name)
+          if (persistentName && isInstitutionalPcdf(persistentName, table.headers)) throw new Error(OFFICIAL_PCDF_BLOCK)
         } catch (error) {
           table = {
             headers: [],

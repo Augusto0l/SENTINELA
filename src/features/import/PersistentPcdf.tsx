@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, type FormEvent } from "react"
+import Link from "next/link"
 import { z } from "zod"
 import Header from "@/components/Header"
 import Button from "@/components/ui/button"
@@ -11,7 +12,9 @@ import styles from "@/features/occurrences/SimulationWorkspace.module.css"
 
 const lots = z.array(pcdfLot)
 
-export default function PersistentPcdf({ persistent = false, xlsxEnabled = false }: { persistent?: boolean; xlsxEnabled?: boolean }) {
+export default function PersistentPcdf({ persistent = false, xlsxEnabled = false, generalAvailable = false }: {
+  persistent?: boolean; xlsxEnabled?: boolean; generalAvailable?: boolean
+}) {
   const { current, reload } = usePcdfQuery(pcdfImportPath, lots)
   const operation = useRef(false)
   const [busy, setBusy] = useState(false)
@@ -57,6 +60,7 @@ export default function PersistentPcdf({ persistent = false, xlsxEnabled = false
     <Header title="Importar dados" subtitle={persistent ? "PCDF sintético em PostgreSQL local" : "PCDF em PostgreSQL descartável"} />
     <div className={screen.content}>
       <section className={styles.workspace}>
+        {generalAvailable && <Link href="/importar">Voltar à importação geral</Link>}
         <h2>Receber {formats} sintético</h2>
         <p>Use a fixture PCDF de 34 colunas. O arquivo e os valores de origem ficam {persistent ? "na homologação local" : "no cluster descartável"}.
           {xlsxEnabled && " No XLSX, use uma aba e preencha os campos originais como texto para preservar os zeros."}</p>

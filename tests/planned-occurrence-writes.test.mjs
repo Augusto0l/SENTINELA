@@ -80,10 +80,13 @@ test("static route inventory allows only the explicitly gated isolated write han
   const expected = new Map([
     ["ocorrencias/route.ts", "POST"], ["ocorrencias/[id]/route.ts", "PATCH"], ["ocorrencias/[id]/inativacao/route.ts", "POST"],
     ["importacoes/pcdf/route.ts", "POST"], ["importacoes/pcdf/[id]/consolidacao/route.ts", "POST"],
+    ["importacoes/geral/route.ts", "POST"], ["importacoes/geral/revisao/[id]/route.ts", "PATCH"],
     ["central-revisao/[id]/route.ts", "PATCH"],
   ])
   const writeOnly = new Set(["ocorrencias/[id]/inativacao/route.ts",
-    "importacoes/pcdf/[id]/consolidacao/route.ts", "central-revisao/[id]/route.ts"])
+    "importacoes/pcdf/[id]/consolidacao/route.ts", "central-revisao/[id]/route.ts", "importacoes/geral/revisao/[id]/route.ts"])
+  const generalOperations = new Map([["importacoes/geral/route.ts", "general-upload"],
+    ["importacoes/geral/revisao/[id]/route.ts", "general-decide"]])
   for(const file of routes) {
     const source=await readFile(file,"utf8")
     const ast=ts.createSourceFile(file.pathname,source,ts.ScriptTarget.Latest,true)
@@ -101,7 +104,8 @@ test("static route inventory allows only the explicitly gated isolated write han
     const relative = decodeURIComponent(file.pathname).split("/api/v1/")[1]
     const method = expected.get(relative)
     assert.deepEqual(names.filter(name=>["POST","PUT","PATCH","DELETE"].includes(name)),method ? [method] : [])
-    if (method) assert.match(source, relative.startsWith("ocorrencias/")
+    if (generalOperations.has(relative)) assert(source.includes(`return pcdfWorkspace(request, "${generalOperations.get(relative)}"`))
+    else if (method) assert.match(source, relative.startsWith("ocorrencias/")
       ? /return isolatedOccurrenceMutation\(request\)/ : /return pcdfWorkspace\(request, "(upload|promote|decide)"/)
     assert.equal(names.includes("GET"), !writeOnly.has(relative))
     expected.delete(relative)

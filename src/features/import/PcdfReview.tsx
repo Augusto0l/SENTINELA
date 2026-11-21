@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, type FormEvent } from "react"
+import Link from "next/link"
 import { z } from "zod"
 import Header from "@/components/Header"
 import Button from "@/components/ui/button"
@@ -17,9 +18,11 @@ const types: Record<z.infer<typeof pcdfIssue>["type"], string> = { identificacao
 const labels = { aberta: "Aberta", resolvida: "Resolvida", encerrada_sem_solucao: "Encerrada sem solução" }
 const priority = { alta: "Alta", media: "Média", baixa: "Baixa" }
 
-export default function PcdfReview({ canCorrect, paginated = false }: { canCorrect: boolean; paginated?: boolean }) {
+export default function PcdfReview({ canCorrect, paginated = false, endpoint = pcdfReviewPath, alternate }: {
+  canCorrect: boolean; paginated?: boolean; endpoint?: string; alternate?: { href: string; label: string }
+}) {
   const [query, setQuery] = useState(paginated ? "status=aberta&pagina=1" : "status=aberta")
-  const { current, reload } = usePcdfQuery(pcdfReviewPath + "?" + query, paginated ? pcdfReviewPage : issueList)
+  const { current, reload } = usePcdfQuery(endpoint + "?" + query, paginated ? pcdfReviewPage : issueList)
   const page = current?.data && !Array.isArray(current.data) ? current.data : undefined
   const issues = Array.isArray(current?.data) ? current.data : page?.items
   const [selected, setSelected] = useState<z.infer<typeof pcdfIssue>>()
@@ -56,7 +59,7 @@ export default function PcdfReview({ canCorrect, paginated = false }: { canCorre
     setBusy(true)
     setFeedback(undefined)
     try {
-      const receipt = await requestPcdf(pcdfReviewPath + "/" + selected.id, pcdfIssue, {
+      const receipt = await requestPcdf(endpoint + "/" + selected.id, pcdfIssue, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decisao: decision, justificativa: values.get("justificativa"),
           versaoEsperada: selected.version, ...(decision === "resolvida" && { valor: value }) }),
@@ -75,9 +78,10 @@ export default function PcdfReview({ canCorrect, paginated = false }: { canCorre
   }
 
   return <div className={screen.screen}>
-    <Header title="Central de Revisão" subtitle="Pendências PCDF sintéticas" />
+    <Header title="Central de Revisão" subtitle={endpoint === pcdfReviewPath ? "Pendências PCDF sintéticas" : "Pendências de importação geral"} />
     <div className={screen.content}>
       <section className={styles.workspace}>
+        {alternate && <Link href={alternate.href}>{alternate.label}</Link>}
         <h2>Pendências</h2>
         <form onSubmit={filter}>
           <fieldset className={styles.grid}>
