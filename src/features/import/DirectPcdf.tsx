@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 import Header from "@/components/Header";
 import Button from "@/components/ui/button";
-import { directHistory, directPcdfPath, directPreview, directReceipt } from "@/contracts/pcdf-direct";
+import { directDetail, directHistory, directPcdfPath, directPreview, directReceipt } from "@/contracts/pcdf-direct";
 import styles from "./ImportWorkflow.module.css";
 
 const pageSize = 25;
@@ -12,8 +12,8 @@ const total = (value: number) => value.toLocaleString("pt-BR");
 const statuses = { recebida: "Recebida", concluida: "Gravada em staging", reenvio: "Reenvio sem duplicação", falhou: "Gravação revertida" };
 const diagnostics: Record<string, string> = {
   nome_competencia_invalido: "Use o arquivo mensal com o nome pcdf_naturezas_AAAA-MM.csv.",
-  cabecalho_invalido: "O CSV precisa conter os 34 campos do layout PCDF v1.0, na ordem original.",
-  csv_divergente_manifesto: "O conteúdo ou tamanho do CSV diverge do manifesto.",
+  cabecalho_invalido: "Layout PCDF v1.0 incompatível. Confira se todos os 34 campos estão presentes na ordem original.",
+  csv_divergente_manifesto: "O SHA-256 ou o tamanho do CSV diverge do manifesto.",
   contagem_csv_divergente: "A quantidade de registros diverge do manifesto.",
   contagem_csv_invalida: "O CSV mensal precisa conter de 1 a 10.000 associações.",
   proveniencia_linha_invalida: "Há identificadores de origem ou versões de tratamento incompatíveis.",
@@ -23,11 +23,17 @@ const diagnostics: Record<string, string> = {
   competencia_nao_manifestada: "A competência do CSV não está no manifesto.",
 };
 
-async function call<T>(schema: z.ZodType<T>, step?: string, body?: FormData): Promise<T> {
-  const response = await fetch(directPcdfPath + (step ? "?etapa=" + step : ""), {
-    cache: "no-store", ...(body && { method: "POST", body }),
+async function call<T>(schema: z.ZodType<T>, query = "", body?: FormData, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(directPcdfPath + query, {
+    cache: "no-store", signal, ...(body && { method: "POST", body }),
+  }).catch(error => {
+    if (signal?.aborted) throw error;
+    throw new Error("Backend de importação indisponível.");
   });
-  const result = await response.json();
+  const result = await response.json().catch(() => null);
+  if (!result) throw new Error("Backend de importação indisponível.");
+  if (response.status === 401) throw new Error("Sessão expirada. Entre novamente.");
+  if (response.status === 403) throw new Error("Importação não autorizada para este perfil ou ambiente.");
   if (!response.ok || result.success !== true) {
     const detail = result.error?.diagnostic;
     throw new Error(diagnostics[detail] ?? result.error?.message ?? "Receptor PCDF local indisponível.");
@@ -42,26 +48,29 @@ function form(csv: File, manifest: File | undefined) {
   return body;
 }
 
-export default function DirectPcdf() {
-  const [csv, setCsv] = useState<File>();
+type EmbeddedPcdf = { file?: File; onSaving?: (saving: boolean) => void; onComplete?: () => void };
+
+export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf = {}) {
+  const [chosen, setCsv] = useState<File>();
+  const csv = file ?? chosen;
   const [manifest, setManifest] = useState<File>();
   const [preview, setPreview] = useState<z.infer<typeof directPreview>>();
   const [receipt, setReceipt] = useState<z.infer<typeof directReceipt>>();
-  const [history, setHistory] = useState<z.infer<typeof directHistory>>([]);
-  const [historyError, setHistoryError] = useState(false);
-  const [busy, setBusy] = useState<"validar" | "confirmar">();
+  const [historyRevision, setHistoryRevision] = useState(0);
+  const [busy, setBusy] = useState<"validar" | "confirmar" | undefined>(file ? "validar" : undefined);
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [review, setReview] = useState(false);
 
-  async function refreshHistory() {
-    try { setHistory(await call(directHistory)); setHistoryError(false); }
-    catch { setHistoryError(true); }
-  }
-
   useEffect(() => {
-    void call(directHistory).then(setHistory, () => setHistoryError(true));
-  }, []);
+    if (!file) return;
+    const controller = new AbortController();
+    void call(directPreview, "?etapa=validar", form(file, undefined), controller.signal)
+      .then(data => { if (!controller.signal.aborted) setPreview(data); },
+        failure => { if (!controller.signal.aborted) setError(failure.message); })
+      .finally(() => { if (!controller.signal.aborted) setBusy(undefined); });
+    return () => controller.abort();
+  }, [file]);
 
   async function validate(file: File | undefined, technicalManifest: File | undefined) {
     setPreview(undefined);
@@ -71,7 +80,7 @@ export default function DirectPcdf() {
     setPage(1);
     if (!file) return;
     setBusy("validar");
-    try { setPreview(await call(directPreview, "validar", form(file, technicalManifest))); }
+    try { setPreview(await call(directPreview, "?etapa=validar", form(file, technicalManifest))); }
     catch (failure) { setError((failure as Error).message); }
     finally { setBusy(undefined); }
   }
@@ -79,38 +88,37 @@ export default function DirectPcdf() {
   async function confirm() {
     if (!csv || !preview || busy || !review) return;
     setBusy("confirmar");
+    onSaving?.(true);
     setError("");
     const body = form(csv, manifest);
     body.set("sha256", preview.sha256);
     if (preview.manifestSha) body.set("manifestSha", preview.manifestSha);
     try {
-      setReceipt(await call(directReceipt, "confirmar", body));
+      setReceipt(await call(directReceipt, "?etapa=confirmar", body));
       setReview(false);
     } catch (failure) { setError((failure as Error).message); }
     finally {
-      await refreshHistory();
+      setHistoryRevision(value => value + 1);
+      onComplete?.();
+      onSaving?.(false);
       setBusy(undefined);
     }
   }
 
   const offset = (page - 1) * pageSize;
   const pages = preview ? Math.ceil(preview.records.length / pageSize) : 0;
-  return (
-    <div className={styles.root}>
-      <Header title="Importar dados" dataMode="pcdf-staging" />
-      <main className={styles.content}>
-        <div className={styles.heading}><h1>Importação PCDF</h1></div>
+  const contents = <>
         <section className={styles.card} aria-labelledby="pcdf-upload">
-          <h2 id="pcdf-upload">Arquivo mensal</h2>
+          <h2 id="pcdf-upload">{file ? "Validação do CSV PCDF" : "Arquivo mensal"}</h2>
           <p>Os dados recebidos serão armazenados em origem e staging para revisão.</p>
           <div className={styles.mapping}>
-            <label>Arquivo CSV mensal
+            {!file && <label>Arquivo CSV mensal
               <input type="file" accept=".csv,text/csv" disabled={!!busy} onChange={event => {
                 const file = event.target.files?.[0];
                 setCsv(file);
                 void validate(file, manifest);
               }} />
-            </label>
+            </label>}
             <label>Manifesto técnico JSON (opcional)
               <input type="file" accept=".json,application/json" disabled={!!busy} onChange={event => {
                 const file = event.target.files?.[0];
@@ -168,20 +176,82 @@ export default function DirectPcdf() {
         {receipt && <section className={styles.card} aria-live="polite" aria-labelledby="pcdf-receipt">
           <h2 id="pcdf-receipt">{receipt.replay ? "Arquivo já recebido" : "Gravação confirmada"}</h2>
           <p>{total(receipt.records)} associações em staging · {total(receipt.issues)} pendências</p>
-          <p>Lote <code>{receipt.lot}</code></p>
+          <p>Lote <code>{receipt.lot}</code><br />Execução <code>{receipt.run}</code></p>
         </section>}
 
-        <section className={styles.card} aria-labelledby="pcdf-history">
-          <h2 id="pcdf-history">Histórico de importações PCDF</h2>
-          {historyError ? <p role="alert">Histórico indisponível. Atualize a página para tentar novamente.</p>
-            : history.length === 0 ? <p>Nenhuma importação confirmada nesta base.</p>
-            : history.map(item => <article className={styles.historyItem} key={item.request}>
-              <strong>{item.name}</strong>
-              <p>{statuses[item.status]} · {total(item.records)} associações · {item.role}</p>
-              <small>{new Date(item.at).toLocaleString("pt-BR")}{item.lot && " · Lote " + item.lot}</small>
-            </article>)}
-        </section>
-      </main>
+  </>;
+  if (file) return contents;
+  return <div className={styles.root}>
+    <Header title="Importar dados" dataMode="pcdf-staging" />
+    <main className={styles.content}>
+      <div className={styles.heading}><h1>Importação PCDF</h1></div>
+      {contents}
+      <DirectPcdfHistory key={historyRevision} />
+    </main>
+  </div>;
+}
+
+function StoredPcdfRows({ run }: { run: string }) {
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<{ page: number; data?: z.infer<typeof directDetail>; error?: string }>();
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = "?" + new URLSearchParams({ execucao: run, pagina: String(page) });
+    void call(directDetail, query, undefined, controller.signal).then(
+      data => { if (!controller.signal.aborted) setResult({ page, data }); },
+      failure => { if (!controller.signal.aborted) setResult({ page, error: failure.message }); });
+    return () => controller.abort();
+  }, [page, run]);
+  if (result?.page !== page) return <p role="status">Consultando registros gravados…</p>;
+  if (result.error) return <p role="alert">{result.error}</p>;
+  const details = result.data!;
+  return <>
+    <div className={styles.tableScroll} role="region" aria-label="Registros PCDF gravados" tabIndex={0}>
+      <table className={styles.pcdfTable}>
+        <caption>Valores gravados em staging</caption>
+        <thead><tr><th scope="col">Registro</th>{details.headers.map(field => <th scope="col" key={field}>{field}</th>)}<th scope="col">Avisos</th></tr></thead>
+        <tbody>{details.rows.map(row => <tr key={row.ordinal}>
+          <th scope="row">{row.ordinal}</th>{row.cells.map((value, i) => <td key={details.headers[i]}>{value}</td>)}
+          <td>{row.issues.map(issue => <div key={issue.field + issue.rule}>{issue.field} · {issue.rule.replace(/_/g, " ")}</div>)}</td>
+        </tr>)}</tbody>
+      </table>
     </div>
-  );
+    <nav className={styles.actions} aria-label="Paginação de registros gravados">
+      <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+      <span>Página {total(page)} · {total(details.total)} associações</span>
+      <Button variant="outline" disabled={page * pageSize >= details.total} onClick={() => setPage(page + 1)}>Próxima</Button>
+    </nav>
+  </>;
+}
+
+export function DirectPcdfHistory() {
+  const [result, setResult] = useState<{ items?: z.infer<typeof directHistory>; error?: string; revision: number }>();
+  const [revision, setRevision] = useState(0);
+  const [selected, setSelected] = useState<string>();
+  useEffect(() => {
+    const controller = new AbortController();
+    void call(directHistory, "", undefined, controller.signal).then(
+      items => { if (!controller.signal.aborted) setResult({ items, revision }); },
+      failure => { if (!controller.signal.aborted) setResult({ error: failure.message, revision }); });
+    return () => controller.abort();
+  }, [revision]);
+  const current = result?.revision === revision ? result : undefined;
+  return <section className={styles.card} aria-labelledby="pcdf-history">
+    <h2 id="pcdf-history">Histórico de importações PCDF</h2>
+    <Button variant="outline" onClick={() => setRevision(revision + 1)}>Atualizar histórico PCDF</Button>
+    {!current && <p role="status">Consultando o PostgreSQL…</p>}
+    {current?.error && <p role="alert">{current.error}</p>}
+    {current?.items?.length === 0 && <p>Nenhuma importação PCDF registrada.</p>}
+    {current?.items?.map(item => <article className={styles.historyItem} key={item.request}>
+      <h3>{item.name}</h3>
+      <p>{statuses[item.status]} · {item.month} · {total(item.records)} associações · {item.role}</p>
+      <p>{new Date(item.at).toLocaleString("pt-BR")}</p>
+      {item.persisted !== undefined && <p>{total(item.persisted)} persistidas
+        {item.issues !== null && item.issues !== undefined && ` · ${total(item.issues)} pendências · Reconciliação conferida`}</p>}
+      {item.lot && <p>Lote {item.lot}{item.run && <><br />Execução {item.run}</>}</p>}
+      {item.run && <Button variant="outline" aria-expanded={selected === item.request}
+        onClick={() => setSelected(selected === item.request ? undefined : item.request)}>Consultar registros PCDF</Button>}
+      {item.run && selected === item.request && <StoredPcdfRows key={item.run} run={item.run} />}
+    </article>)}
+  </section>;
 }

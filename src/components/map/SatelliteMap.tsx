@@ -15,6 +15,7 @@ interface Props {
   onSelectRa?: (code: string) => void
   occurrencesByRa: Record<string, number>
   official?: boolean
+  countsUnavailable?: boolean
 }
 
 function MapFraming({ bounds }: { bounds: LatLngBounds }) {
@@ -46,7 +47,7 @@ function SatelliteTiles({ attempt, onStatus }: { attempt: number; onStatus: (sta
     }} />
 }
 
-function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, official }: Props & { geo: RaGeoJSON }) {
+function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, official, countsUnavailable }: Props & { geo: RaGeoJSON }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
   const [attempt, setAttempt] = useState(0)
   const features = useMemo(() => satelliteFeatures(geo, selectedRaCode), [geo, selectedRaCode])
@@ -71,7 +72,7 @@ function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, of
       {features.map((feature) => {
         const code = feature.properties.ra_codigo
         const name = RA_BY_CODE[code]?.displayName ?? feature.properties.ra_nome
-        const count = occurrencesByRa[code] ?? 0
+        const count = countsUnavailable ? null : occurrencesByRa[code] ?? 0
         return <GeoJSON key={`${code}:${count}:${selectedRaCode ?? "all"}`} data={feature as GeoJSON.GeoJsonObject}
           style={{ color: selectedRaCode === code ? "#ffffff" : "#b9d8ff", weight: selectedRaCode === code ? 2.5 : 1.2, fillColor: "#60a5fa", fillOpacity: selectedRaCode === code ? 0.08 : 0.015 }}
           onEachFeature={(_, layer) => {
@@ -87,7 +88,7 @@ function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, of
               if (!(element instanceof SVGElement)) return
               element.setAttribute("role", "button")
               element.setAttribute("tabindex", onSelectRa ? "0" : "-1")
-              element.setAttribute("aria-label", `${name}: ${count} ocorrências${official ? "" : " demonstrativas"}`)
+              element.setAttribute("aria-label", `${name}: ${count === null ? "dados indisponíveis" : `${count} ocorrências${official ? "" : " demonstrativas"}`}`)
               element.setAttribute("aria-pressed", String(selectedRaCode === code))
               element.setAttribute("data-ra-code", code)
               const keydown = (event: KeyboardEvent) => {
@@ -97,7 +98,9 @@ function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, of
               layer.once("remove", () => element.removeEventListener("keydown", keydown))
             })
           }}>
-          <Tooltip sticky><strong className={styles.tooltipName}>{name}</strong><span className={styles.tooltipCode}>{code}</span><br />{count.toLocaleString("pt-BR")} ocorrências</Tooltip>
+          <Tooltip sticky><strong className={styles.tooltipName}>{name}</strong><span className={styles.tooltipCode}>{code}</span><br />
+            {count === null ? "Dados indisponíveis" : `${count.toLocaleString("pt-BR")} ocorrências`}
+          </Tooltip>
         </GeoJSON>
       })}
       <MapFraming bounds={bounds} />
@@ -105,7 +108,7 @@ function SatelliteContent({ geo, selectedRaCode, onSelectRa, occurrencesByRa, of
       <ScaleControl position="bottomleft" imperial={false} />
     </MapContainer>
     <div className={`leaflet-control-attribution ${styles.credits}`} dangerouslySetInnerHTML={{ __html: SATELLITE_ATTRIBUTION }} />
-    <div className={styles.imageryNote}>Imagens 2024 · ocorrências {official ? "persistidas" : "demonstrativas"}</div>
+    <div className={styles.imageryNote}>Imagens 2024 · {countsUnavailable ? "limites oficiais" : `ocorrências ${official ? "persistidas" : "demonstrativas"}`}</div>
     {status !== "ready" && <div className={styles.status} role="status">
       <p>{status === "loading" ? "Carregando imagens de satélite…" : "Imagens de satélite indisponíveis. Verifique a conexão ou selecione Calor, Pontos ou Clusters."}</p>
       {status === "error" && <button type="button" className={styles.retry} onClick={() => { setStatus("loading"); setAttempt((value) => value + 1) }}>Tentar novamente</button>}

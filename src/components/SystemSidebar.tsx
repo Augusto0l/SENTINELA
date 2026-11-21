@@ -20,6 +20,7 @@ export default function SystemSidebar({ pcdf = false, persistent = false }: { pc
       onToggle={() => setCollapsed((value) => !value)}
       pcdf={pcdf}
       persistent={persistent}
+      dashboard={pathname === routes.dashboard}
     />
   );
 }

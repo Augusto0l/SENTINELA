@@ -16,6 +16,8 @@ import { localAllowed } from "@/lib/auth/local-provider"
 import { persistentIdentitySql } from "@/lib/db/persistent-read"
 import { generalDetail, generalHistory, generalReceipt, generalUploadLimit } from "@/contracts/general-import"
 import { GeneralImportError, generalInput, prepareGeneralImport } from "@/lib/db/general-import-input"
+import { integratedImportMode } from "@/lib/db/pcdf-direct-mode"
+import { attestLocalImportDatabase, localImportConnection, LocalImportDbError } from "@/lib/db/local-import-db"
 
 const maxCsvBytes = 16 * 1024 * 1024
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" }
@@ -109,10 +111,11 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
   let registered: [string, string] | undefined
   try {
     const general = operation.startsWith("general-")
+    const integrated = ["general-upload", "general-lots", "general-detail"].includes(operation) && integratedImportMode()
     const persistent = !general && persistentPcdfEnabled()
     const completion = persistentPcdfCompletionEnabled()
-    const mode = persistent ? null : general ? generalImportMode() : isolatedPcdfMode()
-    const origin = persistent ? process.env.SENTINELA_APP_ORIGIN : mode?.origin
+    const mode = persistent || integrated ? null : general ? generalImportMode() : isolatedPcdfMode()
+    const origin = persistent ? process.env.SENTINELA_APP_ORIGIN : integrated ? integrated.origin : mode?.origin
     if (!origin || request.headers.get("host") !== new URL(origin).host
       || (persistent && !localAllowed(request.headers.get("host")))) throw new WorkspaceError(403)
     const write = operation === "upload" || operation === "promote" || operation === "decide"
@@ -121,13 +124,14 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     const principal = await getLocalPrincipal()
     if (!principal) throw new WorkspaceError(401)
     if (principal.source !== "local" || !hasPermission(principal.role, permissions[operation])) throw new WorkspaceError(403)
+    const connection = integrated && principal.role !== "Analista" ? localImportConnection(principal.role) : null
     const writer = principal.role === "Analista" ? undefined : persistentWriters[principal.role]
-    if ((!persistent && !principal.localSubject) || (persistent && writer && writer.subject!==principal.localSubject)) throw new WorkspaceError(403)
+    if ((!persistent && !connection && !principal.localSubject) || (persistent && writer && writer.subject!==principal.localSubject)) throw new WorkspaceError(403)
     const reader = persistent ? persistentReadConfig(principal.role) : null
     const [user, passwordKey] = reader ? [writer?.login ?? reader.user, `SENTINELA_PERSISTENT_PASSWORD_${writer?.login ?? reader.user}`]
       : identities[operation === "analytics" ? "Analista" : principal.role]
     const password = process.env[passwordKey]
-    if (!password || (persistent && !/^[a-f0-9]{64}$/.test(password))) throw new WorkspaceError(503)
+    if (!connection && (!password || (persistent && !/^[a-f0-9]{64}$/.test(password)))) throw new WorkspaceError(503)
     const manifest = mode && await attestManifest({ manifest: join(mode.root, "manifest.json"), expectedUUID: mode.id,
       credentials: { Administrador: { user: "", password: "" }, Operador: { user: "", password: "" } } })
     if (manifest && (general ? manifest.general_import !== true
@@ -149,7 +153,7 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
         const prepared = await prepareGeneralImport(content, input)
         intake = { metadata: prepared.metadata, content }
         statement = "SELECT sentinela_import_lab.receive($1,$2,$3) AS data"
-        params = [principal.localSubject, key, { summary: prepared.summary, rows: prepared.rows }]
+        params = [connection?.actor ?? principal.localSubject, key, { summary: prepared.summary, rows: prepared.rows }]
         schema = generalReceipt
         break
       }
@@ -250,9 +254,14 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
       }
     }
 
-    client = new Client({ ...(reader ?? { host: "127.0.0.1", port: 55432, database: "sentinela_rls_sandbox" }), user, password, ssl: false,
+    client = connection?.client ?? new Client({ ...(reader ?? { host: "127.0.0.1", port: 55432, database: "sentinela_rls_sandbox" }), user, password, ssl: false,
       connectionTimeoutMillis: 3000, statement_timeout: 45000, query_timeout: 50000, lock_timeout: 3000 })
-    await client.connect()
+    if (integrated && connection) {
+      await attestLocalImportDatabase(client, connection.login, integrated, principal.role)
+      statement = statement.replace("sentinela_import_lab.", "sentinela_import_local.")
+    } else {
+      await client.connect()
+    }
     await client.query(write ? "BEGIN" : "BEGIN READ ONLY")
     if (persistent) {
       const { rows:[identity] } = await client.query(persistentIdentitySql)
@@ -270,10 +279,11 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
         AND abs(extract(epoch FROM pg_postmaster_start_time())::bigint-$4::bigint)<=2`,
     [user, mode.id, manifest.system_id, manifest.start_epoch])
       if (rowCount !== 1) throw new WorkspaceError(403)
-    } else throw new WorkspaceError(403)
+    } else if (!connection) throw new WorkspaceError(403)
+    const generalSchema = connection ? "sentinela_import_local" : "sentinela_import_lab"
     if (intake) {
       const key = [String(params[0]), String(params[1])] as [string, string]
-      await client.query("SELECT sentinela_import_lab.begin_request($1,$2,$3,$4,$5)",
+      await client.query(`SELECT ${generalSchema}.begin_request($1,$2,$3,$4,$5)`,
         [...key, intake.metadata, intake.content, params[2]])
       await client.query("COMMIT")
       registered = key
@@ -286,18 +296,25 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     await client.query("COMMIT")
     registered = undefined
     const status = (operation === "upload" || operation === "general-upload") && !(validated.data as { replay: boolean }).replay ? 201 : 200
-    return Response.json({ success: true, scope: persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only",
+    return Response.json({ success: true, scope: connection ? "importacao-local" : persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only",
       data: validated.data }, { status, headers })
   } catch (error) {
     await client?.query("ROLLBACK").catch(() => {})
-    if (registered) await client?.query("SELECT sentinela_import_lab.fail($1,$2)", registered).catch(() => {})
-    const status = error instanceof WorkspaceError || error instanceof GeneralImportError ? error.status
+    if (registered) {
+      const schema = integratedImportMode() ? "sentinela_import_local" : "sentinela_import_lab"
+      await client?.query(`SELECT ${schema}.fail($1,$2)`, registered).catch(() => {})
+    }
+    const status = error instanceof WorkspaceError || error instanceof GeneralImportError || error instanceof LocalImportDbError ? error.status
       : error instanceof SyntaxError || error instanceof URIError || error instanceof z.ZodError ? 400 : sqlError(error)
     const message: Record<number, string> = { 400: "Parâmetros ou corpo inválidos.", 401: "Sessão necessária.",
       403: "Operação não autorizada.", 404: "Registro não encontrado.", 409: "Conflito. Atualize a consulta antes de repetir.",
       413: "Arquivo ou corpo excede o limite.", 415: "Formato de envio não aceito.",
       422: "Arquivo ou alteração recusados.", 503: "Operação PCDF indisponível." }
-    return Response.json({ success: false, error: { status, message: message[status],
+    const state = (error as { code?: string } | null)?.code
+    const detail = error instanceof LocalImportDbError ? error.message : registered && state === "23514"
+      ? "Falha de reconciliação. A transação foi revertida." : registered && status === 503
+        ? "Falha de persistência. Consulte o histórico antes de reenviar." : message[status]
+    return Response.json({ success: false, error: { status, message: detail,
       ...((error instanceof WorkspaceError || error instanceof GeneralImportError) && error.diagnostic && { diagnostic: error.diagnostic }) } }, { status, headers })
   } finally {
     await client?.end().catch(() => {})

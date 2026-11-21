@@ -18,7 +18,7 @@ export default function LoginForm({ configured, message, notice, localProvider =
       <label htmlFor="auth-email">E-mail institucional</label>
       <div className={styles.inputShell}>
         <LoginIcon name="mail" />
-        <input id="auth-email" name="email" type="email" autoComplete="username" placeholder="seuemail@instituicao.gov.br" required maxLength={254} disabled={!configured} readOnly={pending}
+        <input id="auth-email" name="email" type="email" autoComplete="username" placeholder="seu@email.institucional" required maxLength={254} disabled={!configured} readOnly={pending}
           aria-invalid={emailInvalid || undefined} aria-describedby={emailInvalid ? "login-email-error" : undefined}
           onInvalid={() => setEmailInvalid(true)} onChange={() => setEmailInvalid(false)} />
       </div>
@@ -28,7 +28,7 @@ export default function LoginForm({ configured, message, notice, localProvider =
       <label htmlFor="auth-password">Senha</label>
       <div className={styles.inputShell}>
         <LoginIcon name="lock" />
-        <input id="auth-password" name="password" type={visible ? "text" : "password"} autoComplete="current-password" placeholder="Digite sua senha" required maxLength={1024} disabled={!configured} readOnly={pending}
+        <input id="auth-password" name="password" type={visible ? "text" : "password"} autoComplete="current-password" placeholder="•••••••••" required maxLength={1024} disabled={!configured} readOnly={pending}
           aria-invalid={passwordInvalid || undefined} aria-describedby={passwordInvalid ? "login-password-error" : undefined}
           onInvalid={() => setPasswordInvalid(true)} onChange={() => setPasswordInvalid(false)} />
         <button className={styles.visibility} type="button" onClick={() => setVisible(value => !value)} aria-label={visible ? "Ocultar senha" : "Mostrar senha"} aria-pressed={visible} aria-controls="auth-password" disabled={pending}>

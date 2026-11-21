@@ -1,6 +1,6 @@
 import { densityColor, sampleDensity, type DensityField } from "@/components/map/heatmapDensity";
 
-export function renderDensityHeatmap(canvas: HTMLCanvasElement, svg: SVGSVGElement, field: DensityField, referencePeak: number, boundary: Path2D) {
+export function renderDensityHeatmap(canvas: HTMLCanvasElement, svg: SVGSVGElement, field: DensityField, referencePeak: number, boundary: Path2D, maxOpacity?: number) {
   const context = canvas.getContext("2d");
   const matrix = svg.getScreenCTM();
   const bounds = canvas.getBoundingClientRect();
@@ -26,7 +26,7 @@ export function renderDensityHeatmap(canvas: HTMLCanvasElement, svg: SVGSVGEleme
       const density = sampleDensity(field, mapX, mapY);
       if (density <= 0) continue;
       const offset = (y * canvas.width + x) * 4;
-      const color = densityColor(density, referencePeak);
+      const color = densityColor(density, referencePeak, maxOpacity);
       image.data.set(color, offset);
     }
   }

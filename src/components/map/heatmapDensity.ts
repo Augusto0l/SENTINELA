@@ -6,6 +6,7 @@ export const HEAT_MAX_OPACITY = 0.88;
 export const HEAT_OPACITY_EXPONENT = 0.6; // Improve visibility without changing the linear color scale.
 export const HEAT_COLORS = [[37, 99, 235], [34, 197, 94], [250, 204, 21], [249, 115, 22], [239, 68, 68]] as const;
 export const HEAT_GRADIENT = "linear-gradient(to right, #2563eb, #22c55e, #facc15, #f97316, #ef4444)";
+export const DASHBOARD_HEAT = { radius: 18, sigma: 6, maxOpacity: 0.76 } as const;
 
 export type HeatPoint = { x: number; y: number };
 type GeographicRecord = { latitude: number; longitude: number };
@@ -25,24 +26,24 @@ export function projectHeatRecords(
   });
 }
 
-export function createDensityField(points: readonly HeatPoint[], width: number, height: number, contains: (x: number, y: number) => boolean = () => true): DensityField {
+export function createDensityField(points: readonly HeatPoint[], width: number, height: number, contains: (x: number, y: number) => boolean = () => true, { radius = HEAT_RADIUS, sigma = HEAT_SIGMA } = {}): DensityField {
   const step = HEAT_GRID_STEP;
   const columns = Math.ceil(width / step) + 1;
   const rows = Math.ceil(height / step) + 1;
   const values = new Float32Array(columns * rows);
-  const radiusSquared = HEAT_RADIUS ** 2;
+  const radiusSquared = radius ** 2;
   for (const point of points) {
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
-    const left = Math.max(0, Math.ceil((point.x - HEAT_RADIUS) / step));
-    const right = Math.min(columns - 1, Math.floor((point.x + HEAT_RADIUS) / step));
-    const top = Math.max(0, Math.ceil((point.y - HEAT_RADIUS) / step));
-    const bottom = Math.min(rows - 1, Math.floor((point.y + HEAT_RADIUS) / step));
+    const left = Math.max(0, Math.ceil((point.x - radius) / step));
+    const right = Math.min(columns - 1, Math.floor((point.x + radius) / step));
+    const top = Math.max(0, Math.ceil((point.y - radius) / step));
+    const bottom = Math.min(rows - 1, Math.floor((point.y + radius) / step));
     for (let row = top; row <= bottom; row++) {
       for (let column = left; column <= right; column++) {
         const distanceSquared = (column * step - point.x) ** 2 + (row * step - point.y) ** 2;
         if (distanceSquared < radiusSquared) {
           // Every record contributes equally. Only overlapping kernels increase density.
-          values[row * columns + column] += Math.exp(-distanceSquared / (2 * HEAT_SIGMA ** 2));
+          values[row * columns + column] += Math.exp(-distanceSquared / (2 * sigma ** 2));
         }
       }
     }
@@ -69,7 +70,7 @@ export function sampleDensity(field: DensityField, x: number, y: number): number
   return a * (1 - fy) + b * fy;
 }
 
-export function densityColor(density: number, referencePeak: number): [number, number, number, number] {
+export function densityColor(density: number, referencePeak: number, maxOpacity = HEAT_MAX_OPACITY): [number, number, number, number] {
   const intensity = referencePeak > 0 ? Math.max(0, Math.min(1, density / referencePeak)) : 0;
   const position = intensity * (HEAT_COLORS.length - 1);
   const stop = Math.min(HEAT_COLORS.length - 2, Math.floor(position));
@@ -80,6 +81,6 @@ export function densityColor(density: number, referencePeak: number): [number, n
     Math.round(start[0] + (end[0] - start[0]) * fraction),
     Math.round(start[1] + (end[1] - start[1]) * fraction),
     Math.round(start[2] + (end[2] - start[2]) * fraction),
-    Math.round(255 * HEAT_MAX_OPACITY * intensity ** HEAT_OPACITY_EXPONENT),
+    Math.round(255 * maxOpacity * intensity ** HEAT_OPACITY_EXPONENT),
   ];
 }

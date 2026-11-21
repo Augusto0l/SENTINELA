@@ -55,16 +55,18 @@ SELECT jsonb_build_object('raw',s.campos_csv,'originals',(
  'ordinal',s.registro_csv,'month',to_char(l.competencia,'YYYY-MM'),
  'state',s.estado,'unpublished',s.ocorrencia_id IS NULL AND s.associacao_id IS NULL)
 FROM sentinela.linhas_staging s JOIN sentinela.linhas_origem o ON o.id=s.linha_origem_id
-JOIN sentinela.lotes_importacao l ON l.id=s.lote_id ORDER BY l.competencia,s.registro_csv;
+JOIN sentinela.lotes_importacao l ON l.id=s.lote_id WHERE l.versao_contrato='1.0'
+ORDER BY l.competencia,s.registro_csv;
 """ % ",".join("'" + key + "'" for key in ORIGINALS)
 
 SUMMARY = """
 SELECT jsonb_build_object(
- 'origins',(SELECT count(*) FROM sentinela.linhas_origem),
- 'staging',(SELECT count(*) FROM sentinela.linhas_staging),
- 'lots',(SELECT count(*) FROM sentinela.lotes_importacao),
- 'runs',(SELECT count(*) FROM sentinela.execucoes_importacao),
- 'xml_declared',(SELECT count(*) FROM sentinela.extracoes_origem WHERE sha256_xml IS NOT NULL),
+ 'origins',(SELECT count(*) FROM sentinela.linhas_origem WHERE versao_identificador='pcdf-linha-v1'),
+ 'staging',(SELECT count(*) FROM sentinela.linhas_staging s JOIN sentinela.lotes_importacao l
+   ON l.id=s.lote_id WHERE l.versao_contrato='1.0'),
+ 'lots',(SELECT count(*) FROM sentinela.lotes_importacao WHERE versao_contrato='1.0'),
+ 'runs',(SELECT count(*) FROM sentinela.execucoes_importacao WHERE versao_importador='pcdf-local-v1'),
+ 'xml_declared',(SELECT count(*) FROM sentinela.extracoes_origem WHERE fonte='PCDF' AND sha256_xml IS NOT NULL),
  'csv_only',(SELECT count(*) FROM sentinela.extracoes_origem WHERE sha256_xml IS NULL AND nome_xml IS NULL),
  'occurrences',(SELECT count(*) FROM sentinela.ocorrencias),
  'associations',(SELECT count(*) FROM sentinela.ocorrencia_naturezas),
@@ -84,7 +86,7 @@ SELECT jsonb_build_object(
 """
 
 
-def qualify(cluster, admin, runner, credentials):
+def qualify(cluster, admin, runner, credentials, integrated=False):
     root = Path(cluster["root"])
     evidence = root / "evidence" / "pcdf-direct-qualification.json"
     report = {"resultado": "REPROVADO", "cluster": cluster["uuid"], "banco": cluster["database"], "porta": cluster["port"]}
@@ -103,7 +105,7 @@ def qualify(cluster, admin, runner, credentials):
     """
     try:
         control.psql(cluster, admin, sql=sql, run=runner)
-        env = app_environment(cluster, credentials, origin=QUALIFICATION_ORIGIN)
+        env = app_environment(cluster, credentials, origin="http://localhost:3000" if integrated else QUALIFICATION_ORIGIN)
         result = subprocess.run(["node", str(HERE / "qualify-direct.mjs")], cwd=control.REPO,
             input=json.dumps({"root": str(root), "analyst": credentials[ROLES[2]]}),
             env=env, encoding="utf8", capture_output=True, timeout=420)
@@ -137,6 +139,21 @@ def qualify(cluster, admin, runner, credentials):
         control.require(len(persisted) == 6 and any(item["status"] == "falhou" for item in persisted),
                         "History did not survive database restart")
         report["historico_apos_reiniciar"] = len(persisted)
+        if integrated:
+            counts = json.loads(control.psql(cluster, admin, sql="""
+              SELECT json_build_object(
+                'persistidas',(SELECT count(*) FROM sentinela.linhas_staging s JOIN sentinela.lotes_importacao l
+                    ON l.id=s.lote_id WHERE l.versao_contrato='geral-v1'),
+                'execucoes',(SELECT count(*) FROM sentinela.execucoes_importacao WHERE versao_importador='geral-v1'),
+                'reconciliacao',(SELECT bool_and(s.campos_csv->'cells'=o.estrutura_celulas->'cells')
+                   FROM sentinela.linhas_staging s JOIN sentinela.linhas_origem o ON o.id=s.linha_origem_id
+                   WHERE o.versao_identificador='geral-v1'),
+                'rls',(SELECT count(*) FROM pg_class WHERE relnamespace IN ('sentinela_import_local'::regnamespace,
+                   'sentinela_general_accounts'::regnamespace) AND relrowsecurity AND relforcerowsecurity))
+            """, run=runner))
+            control.require(counts == {"persistidas": 2, "execucoes": 1, "reconciliacao": True, "rls": 3},
+                            "General intake reconciliation failed")
+            report["general"] = counts
         report["resultado"] = "APROVADO"
     finally:
         evidence.write_text(json.dumps(report, indent=2), encoding="utf8")

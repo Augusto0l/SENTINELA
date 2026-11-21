@@ -2,20 +2,20 @@ import "server-only";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { Client } from "pg";
+import type { Client } from "pg";
 import { z } from "zod";
 import {
   directCsvLimit, directHash, directHistory, directManifestLimit, directMaxRows, directMonth,
-  directPreview, directReceipt, directUploadLimit,
+  directDetail, directPreview, directReceipt, directUploadLimit,
 } from "@/contracts/pcdf-direct";
 import { getLocalPrincipal } from "@/lib/auth/local-server";
 import { hasPermission } from "@/lib/auth/policy";
-import { directDatabase, directDatabasePort, directPcdfMode } from "@/lib/db/pcdf-direct-mode";
+import { directPcdfMode, integratedImportMode } from "@/lib/db/pcdf-direct-mode";
+import { attestLocalImportDatabase, localImportConnection, LocalImportDbError } from "@/lib/db/local-import-db";
 
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" };
-const logins = { Administrador: "sentinela_local_admin", Operador: "sentinela_local_operator" };
 const messages: Record<number, string> = {
-  400: "Requisição inválida.", 401: "Sessão necessária.", 403: "Importação não autorizada.",
+  404: "Execução não encontrada.", 400: "Requisição inválida.", 401: "Sessão necessária.", 403: "Importação não autorizada.",
   409: "O arquivo mudou após a prévia ou conflita com uma origem já registrada.",
   413: "O arquivo excede o limite de envio.", 415: "Envie o CSV e, se houver, o manifesto JSON.",
   422: "O arquivo não passou nas verificações do layout PCDF v1.0.",
@@ -117,35 +117,19 @@ function prepare(input: Awaited<ReturnType<typeof readIntake>>, preview: boolean
   });
 }
 
-async function openDatabase(client: Client, user: string, mode: NonNullable<ReturnType<typeof directPcdfMode>>, role: string) {
-  await client.connect();
-  const { rows: [identity] } = await client.query<{ role: string }>(
-    "SELECT sentinela_pcdf_local.preflight() AS role FROM pg_roles r " +
-    "WHERE r.rolname=current_user AND current_user=$1 AND session_user=$1 " +
-    "AND NOT (r.rolsuper OR r.rolbypassrls OR r.rolcreatedb OR r.rolcreaterole OR r.rolreplication OR r.rolinherit) " +
-    "AND NOT EXISTS (SELECT FROM pg_auth_members WHERE member=r.oid OR roleid=r.oid) " +
-    "AND NOT EXISTS (SELECT FROM pg_class WHERE relowner=r.oid) " +
-    "AND current_database()=$2 AND host(inet_server_addr())='127.0.0.1' AND inet_server_port()=$3 " +
-    "AND current_setting('server_version_num')='170011' AND current_setting('sentinela.sandbox_uuid',true)=$4 " +
-    "AND (SELECT system_identifier::text FROM pg_control_system())=$5 " +
-    "AND abs(extract(epoch FROM pg_postmaster_start_time())::bigint-$6::bigint)<=2",
-    [user, directDatabase, directDatabasePort, mode.id, mode.system, mode.epoch],
-  );
-  if (identity?.role !== role) throw new IntakeError(403);
-}
-
 function errorStatus(error: unknown) {
-  if (error instanceof IntakeError) return error.status;
+  if (error instanceof IntakeError || error instanceof LocalImportDbError) return error.status;
   const code = (error as { code?: string } | null)?.code;
   if (code === "42501") return 403;
   if (code === "23505") return 409;
-  if (code === "22023" || code === "23514") return 422;
+  if (code === "22023") return 422;
   return 503;
 }
 
 export async function directPcdf(request: Request) {
   let client: Client | undefined;
   let attempt: string | undefined;
+  let committing = false;
   try {
     const mode = directPcdfMode();
     const write = request.method === "POST";
@@ -156,14 +140,23 @@ export async function directPcdf(request: Request) {
     if (principal.role === "Analista" || !hasPermission(principal.role, "importar")) throw new IntakeError(403);
     const search = new URL(request.url).searchParams;
     const step = search.get("etapa");
-    if ((!write && search.size) || (write && (search.size !== 1 || !["validar", "confirmar"].includes(step ?? ""))))
-      throw new IntakeError(400);
-    const user = logins[principal.role];
-    const password = process.env["SENTINELA_PCDF_LOCAL_PASSWORD_" + user];
-    if (!password || !directHash.safeParse(password).success) throw new IntakeError(503);
-    client = new Client({ host: "127.0.0.1", port: directDatabasePort, database: directDatabase, user, password,
-      ssl: false, connectionTimeoutMillis: 3000, statement_timeout: 60000, query_timeout: 65000 });
-    await openDatabase(client, user, mode, principal.role);
+    const mainMode = integratedImportMode();
+    const detail = !write && search.size ? z.strictObject({
+      execucao: z.uuid(), pagina: z.string().regex(/^[1-9]\d{0,2}$/),
+    }).safeParse(Object.fromEntries(search)) : null;
+    if (new Set(search.keys()).size !== search.size || (detail && (!mainMode || !detail.success))
+      || (write && (search.size !== 1 || !["validar", "confirmar"].includes(step ?? "")))) throw new IntakeError(400);
+    const connection = localImportConnection(principal.role);
+    client = connection.client;
+    await attestLocalImportDatabase(client, connection.login, mode, principal.role);
+    if (detail?.success) {
+      const { execucao, pagina } = detail.data;
+      const { rows: [row] } = await client.query("SELECT sentinela_pcdf_local.detail($1,$2) AS data", [
+        execucao, (Number(pagina) - 1) * 25,
+      ]);
+      if (!row?.data) throw new IntakeError(404);
+      return Response.json({ success: true, data: directDetail.parse(row.data) }, { headers });
+    }
     if (!write) {
       const { rows: [row] } = await client.query("SELECT sentinela_pcdf_local.history() AS data");
       return Response.json({ success: true, data: directHistory.parse(row.data) }, { headers });
@@ -182,6 +175,7 @@ export async function directPcdf(request: Request) {
     const { batch, manifestSha } = deliverySchema.parse(payload);
     const { name, month, sha256, size, rows } = batch;
     if (input.expected?.sha256 !== sha256 || input.expected.manifestSha !== manifestSha) throw new IntakeError(409);
+    committing = true;
     const requestId = randomUUID();
     await client.query("SELECT sentinela_pcdf_local.attempt($1,$2,$3)", [
       requestId, principal.localAccountId, { name, month, sha256, bytes: size, records: rows.length, manifestSha },
@@ -201,7 +195,12 @@ export async function directPcdf(request: Request) {
       await client.query("SELECT sentinela_pcdf_local.fail($1)", [attempt]).catch(() => {});
     }
     const status = errorStatus(error);
-    return Response.json({ success: false, error: { message: messages[status],
+    const code = (error as { code?: string } | null)?.code;
+    const message = error instanceof LocalImportDbError && status === 503 ? error.message
+      : code === "23514" ? "Falha de reconciliação do PCDF. A transação foi revertida."
+      : committing && status === 503 ? "Falha de persistência. Consulte o histórico antes de reenviar."
+      : messages[status];
+    return Response.json({ success: false, error: { message,
       ...(error instanceof IntakeError && error.diagnostic && { diagnostic: error.diagnostic }) } }, { status, headers });
   } finally {
     await client?.end().catch(() => {});

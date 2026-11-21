@@ -13,3 +13,17 @@
 .legendSymbol { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; vertical-align: middle; border: 1px solid #c6ddff; }
 .pointSymbol { background: #ef4444; border-color: #fecaca; }
 .clusterSymbol { background: #2563eb; }
+.dashboardMap { --heatmap-bg: #091729; --heatmap-ra-fill: #112a40; --heatmap-border: #a9c3d8; }
+.dashboardScale {
+  position: absolute;
+  left: 14px;
+  bottom: 15px;
+  border: solid #cbddeb;
+  border-width: 0 1px 1px;
+  padding-inline: 3px;
+  color: #eaf4ff;
+  text-shadow: 0 1px 3px #07111f;
+  font-size: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}

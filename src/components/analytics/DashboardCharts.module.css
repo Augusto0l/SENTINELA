@@ -1,0 +1,88 @@
+.donut {
+  display: grid;
+  grid-template-columns: minmax(0, 44%) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.donutPlot {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.donutCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donutCenter strong {
+  color: var(--theme-f1f5f9);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.donutCenter span {
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+.donutLegend {
+  display: grid;
+  gap: 7px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  font-size: 11px;
+  color: var(--theme-f1f5f9);
+}
+
+.donutLegend li {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.donutSwatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 100%;
+}
+
+.donutName {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.donutShare {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.chartNote {
+  margin: 5px 0 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.trendDashboard {
+  width: 100%;
+  height: clamp(152px, 20vh, 196px);
+  min-width: 0;
+}
+
+.trendDashboard :global(.recharts-surface):focus-visible {
+  outline: 2px solid #8fc8ff;
+  outline-offset: -2px;
+}

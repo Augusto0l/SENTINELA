@@ -16,16 +16,22 @@ import { actionAccess } from "@/lib/auth/policy";
 import { generalFormats, generalImportPath, generalReceipt, generalUploadHeader, generalUploadLimit } from "@/contracts/general-import";
 import { requestPcdf } from "./pcdf-client";
 import ImportHistory from "./ImportHistory";
+import DirectPcdf, { DirectPcdfHistory } from "./DirectPcdf";
+import { isInstitutionalPcdf } from "@/data/importSource";
+import { directCsvLimit } from "@/contracts/pcdf-direct";
 import type { z } from "zod";
 
 type TableMetadata = Omit<ImportTable, "rows"> & { rowCount: number };
 const PAGE_SIZE = 25;
 const emptyMapping = () => Object.fromEntries(IMPORT_FIELDS.map(field => [field, -1])) as ImportMapping;
 
-export default function ImportWorkflow({ persistent = false, syntheticPcdf = false }: { persistent?: boolean; syntheticPcdf?: boolean }) {
+export default function ImportWorkflow({ persistent = false, syntheticPcdf = false, combinedPcdf = false }: {
+  persistent?: boolean; syntheticPcdf?: boolean; combinedPcdf?: boolean;
+}) {
   const { role } = useOperations();
   const access = actionAccess(role, "importar");
   const [file, setFile] = useState<File | null>(null);
+  const [pcdfFile, setPcdfFile] = useState<{ file: File; selection: number }>();
   const [table, setTable] = useState<TableMetadata | null>(null);
   const [mapping, setMapping] = useState<ImportMapping>(emptyMapping);
   const [analysis, setAnalysis] = useState<ImportAnalysis | null>(null);
@@ -45,6 +51,7 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
   const client = useRef<ImportWorkerClient | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const stageHeading = useRef<HTMLHeadingElement>(null);
+  const selection = useRef(0);
 
   function stopWorker() {
     client.current?.cancel();
@@ -56,6 +63,8 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
 
   function reset() {
     if (saving.current) return;
+    selection.current++;
+    setPcdfFile(undefined);
     stopWorker(); setFile(null); setTable(null); setAnalysis(null); setResult(null);
     setReceipt(undefined); uploadKey.current = undefined;
     setMapping(emptyMapping()); setStage("mapping"); setBusy(""); setError(""); setPage(1); setFilter("todos");
@@ -70,11 +79,25 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
     if (!client.current) { fail("O processamento foi encerrado. Selecione o arquivo novamente."); return; }
     client.current.send(message, label);
   }
-  function selectFiles(files: File[], selectedDelimiter: CsvDelimiter | null = delimiter ?? null) {
+  async function selectFiles(files: File[], selectedDelimiter: CsvDelimiter | null = delimiter ?? null) {
     if (!access.enabled || saving.current) return;
     reset();
     const invalid = validateImportFiles(files);
     if (invalid) { setError(invalid); return; }
+    const chosen = files[0];
+    if (combinedPcdf && chosen.name.toLowerCase().endsWith(".csv")) {
+      const current = selection.current;
+      try {
+        const header = (await chosen.slice(0, 16384).text()).split(/\r?\n/, 1)[0];
+        if (selection.current !== current) return;
+        if (isInstitutionalPcdf(chosen.name, header.split(/[;,\t]/))) {
+          if (chosen.size > directCsvLimit) { setError("O CSV PCDF excede 16 MiB."); return; }
+          setFile(chosen);
+          setPcdfFile({ file: chosen, selection: current });
+          return;
+        }
+      } catch { if (selection.current === current) setError("Não foi possível ler o cabeçalho do arquivo."); return; }
+    }
     if (persistent && files[0].size > generalUploadLimit) { setError("O arquivo excede 8 MiB. Divida a entrega em arquivos menores."); return; }
     setFile(files[0]);
     if (!client.current) client.current = createImportWorkerClient({
@@ -125,34 +148,36 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
   if (!access.enabled) return <p role="alert">{access.reason}</p>;
   return (
     <div className={styles.root}>
-      <Header title="Importar Dados" subtitle={persistent ? "Importação geral em PostgreSQL local" : "Importação demonstrativa de CSV e XLSX"} />
+      <Header title="Importar Dados" dataMode={persistent ? "import-staging" : undefined}
+        subtitle={combinedPcdf ? "Recepção de arquivos CSV e XLSX" : persistent ? "Importação geral em PostgreSQL local" : "Importação demonstrativa de CSV e XLSX"} />
       <div className={styles.content}>
         <div className={styles.heading}>
           <div><h1>Importar ocorrências</h1><p>{persistent ? "Confira o arquivo antes de gravar em staging." : "Leia, mapeie e confira seu arquivo antes de confirmar a simulação."}</p></div>
           <div className={styles.actions}><a className={styles.template} href="/modelos/ocorrencias-demonstracao.csv" download>Baixar modelo CSV</a><a className={styles.template} href="/modelos/ocorrencias-demonstracao.xlsx" download>Baixar modelo XLSX</a></div>
         </div>
-        {persistent ? <p className={styles.notice}>Homologação local com arquivos sintéticos. Os registros ficam em staging. Arquivos oficiais da PCDF exigem autorização pelo receptor institucional.</p>
+        {combinedPcdf ? <p className={styles.notice}>A confirmação grava os registros em origem e staging no PostgreSQL. O layout PCDF v1.0 é reconhecido na seleção.</p>
+          : persistent ? <p className={styles.notice}>Homologação local com arquivos sintéticos. Os registros ficam em staging. Use o receptor PCDF para arquivos oficiais.</p>
           : <p className={styles.notice}>Demonstração: processamento local no navegador, sem envio ou gravação no servidor. Os resultados não alteram a listagem, o Dashboard ou os mapas.</p>}
         {syntheticPcdf && <Link className={styles.template} href="/importar?origem=pcdf">Abrir ensaio PCDF sintético</Link>}
         <ol className={styles.steps} aria-label="Etapas da importação">
-          {["Selecionar arquivo", "Mapear colunas", "Pré-visualizar", persistent ? "Gravar em staging" : "Confirmar simulação"].map((label, index) => <li key={label} aria-current={index === (!table ? 0 : stage === "mapping" ? 1 : stage === "preview" ? 2 : 3) ? "step" : undefined}>{index + 1}. {label}</li>)}
+          {["Selecionar arquivo", pcdfFile ? "Layout PCDF v1.0" : "Mapear colunas", "Pré-visualizar", persistent ? "Gravar em staging" : "Confirmar simulação"].map((label, index) => <li key={label} aria-current={index === (pcdfFile ? 2 : !table ? 0 : stage === "mapping" ? 1 : stage === "preview" ? 2 : 3) ? "step" : undefined}>{index + 1}. {label}</li>)}
         </ol>
 
         <section className={styles.card} aria-label="Seleção de arquivo">
           <div className={`${styles.drop} ${dragging ? styles.dragging : ""}`}
             onDragOver={event => { event.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
-            onDrop={event => { event.preventDefault(); setDragging(false); selectFiles(Array.from(event.dataTransfer.files)); }}>
+            onDrop={event => { event.preventDefault(); setDragging(false); void selectFiles(Array.from(event.dataTransfer.files)); }}>
             <p>Arraste um arquivo CSV ou XLSX para esta área</p>
             <Button disabled={persisting} onClick={() => fileInput.current?.click()}>Selecionar arquivo</Button>
-            <input ref={fileInput} className={styles.hidden} type="file" accept=".csv,.xlsx" aria-label="Arquivo CSV ou XLSX"
-              onChange={event => { if (event.target.files?.length) selectFiles(Array.from(event.target.files)); }} />
-            <small>Um arquivo por vez · {persistent ? "até 8 MiB" : "até 50 MB (52.428.800 bytes)"}</small>
+            <input ref={fileInput} className={styles.hidden} type="file" accept=".csv,.xlsx" aria-label="Arquivo CSV ou XLSX" disabled={persisting}
+              onChange={event => { if (event.target.files?.length) void selectFiles(Array.from(event.target.files)); }} />
+            <small>Um arquivo por vez · {combinedPcdf ? "até 8 MiB para arquivos gerais ou 16 MiB para CSV PCDF" : persistent ? "até 8 MiB" : "até 50 MB (52.428.800 bytes)"}</small>
           </div>
-          {persistent && file?.name.toLowerCase().endsWith(".csv") && <div className={styles.toolbar}>
+          {persistent && !pcdfFile && file?.name.toLowerCase().endsWith(".csv") && <div className={styles.toolbar}>
             <label>Separador do CSV<select disabled={persisting} value={delimiter ?? ""} onChange={event => {
               const next = (event.target.value || undefined) as CsvDelimiter | undefined;
-              setDelimiter(next); selectFiles([file], next ?? null);
+              setDelimiter(next); void selectFiles([file], next ?? null);
             }}><option value="">Automático</option><option value=";">Ponto e vírgula</option><option value=",">Vírgula</option><option value={"\t"}>Tabulação</option></select></label>
           </div>}
           <p className={styles.file}>{file ? `Selecionado: ${file.name} (${(file.size / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} KB)` : "Nenhum arquivo selecionado."}</p>
@@ -160,6 +185,9 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
         </section>
         <div role="status" aria-live="polite" aria-atomic="true">{busy && <p className={styles.notice}>{busy}</p>}</div>
         {error && <p role="alert" className={styles.error}>{error}</p>}
+        {pcdfFile && <DirectPcdf key={pcdfFile.selection} file={pcdfFile.file}
+          onSaving={value => { saving.current = value; setPersisting(value); }}
+          onComplete={() => setHistoryRevision(value => value + 1)} />}
 
         {table && <section className={styles.card} aria-busy={Boolean(busy)}>
           <h2 ref={stageHeading} tabIndex={-1}>{stage === "mapping" ? "Mapeamento de colunas" : stage === "complete" ? (persistent ? "Gravação confirmada" : "Simulação concluída") : stage === "confirm" ? (persistent ? "Confirmar gravação em staging" : "Confirmar importação demonstrativa") : "Pré-visualização dos registros"}</h2>
@@ -229,18 +257,20 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
             <p>Lote {receipt.lot}<br />Execução {receipt.run}</p>
           </div>}
         </section>}
-        {persistent && <ImportHistory key={historyRevision} />}
+        {persistent && <ImportHistory key={`geral-${historyRevision}`} />}
+        {combinedPcdf && <DirectPcdfHistory key={`pcdf-${historyRevision}`} />}
         <section className={styles.card}>
           <h2>Como preparar o arquivo</h2>
           <ul>
             <li>Obrigatórios: data (DD/MM/AAAA ou AAAA-MM-DD), horário (HH:mm), natureza, RA e endereço com 5 a 240 caracteres.</li>
             <li>Use várias naturezas na mesma célula, separadas por ponto e vírgula ou |. Cada linha continua sendo uma ocorrência.</li>
-            <li>Latitude e longitude são opcionais; ausências geram pendência de localização. Valores fornecidos devem respeitar os limites demonstrativos do formulário (latitude −16,2 a −15,4; longitude −48,3 a −47,3).</li>
+            <li>Latitude e longitude são opcionais. O validador de arquivos gerais sinaliza ausências e valores fora da faixa de referência do DF.</li>
             <li>Use nomes ou identificadores internos das RAs e nomes das naturezas do catálogo de referência. Valores desconhecidos serão sinalizados para revisão.</li>
             <li>CSV: vírgula, ponto e vírgula ou tabulação; use aspas em células com separadores. XLSX: selecione a planilha desejada e substitua fórmulas por valores.</li>
-            <li>Limites da demonstração: 10 mil linhas por planilha, 64 colunas, 200 mil células, 4 mil caracteres por célula, 16 Mi caracteres de texto e XLSX com até 100 MB descompactados. Arquivos maiores devem ser divididos; não são truncados silenciosamente.</li>
+            <li>Limites {persistent ? "dos arquivos gerais" : "da demonstração"}: 10 mil linhas por planilha, 64 colunas, 200 mil células, 4 mil caracteres por célula, 16 Mi caracteres de texto e XLSX com até 100 MB descompactados.</li>
             <li>Os modelos CSV/XLSX são propostas demonstrativas, sem homologação institucional.</li>
-            {persistent && <li>Arquivos XLS precisam ser exportados como XLSX ou CSV. O XML SpreadsheetML da PCDF segue o procedimento institucional.</li>}
+            {combinedPcdf ? <li>CSV mensal PCDF v1.0: mantenha o nome, a competência e a ordem dos 34 campos do arquivo original. O manifesto técnico JSON é opcional.</li>
+              : persistent && <li>Arquivos XLS precisam ser exportados como XLSX ou CSV.</li>}
           </ul>
           <details><summary>Consultar catálogos demonstrativos</summary><p>Naturezas: {CRIME_NATURES.join("; ")}. Não são classificações oficiais.</p><ul>{RA_LIST.map(ra => <li key={ra.codigo}>{ra.nomeDisplay} ({ra.codigo}, identificador interno){ra.codigo === "RA-S" ? " — área demonstrativa, não homologada como RA oficial" : ""}</li>)}</ul></details>
         </section>

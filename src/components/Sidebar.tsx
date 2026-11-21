@@ -12,6 +12,7 @@ interface SidebarProps {
   onToggle: () => void
   pcdf?: boolean
   persistent?: boolean
+  dashboard?: boolean
 }
 
 const navGroups: { label: string; items: { key: string; label: string; icon: NavigationIconName }[] }[] = [
@@ -41,10 +42,10 @@ const navGroups: { label: string; items: { key: string; label: string; icon: Nav
   },
 ]
 
-export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, pcdf = false, persistent = false }: SidebarProps) {
+export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, pcdf = false, persistent = false, dashboard = false }: SidebarProps) {
   const { role, principal } = useOperations()
   return (
-    <aside aria-label="Navegação do SENTINELA" className={`system-sidebar ${styles.sidebar} ${collapsed ? `${styles.collapsed} is-collapsed` : ""}`}>
+    <aside aria-label="Navegação do SENTINELA" className={`system-sidebar ${styles.sidebar}${dashboard ? ` ${styles.dashboardSidebar}` : ""}${collapsed ? ` ${styles.collapsed} is-collapsed` : ""}`}>
       <div className={styles.brand}>
         <SentinelaBrand iconSize={34} />
         <button className={styles.collapseButton} type="button" onClick={onToggle}

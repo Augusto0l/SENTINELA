@@ -31,7 +31,15 @@ export const directReceipt = z.strictObject({
 
 export const directHistoryItem = z.strictObject({
   ...metadata, lot: z.uuid().nullable(), records: count.min(1).max(directMaxRows),
+  run: z.uuid().nullable().optional(), persisted: count.optional(), issues: count.nullable().optional(),
   status: z.enum(["recebida", "concluida", "reenvio", "falhou"]),
   role: z.enum(["Administrador", "Operador"]), request: z.uuid(), at: z.string(),
 });
 export const directHistory = z.array(directHistoryItem).max(100);
+export const directDetail = z.strictObject({
+  total: count, headers: z.array(z.string()).length(34),
+  rows: z.array(z.strictObject({
+    ordinal: count, cells: z.array(z.string()).length(34),
+    issues: z.array(z.strictObject({ field: z.string(), rule: z.string() })),
+  })).max(25),
+});

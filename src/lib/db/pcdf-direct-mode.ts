@@ -1,6 +1,7 @@
 import { directPcdfPath } from "../../contracts/pcdf-direct.ts";
 
-export const directPcdfOrigins = ["http://127.0.0.1:3317", "http://127.0.0.1:3318"] as const;
+export const mainImportOrigin = "http://localhost:3000";
+export const directPcdfOrigins = [mainImportOrigin, "http://127.0.0.1:3317", "http://127.0.0.1:3318"] as const;
 export const directDatabase = "sentinela_pcdf_local";
 export const directDatabasePort = 55484;
 
@@ -19,4 +20,15 @@ export function directPcdfMode(env = process.env) {
 
 export function isDirectPcdfEndpoint(path: string, method: string) {
   return path === directPcdfPath && (method === "GET" || method === "POST");
+}
+
+export function integratedImportMode(env = process.env) {
+  const mode = directPcdfMode(env);
+  return mode?.origin === mainImportOrigin ? mode : null;
+}
+
+export function isIntegratedGeneralEndpoint(path: string, method: string) {
+  const base = "/api/v1/importacoes/geral";
+  return (path === base && (method === "GET" || method === "POST"))
+    || (method === "GET" && path.startsWith(base + "/") && /^[0-9a-f-]{36}$/i.test(path.slice(base.length + 1)));
 }

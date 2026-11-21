@@ -4,11 +4,13 @@ import { generalImportMode, isolatedPcdfMode } from "@/lib/db/isolated-write-mod
 import ImportWorkflow from "@/features/import/ImportWorkflow";
 import PersistentPcdf from "@/features/import/PersistentPcdf";
 import DirectPcdf from "@/features/import/DirectPcdf";
-import { directPcdfMode } from "@/lib/db/pcdf-direct-mode";
+import { directPcdfMode, mainImportOrigin } from "@/lib/db/pcdf-direct-mode";
 import { persistentPcdfCompletionEnabled, persistentPcdfEnabled } from "@/lib/db/config";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ origem?: string }> }) {
   const principal = await requirePrincipal("importar");
+  if (process.env.SENTINELA_APP_ORIGIN === mainImportOrigin && principal.source === "local")
+    return <ImportWorkflow persistent combinedPcdf />;
   if (directPcdfMode() && principal.source === "local") return <DirectPcdf />;
   const persistent = persistentPcdfEnabled();
   const general = Boolean(generalImportMode()) && principal.source === "local";

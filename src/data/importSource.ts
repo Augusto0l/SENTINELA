@@ -1,4 +1,4 @@
-export const OFFICIAL_PCDF_BLOCK = "Arquivo com layout ou proveniência PCDF. Use o receptor institucional com as três autorizações do piloto."
+export const OFFICIAL_PCDF_BLOCK = "Arquivo com layout ou proveniência PCDF. Selecione o CSV mensal no receptor PCDF da tela Importar Dados."
 
 const provenance = new Set(["linhaorigemid", "linhaxml", "abaorigem", "versaotratamento"])
 const layout = new Set(["naturezaoriginal", "naturezapadronizadapcdf", "datainiciofatooriginal",

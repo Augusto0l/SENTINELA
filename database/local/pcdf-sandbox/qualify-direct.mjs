@@ -5,13 +5,15 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { Client } from "pg";
+import { utils, write } from "xlsx";
 import { freePort, httpValidation } from "../../../scripts/http-validation-output.mjs";
 
 const input = [];
 for await (const chunk of process.stdin) input.push(chunk);
 const { root, analyst } = JSON.parse(Buffer.concat(input).toString("utf8"));
-const port = 3318;
-const origin = "http://127.0.0.1:" + port;
+const origin = process.env.SENTINELA_APP_ORIGIN;
+const port = Number(new URL(origin).port);
+const integrated = port === 3000;
 const route = "/api/v1/importacoes/pcdf/direta";
 const password = randomBytes(32).toString("hex");
 const roles = ["Administrador", "Operador", "Analista"];
@@ -28,6 +30,22 @@ const bytes = month => readFile(join(root, name(month)));
 const checks = [];
 let stage = "preflight";
 let lifecycle, browser;
+
+async function start() {
+  await freePort(port);
+  const id = randomUUID();
+  lifecycle = httpValidation(id, { port });
+  await lifecycle.prepare();
+  const child = lifecycle.start({ ...process.env, SENTINELA_LOCAL_ACCOUNTS_FILE: accountsFile,
+    SENTINELA_HTTP_VALIDATION_ID: id }, "ignore");
+  const deadline = Date.now() + 150000;
+  while (child.exitCode === null && Date.now() < deadline) {
+    const probe = await fetch(origin + "/login", { signal: AbortSignal.timeout(5000) }).catch(() => null);
+    if (probe?.status === 200) { lifecycle.proveListener(); return; }
+    await delay(500);
+  }
+  throw Error("Next local não iniciou no prazo");
+}
 
 async function login(index) {
   const response = await fetch(origin + "/auth/login", {
@@ -84,21 +102,8 @@ async function verifyDbPermissions() {
 }
 
 try {
-  await freePort(port);
   await writeFile(accountsFile, JSON.stringify({ accounts }), { flag: "wx" });
-  const id = randomUUID();
-  lifecycle = httpValidation(id, { port });
-  await lifecycle.prepare();
-  const child = lifecycle.start({ ...process.env, SENTINELA_LOCAL_ACCOUNTS_FILE: accountsFile,
-    SENTINELA_HTTP_VALIDATION_ID: id }, "ignore");
-  const deadline = Date.now() + 150000;
-  let ready = false;
-  while (child.exitCode === null && Date.now() < deadline) {
-    const probe = await fetch(origin + "/login", { signal: AbortSignal.timeout(5000) }).catch(() => null);
-    if (probe?.status === 200) { lifecycle.proveListener(); ready = true; break; }
-    await delay(500);
-  }
-  assert(ready, "Next local não iniciou no prazo");
+  await start();
 
   stage = "auth_and_permissions";
   const [admin, operator, analystCookie] = await Promise.all([0, 1, 2].map(login));
@@ -116,15 +121,24 @@ try {
 
   stage = "browser";
   browser = await chromium.launch({ channel: "msedge", headless: true });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const page = await context.newPage();
   page.setDefaultTimeout(45000);
   await page.context().addCookies([{ name: admin.split("=")[0], value: admin.split("=")[1], url: origin }]);
   const historyLoaded = page.waitForResponse(r => r.url() === origin + route && r.request().method() === "GET");
   await page.goto(origin + "/importar", { waitUntil: "domcontentloaded" });
   await data(await historyLoaded, 200);
-  await page.getByRole("heading", { name: "Importação PCDF", exact: true }).waitFor();
+  await page.getByRole("heading", { name: integrated ? "Importar ocorrências" : "Importação PCDF", exact: true }).waitFor();
+  if (integrated) {
+    await page.getByText("Importar Dados", { exact: true }).first().waitFor();
+    await page.getByText("Arraste um arquivo CSV ou XLSX para esta área").waitFor();
+    await page.getByRole("button", { name: "Selecionar arquivo" }).waitFor();
+    await page.getByRole("link", { name: "Baixar modelo CSV" }).waitFor();
+    await page.getByRole("link", { name: "Baixar modelo XLSX" }).waitFor();
+    assert.equal(await page.getByText("Demonstração · sem persistência", { exact: true }).count(), 0);
+  }
   stage = "browser_preview";
-  await page.getByLabel("Arquivo CSV mensal").setInputFiles(join(root, name(january)));
+  await page.getByLabel(integrated ? "Arquivo CSV ou XLSX" : "Arquivo CSV mensal").setInputFiles(join(root, name(january)));
   await page.getByText("Layout PCDF v1.0 reconhecido").waitFor();
   assert.match(await page.getByText("6.393 associações · 34 campos", { exact: false }).innerText(), /2.948.416 bytes/);
   assert.equal(await page.locator("thead th").count(), 36);
@@ -147,7 +161,7 @@ try {
   assert.equal(first.records, 6393);
   await page.getByRole("heading", { name: "Gravação confirmada" }).waitFor();
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.getByText("Gravada em staging · 6.393 associações · Administrador").waitFor();
+  await page.getByText(/Gravada em staging · .*6\.393 associações · Administrador/).waitFor();
   checks.push("selecao, reconhecimento, 34 campos, paginacao, incompletos, confirmacao, historico apos recarregar");
 
   stage = "api_integrity";
@@ -191,6 +205,61 @@ try {
   assert.equal(history.filter(x => x.status === "falhou" && x.month === april && !x.lot).length, 1);
   assert.equal((await get(admin, "/api/v1/importacoes/pcdf")).status, 403);
   checks.push("concorrencia, rollback tardio, auditoria persistente, rota legada desligada");
+  if (integrated) {
+    stage = "general_xlsx_and_detail";
+    const general = "/api/v1/importacoes/geral";
+    assert.equal((await get(analystCookie, general)).status, 403);
+    await page.getByRole("button", { name: "Atualizar histórico PCDF" }).click();
+    const januaryEntry = page.locator("article").filter({ hasText: first.run }).filter({ hasText: "Reconciliação conferida" }).first();
+    await januaryEntry.getByRole("button", { name: "Consultar registros PCDF" }).click();
+    const persisted = page.getByRole("region", { name: "Registros PCDF gravados" });
+    await persisted.waitFor();
+    assert.equal(await persisted.locator("thead th").count(), 36);
+    assert.equal(await persisted.locator("tbody tr").count(), 25);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, utils.aoa_to_sheet([["Data", "Hora", "Tipo de crime", "RA", "Endereço alternativo", "Nota"],
+      ["2026-01-06", "13:04", "Furto", "Plano Piloto", "Via sintética de integração", "000007"],
+      ["2026-01-07", "17:01", "Furto", "Plano Piloto", "Via sintética de integração", "000008"]]), "Dados");
+    const content = write(workbook, { type: "buffer", bookType: "xlsx", compression: true });
+    await page.context().addCookies([{ name: operator.split("=")[0], value: operator.split("=")[1], url: origin }]);
+    const operatorSession = page.waitForResponse(r => r.url() === origin + general && r.request().method() === "GET");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await data(await operatorSession, 200);
+    await page.getByLabel("Arquivo CSV ou XLSX").setInputFiles({
+      name: "sintetico-local.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: content });
+    await page.getByRole("heading", { name: "Mapeamento de colunas" }).waitFor();
+    await page.getByLabel("Local/endereço *", { exact: true }).selectOption("4");
+    await page.getByRole("button", { name: "Validar e pré-visualizar" }).click();
+    await page.getByRole("button", { name: "Revisar confirmação" }).click();
+    const upload = page.waitForResponse(r => r.url() === origin + general && r.request().method() === "POST");
+    await page.getByRole("button", { name: "Confirmar importação", exact: true }).click();
+    assert.equal((await data(await upload, 201)).persisted, 2);
+    await page.getByRole("heading", { name: "Gravação confirmada" }).waitFor();
+    await page.getByLabel("Arquivo CSV ou XLSX").setInputFiles({ name: "pcdf_naturezas_2021-01.csv",
+      mimeType: "text/csv", buffer: Buffer.from("campo;outro\n") });
+    await page.getByText(/Layout PCDF v1.0 incompatível/).waitFor();
+    checks.push("tela original, detalhes de staging, XLSX do Operador, mapeamento manual, CSV incompatível");
+    stage = "backend_failure_and_restart";
+    await page.route("**" + route, intercepted => intercepted.abort("failed"));
+    await page.getByRole("button", { name: "Atualizar histórico PCDF" }).click();
+    await page.getByText("Backend de importação indisponível.", { exact: true }).waitFor();
+    await page.unroute("**" + route);
+    await page.close();
+    await lifecycle.finish();
+    lifecycle = undefined;
+    await start();
+    const restored = await context.newPage();
+    restored.setDefaultTimeout(60000);
+    await restored.goto(origin + "/importar", { waitUntil: "domcontentloaded" });
+    await restored.getByText(/Gravada em staging · .*6\.393 associações · Administrador/).waitFor();
+    await restored.getByText("sintetico-local.xlsx", { exact: true }).waitFor();
+    for (const path of ["/dashboard", "/mapa-criminal", "/ocorrencias", "/login"]) {
+      const view = await restored.goto(origin + path, { waitUntil: "domcontentloaded", timeout: 70000 });
+      assert.equal(view?.status(), 200);
+      if (path !== "/login") assert.equal(new URL(restored.url()).pathname, path);
+    }
+    checks.push("erro explícito de backend, histórico após reiniciar o Next.js, Dashboard, Mapa, Ocorrências e login");
+  }
   stage = "complete";
 } catch (error) {
   console.log(JSON.stringify({ resultado: "REPROVADO", stage, checks, erro: error.message.slice(0, 400) }));

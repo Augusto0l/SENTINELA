@@ -1,10 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDensityField, densityColor, HEAT_COLORS, HEAT_RADIUS, HEAT_MAX_OPACITY, sampleDensity, projectHeatRecords } from "../src/components/map/heatmapDensity.ts";
+import { createDensityField, DASHBOARD_HEAT, densityColor, HEAT_COLORS, HEAT_RADIUS, HEAT_MAX_OPACITY, sampleDensity, projectHeatRecords } from "../src/components/map/heatmapDensity.ts";
 
 test("calor usa longitude/latitude válidas; não substitui coordenadas ausentes por x/y ou centroides", () => {
   const records = [{ latitude: 20, longitude: 30, x: 99, y: 99 }, { latitude: NaN, longitude: 30, x: 99, y: 99 }, { latitude: 91, longitude: 30 }, { latitude: 20, longitude: Infinity }, { latitude: 20, longitude: 181 }, { latitude: 20, longitude: 50 }];
   assert.deepEqual(projectHeatRecords(records, (longitude, latitude) => ({ x: longitude, y: latitude }), x => x < 40), [{ x: 30, y: 20 }]);
+});
+
+test("calor no Dashboard respeita o raio, o sigma e a opacidade definidos para a tela", () => {
+  const point = [{ x: 40, y: 40 }];
+  const dashboard = createDensityField(point, 100, 100, undefined, DASHBOARD_HEAT);
+  const standard = createDensityField(point, 100, 100);
+  assert.equal(sampleDensity(dashboard, 46, 40), Math.fround(Math.exp(-0.5)), "sigma de 6 unidades");
+  assert.equal(sampleDensity(dashboard, 58, 40), 0, "truncamento a 18 unidades");
+  assert.ok(sampleDensity(standard, 58, 40) > 0);
+  assert.equal(densityColor(dashboard.peak, dashboard.peak, DASHBOARD_HEAT.maxOpacity)[3], Math.round(255 * 0.76));
 });
 
 test("concentração aumenta com registros próximos e não cria calor entre pontos afastados", () => {

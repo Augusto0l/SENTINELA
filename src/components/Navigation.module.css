@@ -137,3 +137,55 @@
   .demoNote { padding-bottom: 10px; }
   .sidebarFooter { padding-block: 10px; }
 }
+
+.dashboardSidebar {
+  --nav-bg: #07172b;
+  --nav-border: #203c5c;
+  --nav-text: #b4c8df;
+  background: linear-gradient(185deg, #0a1d34, var(--nav-bg) 42%);
+}
+.dashboardSidebar .collapseButton,
+.dashboardSidebar .workspace,
+.dashboardSidebar .userCard { background: #0b213b; }
+.dashboardSidebar .workspaceIcon { color: #94caff; background: #123154; }
+.dashboardSidebar .groupLabel { color: #91acca; }
+.dashboardSidebar .navIcon { color: #a2bedf; }
+.dashboardSidebar .navItem:hover,
+.dashboardSidebar .collapseButton:hover { background: #173454; }
+.dashboardSidebar .navItem[aria-current="page"] {
+  background: linear-gradient(105deg, #146cf4, #1053c7);
+  border-color: #388cf8;
+  box-shadow: 0 3px 12px #04102568;
+}
+.dashboardSidebar .navItem[aria-current="page"] .navIcon { color: #f0f7ff; }
+.dashboardSidebar .activeDot { background: #d3e9ff; }
+.dashboardSidebar .demoIndicator { background: #21d99a; }
+.dashboardSidebar > form { padding-inline: 12px; }
+.dashboardSidebar > form .navItem > svg { flex-shrink: 0; color: #a2bedf; }
+
+.dashboardHeader { min-height: 83px; }
+:global([data-theme="escuro"]) .dashboardHeader {
+  background: #071528;
+  border-color: #1d3857;
+}
+.dashboardHeader .pageTitle { font-size: 21px; font-weight: 700; }
+.dashboardHeader .subtitle { font-size: 12px; }
+.dashboardHeader .iconButton { border-radius: 7px; }
+
+@media (min-width: 1024px) {
+  .dashboardSidebar:not(.collapsed) { width: 267px; min-width: 267px; }
+  .dashboardSidebar:not(.collapsed) .workspace { margin-inline: 12px; margin-bottom: 14px; }
+  .dashboardSidebar .navItem { font-size: 13px; }
+  .dashboardHeader { padding: 12px 26px; }
+}
+@media (min-width: 1024px) and (min-height: 800px) {
+  .dashboardSidebar:not(.collapsed) .sidebarFooter { margin-top: 32px; padding: 14px 12px 43px; }
+}
+@media (max-width: 767px) {
+  .dashboardHeader { gap: 4px 12px; }
+  .dashboardHeader .pageTitle { font-size: 18px; }
+  .dashboardHeader .profile { font-size: 11px; }
+}
+@media (max-width: 479px) {
+  .dashboardSidebar > form { padding-inline: 6px; }
+}

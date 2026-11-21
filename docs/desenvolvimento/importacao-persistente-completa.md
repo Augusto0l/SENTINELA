@@ -2,9 +2,9 @@
 
 ## Escopo
 
-O fluxo geral de `/importar` usa o laboratório PostgreSQL 17/PostGIS com dados sintéticos e autenticação local. O frontend reutiliza seleção e arraste, Worker de leitura, mapeamento automático e manual, prévia paginada e filtro por situação. O navegador envia os bytes originais somente depois da confirmação.
+Em `localhost:3000/importar`, o fluxo geral usa o mesmo PostgreSQL 17/PostGIS dedicado do receptor PCDF e as contas locais do SENTINELA. O frontend reutiliza seleção e arraste, Worker de leitura, mapeamento automático e manual, prévia paginada e filtro por situação. O navegador envia os bytes do arquivo geral na confirmação. A migração local reaproveita as funções de staging, auditoria, reconciliação e detalhe homologadas no laboratório. [Início e uso da aplicação integrada](piloto-pcdf-2021-01.md)
 
-O receptor PCDF direto usa um banco local dedicado e aceita o manifesto técnico opcional. A importação geral recusa o padrão de nome e os cabeçalhos de layout ou proveniência PCDF no Worker e no servidor. A API sintética PCDF existente permanece regida pela sua própria validação de fixture. [Importação PCDF v1.0](../contratos/importacao-pcdf-v1.0.md) · [Recepção direta PCDF](piloto-pcdf-2021-01.md)
+O seletor compartilhado encaminha o CSV com nome ou cabeçalhos PCDF para o receptor especializado antes de abrir o Worker geral. O manifesto técnico é opcional. As funções do laboratório 55432 ficam disponíveis para o ensaio sintético isolado descrito abaixo. [Importação PCDF v1.0](../contratos/importacao-pcdf-v1.0.md) · [Recepção direta PCDF](piloto-pcdf-2021-01.md)
 
 ## Formatos e limites
 

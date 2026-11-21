@@ -12,7 +12,7 @@ import {
   type RAData,
 } from "./raMapData";
 import type { MockOccurrence } from "../../data/mockOccurrences";
-import { createDensityField, HEAT_GRADIENT, projectHeatRecords } from "@/components/map/heatmapDensity";
+import { createDensityField, DASHBOARD_HEAT, HEAT_GRADIENT, projectHeatRecords } from "@/components/map/heatmapDensity";
 import { renderDensityHeatmap } from "@/components/map/heatmapCanvas";
 import styles from "@/components/map/AnalyticMap.module.css";
 
@@ -45,6 +45,8 @@ type Props = {
   heatReferenceOccurrences?: readonly MockOccurrence[];
   officialRegions?: RAData[];
   heatUnavailable?: boolean;
+  countsUnavailable?: boolean;
+  dashboardZoom?: number;
 };
 
 function colorFor(value: number, min: number, max: number) {
@@ -104,6 +106,8 @@ export default function MapaDF({
   heatReferenceOccurrences = mockOccurrences,
   officialRegions,
   heatUnavailable = false,
+  countsUnavailable = false,
+  dashboardZoom,
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
@@ -116,15 +120,21 @@ export default function MapaDF({
   const regions = officialRegions ?? RAS;
   const selectedRA = selectedRaCode ? (officialRegions ? regions.find(region => region.code === selectedRaCode) : RA_BY_CODE[selectedRaCode]) : undefined;
   const visibleRAs = selectedRA ? [selectedRA] : regions;
-  const viewBox = selectedRA ? selectedRA.viewBox : MAP_VIEWBOX;
+  const fittedViewBox = selectedRA ? selectedRA.viewBox : MAP_VIEWBOX;
+  const [x, y, width, height] = fittedViewBox.split(" ").map(Number);
+  const zoom = dashboardZoom ?? 1;
+  const viewBox = zoom === 1 ? fittedViewBox
+    : [x + width * (1 - 1 / zoom) / 2, y + height * (1 - 1 / zoom) / 2, width / zoom, height / zoom].join(" ");
+  const dashboard = dashboardZoom !== undefined;
+  const heatStyle = dashboard ? DASHBOARD_HEAT : undefined;
   // The location picker also uses this component; preserve its existing appearance.
-  const heatmapActive = mapMode === "heat" && !onClickPoint && !heatUnavailable;
+  const heatmapActive = mapMode === "heat" && !onClickPoint && !heatUnavailable && !countsUnavailable;
   const analyticMap = !onClickPoint;
   const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(" ").map(Number);
 
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || (mapMode !== "points" && mapMode !== "clusters")) return;
+    if (!svg || (!dashboard && mapMode !== "points" && mapMode !== "clusters")) return;
     const update = () => {
       const matrix = svg.getScreenCTM();
       const scale = matrix ? Math.hypot(matrix.a, matrix.b) : 1;
@@ -134,7 +144,7 @@ export default function MapaDF({
     const observer = new ResizeObserver(update);
     observer.observe(svg);
     return () => { cancelAnimationFrame(frame); observer.disconnect(); };
-  }, [mapMode, viewBox]);
+  }, [dashboard, mapMode, viewBox]);
 
   const values = regions.map((ra) => occurrencesByRa[ra.code] ?? 0);
   const minValue = Math.min(...values);
@@ -157,11 +167,11 @@ export default function MapaDF({
   const referenceField = useMemo(() => {
     if (!heatDomain) return null;
     const points = projectHeatRecords(heatReferenceOccurrences, projectLonLat, heatDomain.contains);
-    return createDensityField(points, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains);
-  }, [heatDomain, heatReferenceOccurrences]);
+    return createDensityField(points, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains, heatStyle);
+  }, [heatDomain, heatReferenceOccurrences, heatStyle]);
 
   const heatPoints = useMemo(() => heatDomain ? projectHeatRecords(visibleOccs, projectLonLat, heatDomain.contains) : [], [visibleOccs, heatDomain]);
-  const heatField = useMemo(() => heatDomain ? createDensityField(heatPoints, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains) : null, [heatPoints, heatDomain]);
+  const heatField = useMemo(() => heatDomain ? createDensityField(heatPoints, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains, heatStyle) : null, [heatPoints, heatDomain, heatStyle]);
 
   const clusters = useMemo(
     () => (mapMode === "clusters" ? buildClusters(visibleOccs, 80) : []),
@@ -181,13 +191,13 @@ export default function MapaDF({
       if (!svgRef.current) return;
       const boundary = new Path2D();
       for (const ra of selectedRA ? [selectedRA] : regions) boundary.addPath(new Path2D(ra.path));
-      renderDensityHeatmap(canvas, svgRef.current, heatField, referenceField.peak, boundary);
+      renderDensityHeatmap(canvas, svgRef.current, heatField, referenceField.peak, boundary, heatStyle?.maxOpacity);
     };
     draw();
     const observer = new ResizeObserver(draw);
     if (svgRef.current) observer.observe(svgRef.current);
     return () => observer.disconnect();
-  }, [heatmapActive, heatField, referenceField, viewBox, selectedRA, regions]);
+  }, [heatmapActive, heatField, referenceField, viewBox, selectedRA, regions, heatStyle]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (containerRef.current) {
@@ -196,9 +206,10 @@ export default function MapaDF({
     }
   };
 
+  const activeHoveredOcc = hoveredOcc && visibleOccs.includes(hoveredOcc) ? hoveredOcc : null;
   const tooltipRA = hoveredCode ? RA_BY_CODE[hoveredCode] : null;
   const tooltipCount =
-    hoveredCode != null ? (occurrencesByRa[hoveredCode] ?? null) : null;
+    hoveredCode != null && !countsUnavailable ? (occurrencesByRa[hoveredCode] ?? null) : null;
 
   const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!onClickPoint || !svgRef.current) return;
@@ -212,14 +223,14 @@ export default function MapaDF({
 
   if (mapMode === "satellite") return (
     <SatelliteBoundary>
-      <SatelliteMap selectedRaCode={selectedRaCode} onSelectRa={onSelectRa} occurrencesByRa={occurrencesByRa} official={Boolean(officialRegions)} />
+      <SatelliteMap selectedRaCode={selectedRaCode} onSelectRa={onSelectRa} occurrencesByRa={occurrencesByRa} official={Boolean(officialRegions)} countsUnavailable={countsUnavailable} />
     </SatelliteBoundary>
   );
 
   return (
     <div
       ref={containerRef}
-      className={analyticMap ? styles.map : undefined}
+      className={analyticMap ? `${styles.map}${dashboard ? ` ${styles.dashboardMap}` : ""}` : undefined}
       style={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
       onMouseMove={handleMouseMove}
     >
@@ -242,7 +253,7 @@ export default function MapaDF({
                 key={ra.code}
                 role="button"
                 tabIndex={onSelectRa ? 0 : undefined}
-                aria-label={`${ra.displayName}: ${count} ocorrências${officialRegions ? "" : " demonstrativas"}`}
+                aria-label={`${ra.displayName}: ${countsUnavailable ? "dados indisponíveis" : `${count} ocorrências${officialRegions ? "" : " demonstrativas"}`}`}
                 aria-pressed={selectedRaCode === ra.code}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -420,8 +431,9 @@ export default function MapaDF({
 
       {/* Legend */}
       {!selectedRA && analyticMap && (
-        <div className={styles.legend} style={{ position: "absolute", bottom: 14, left: 16, pointerEvents: "none", background: "rgba(7,17,31,.94)", border: "1px solid #354d69", borderRadius: 7, padding: "8px 10px", fontSize: 10 }}>
+        <div className={styles.legend} style={{ position: "absolute", bottom: dashboard ? 12 : 14, left: dashboard ? undefined : 16, right: dashboard ? 12 : undefined, pointerEvents: "none", background: "rgba(7,17,31,.94)", border: "1px solid #354d69", borderRadius: 7, padding: "8px 10px", fontSize: 10 }}>
           {mapMode === "heat" ? <>
+            {dashboard && <div>Densidade de ocorrências</div>}
             <div style={{ display: "flex", justifyContent: "space-between", gap: 24, fontSize: 9, marginBottom: 5 }}><span>Menor densidade</span><span>Maior densidade</span></div>
             <div style={{ width: 168, maxWidth: "100%", height: 7, borderRadius: 4, background: HEAT_GRADIENT }} />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 8 }}><span>Baixa</span><span>Média</span><span>Alta</span></div>
@@ -431,6 +443,7 @@ export default function MapaDF({
           </>}
         </div>
       )}
+      {dashboard && <MapScale pixelsPerKm={symbolScale * GEO_BOUNDS.scale / 111.32} />}
       {!selectedRA && !analyticMap && (
         <div style={{
           position: "absolute", bottom: 14, left: 16, pointerEvents: "none",
@@ -455,7 +468,7 @@ export default function MapaDF({
       )}
 
       {/* RA hover tooltip */}
-      {hoveredCode && tooltipRA && tooltipPos && !hoveredOcc && (
+      {hoveredCode && tooltipRA && tooltipPos && !activeHoveredOcc && (
         <div
           style={{
             position: "absolute",
@@ -487,7 +500,7 @@ export default function MapaDF({
       )}
 
       {/* Occurrence point tooltip */}
-      {hoveredOcc && tooltipPos && (
+      {activeHoveredOcc && tooltipPos && (
         <div
           style={{
             position: "absolute",
@@ -505,15 +518,21 @@ export default function MapaDF({
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-fb923c)", marginBottom: 4 }}>
-            {hoveredOcc.natureza}
+            {activeHoveredOcc.natureza}
           </div>
-          <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>{hoveredOcc.raName}</div>
+          <div style={{ fontSize: 12, color: "var(--theme-94a3b8)", marginBottom: 2 }}>{activeHoveredOcc.raName}</div>
           {!officialRegions && <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>
-            {hoveredOcc.data} — {hoveredOcc.horario}
+            {activeHoveredOcc.data} — {activeHoveredOcc.horario}
           </div>}
-          {!officialRegions && <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "monospace" }}>{hoveredOcc.id}</div>}
+          {!officialRegions && <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "monospace" }}>{activeHoveredOcc.id}</div>}
         </div>
       )}
     </div>
   );
+}
+
+function MapScale({ pixelsPerKm }: { pixelsPerKm: number }) {
+  const distance = [20, 10, 5, 2, 1].find(km => km * pixelsPerKm <= 104);
+  if (!distance) return null;
+  return <div className={styles.dashboardScale} style={{ width: distance * pixelsPerKm }}>{distance} km</div>;
 }

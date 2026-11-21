@@ -136,6 +136,7 @@ def main():
     mode.add_argument("--provision", action="store_true", help="Create the empty operational PCDF database")
     mode.add_argument("--serve", type=Path, metavar="MANIFEST")
     mode.add_argument("--qualify", action="store_true", help="Use a separate synthetic-only PostgreSQL cluster")
+    mode.add_argument("--qualify-main", action="store_true", help="Qualify the combined workflow on localhost:3000")
     args = parser.parse_args()
     configure_controller()
     cluster = None
@@ -156,9 +157,9 @@ def main():
             stage = "inicio_postgresql"
             control.start(cluster, admin, run=runner)
         else:
-            if args.qualify:
-                free_http(QUALIFICATION_ORIGIN)
-            purpose = "sintetico" if args.qualify else "operacional"
+            if args.qualify or args.qualify_main:
+                free_http("http://localhost:3000" if args.qualify_main else QUALIFICATION_ORIGIN)
+            purpose = "sintetico" if args.qualify or args.qualify_main else "operacional"
             admin = secrets.token_hex(32)
             credentials = {role: secrets.token_hex(32) for role in ROLES}
             runner = backup.bootstrap_runner(commands, admin)
@@ -178,10 +179,13 @@ def main():
             print(ORIGIN + "/importar", flush=True)
             return subprocess.run(["node", "scripts/next-cli.mjs", "dev", "--port", "3317"],
                                   cwd=control.REPO, env=app_environment(cluster, credentials)).returncode
-        if args.qualify:
+        if args.qualify_main:
+            from main_import_migration import apply
+            apply(cluster, admin, runner, commands)
+        if args.qualify or args.qualify_main:
             stage = "homologacao_sintetica"
             from direct_qualification import qualify
-            qualify(cluster, admin, runner, credentials)
+            qualify(cluster, admin, runner, credentials, integrated=args.qualify_main)
         print(json.dumps({"resultado": "APROVADO", "cluster": cluster["uuid"], "banco": DATABASE,
                           "porta": PORT, "manifesto": str(root / "manifest.json")}), flush=True)
         return 0

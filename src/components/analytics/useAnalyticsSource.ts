@@ -59,7 +59,10 @@ export function useAnalyticsSource(persistent: boolean, filters: AnalyticSelecti
     mapRecords: demo?.mapRecords ?? points,
     heatReference: persistent ? reference : MOCK_OCCURRENCES,
     heatUnavailable: Boolean(data?.heatUnavailable), pointsTruncated: Boolean(data?.pointsTruncated),
-    regionOptions: persistent ? officialRegions?.map(region => ({ codigo: region.code, nomeDisplay: region.displayName })) ?? [] : RA_LIST,
+    regionOptions: persistent
+      ? officialRegions?.map(region => ({ codigo: region.code, nomeDisplay: region.displayName }))
+        ?? catalogRegions?.map(region => ({ codigo: region.code, nomeDisplay: region.name })) ?? []
+      : RA_LIST,
     catalogOptions: persistent ? { natures: catalog?.natures ?? [], categories: catalog?.categories ?? [] } : undefined,
     officialRegions, geometryError, pending, error, retry,
     periodLabel: persistent ? (filters.period === "custom" ? demoPeriodLabel(filters) : "Todo o período") : demoPeriodLabel(filters),

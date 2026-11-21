@@ -40,3 +40,59 @@
   color: var(--color-text-muted);
   font-size: 12px;
 }
+.compactFilters {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.compactPeriod {
+  position: relative;
+  flex: 1 1 165px;
+}
+.compactPeriod svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  color: var(--theme-f1f5f9);
+  pointer-events: none;
+}
+.compactPeriod select, .compactDetails summary {
+  min-height: 38px;
+  border-color: var(--theme-1e3a5f);
+  background: var(--theme-0d1626);
+  color: var(--theme-f1f5f9);
+  font-weight: 600;
+}
+.compactPeriod select { padding-left: 38px; }
+.compactDetails summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 7px;
+  padding: 0 11px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.compactDetails summary::-webkit-details-marker { display: none; }
+.compactDetails summary span { border-radius: 9px; padding: 1px 6px; background: #1856a5; color: #fff; }
+.compactPanel {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(310px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 10px;
+  background: var(--theme-0d1626);
+  box-shadow: 0 12px 24px #0005;
+}
+.compactDates { flex-basis: 100%; }
+.compactDates .field { flex-basis: 110px; }
