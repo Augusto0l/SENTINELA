@@ -17,8 +17,8 @@ from uuid import uuid4
 
 from manifest_receiver import HEADERS, LINE_VERSION, ORIGINALS, TECHNICAL, compact_json, line_id, prepare_month
 from pipeline import InvalidFile, MAX_BYTES, XML_FIXTURE
-from pilot_preflight import (CSV_SHA256, EXECUTION_SCOPE, NAME, approval, release_matches,
-                             report as preflight_report, signed_inputs)
+from pilot_preflight import (CSV_SHA256, EXECUTION_SCOPE, IDENTITY_SCOPE, NAME, SCOPE, approval,
+                             bind_release, release_matches, report as preflight_report, verify_documents)
 import pilot_recovery
 from qualify import HERE, backup, control, fixture
 from workspace import prepare_synthetic
@@ -107,33 +107,48 @@ def synthetic_approval(manifest, target):
 
 
 class ManifestTests(unittest.TestCase):
-    def test_execution_release_binds_independent_approval_operator_and_destination(self):
-        args = SimpleNamespace(**{name: name for name in ("chave", "aprovacao", "autorizacao", "assinatura",
-                                                         "assinatura_autorizacao")})
-        record = b"unit test approval bytes"
+    def test_execution_release_requires_three_bound_decisions(self):
+        args = SimpleNamespace(**{name: name for name in (
+            "chave", "aprovacao", "identidade", "autorizacao", "assinatura",
+            "assinatura_identidade", "assinatura_autorizacao")})
+        manifest_raw, identity_raw = b"unit test approval", b"unit test identity"
         manifest = {"manifesto_sha256": "3" * 64, "aprovador": "Aprovador de ensaio",
-                    "aprovado_em": "2026-08-01T00:00:00+00:00", "expira_em": "2026-08-31T00:00:00+00:00"}
-        release = {**manifest, "aprovacao_sha256": sha256(record).hexdigest(), "referencia": "test/pilot",
-                   "banco": "sentinela_pcdf_piloto", "porta": 55481, "login": "pcdf_pilot_executor",
-                   "competencia": "2021-01", "arquivo": NAME, "csv_sha256": CSV_SHA256, "consolidacao": False,
-                   "operador": "Operador de ensaio", "ator_id": str(uuid4()), "autorizacao_identidade": "test/actor",
+                    "referencia": "test/manifest", "aprovado_em": "2026-08-01T00:00:00+00:00",
+                    "expira_em": "2026-08-31T00:00:00+00:00"}
+        identity = {**manifest, "referencia": "test/actor", "aprovador": "Seguranca de ensaio",
+                    "banco": "sentinela_pcdf_piloto", "porta": 55481, "login": "pcdf_pilot_executor",
+                    "competencia": "2021-01", "operador": "Operador de ensaio", "ator_id": str(uuid4()),
+                    "aprovado_em": "2026-08-03T00:00:00+00:00", "expira_em": "2026-08-27T00:00:00+00:00"}
+        release = {**identity, "referencia": "test/pilot", "aprovacao_sha256": sha256(manifest_raw).hexdigest(),
+                   "identidade_sha256": sha256(identity_raw).hexdigest(), "autorizacao_identidade": "test/actor",
+                   "arquivo": NAME, "csv_sha256": CSV_SHA256, "consolidacao": False,
                    "aprovado_em": "2026-08-02T00:00:00+00:00", "expira_em": "2026-08-26T00:00:00+00:00"}
-        with patch("pilot_preflight.read_bounded", side_effect=[b"key fixture", record, b"load fixture", b"a", b"b"]), \
-             patch("pilot_preflight.approval", side_effect=[manifest, release]) as verify:
-            binding = signed_inputs(args, "test-cluster", "pin")
-        self.assertEqual(verify.call_args_list[1].args[-1], EXECUTION_SCOPE)
-        self.assertEqual(verify.call_args_list[0].args[-2:], ("pin", "test-cluster"))
-        self.assertEqual(binding["starts_at"], release["aprovado_em"])
+        pin = sha256(b"key fixture").hexdigest()
+        with patch("pilot_preflight.read_bounded",
+                   side_effect=[b"key fixture", manifest_raw, b"a", identity_raw, b"b", b"load fixture", b"c"]), \
+             patch("pilot_preflight.approval", side_effect=[manifest, identity, release]) as verify:
+            checks, verified = verify_documents(args, "test-cluster", pin)
+        self.assertEqual([call.args[-1] for call in verify.call_args_list], [SCOPE, IDENTITY_SCOPE, EXECUTION_SCOPE])
+        self.assertEqual([item["resultado"] for item in checks], ["APROVADO"] * 3)
+        binding = bind_release(verified, pin, "2021-01", NAME, CSV_SHA256)
+        self.assertEqual(binding["starts_at"], identity["aprovado_em"])
         self.assertEqual(binding["expires_at"], release["expira_em"])
         self.assertTrue(release_matches(binding, binding))
         self.assertFalse(release_matches({**binding, "payload": "alterado"}, {**binding, "payload": "aprovado"}))
         for key, value in (("operador", manifest["aprovador"]), ("aprovacao_sha256", "5" * 64),
-                           ("login", "pcdf_pilot_qualification"), ("competencia", "2026-08"),
-                           ("porta", 55432), ("consolidacao", True), ("autorizacao_identidade", "")):
-            with self.subTest(key=key), patch("pilot_preflight.read_bounded", return_value=record), \
-                 patch("pilot_preflight.approval", side_effect=[manifest, {**release, key: value}]), \
-                 self.assertRaises(InvalidFile):
-                signed_inputs(args, "test-cluster", "pin")
+                           ("identidade_sha256", "6" * 64), ("autorizacao_identidade", "outra"),
+                           ("ator_id", str(uuid4())), ("login", "pcdf_pilot_qualification"),
+                           ("competencia", "2026-08"), ("porta", 55432), ("consolidacao", True)):
+            invalid = {**verified, "carga": ({**release, key: value}, verified["carga"][1])}
+            with self.subTest(key=key), self.assertRaises(InvalidFile):
+                bind_release(invalid, pin, "2021-01", NAME, CSV_SHA256)
+
+        args.assinatura_identidade = None
+        with patch("pilot_preflight.read_bounded", side_effect=[b"key fixture", manifest_raw, b"a", b"x", b"c"]), \
+             patch("pilot_preflight.approval", side_effect=[manifest, release]):
+            checks, verified = verify_documents(args, "test-cluster", pin)
+        self.assertEqual(preflight_report(checks)["resultado"], "PENDENTE")
+        self.assertNotIn("identidade", verified)
 
     def test_preflight_never_promotes_an_unresolved_requirement(self):
         passed = {"resultado": "APROVADO"}

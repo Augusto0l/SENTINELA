@@ -1,11 +1,12 @@
 import type { PersistentQuery } from "@/contracts/persistent-occurrences"
+import { visibleOccurrence } from "@/lib/db/occurrence-visibility"
 
 const columns = ["id", "origem", "fonte", "ano_registro", "unidade_registro", "numero_registro", "identidade_status", "data_fato", "horario_fato", "local", "latitude", "longitude", "localizacao_status", "consolidacao_status", "ativo", "versao", "criado_em", "atualizado_em"]
 const sort = { data: "data_fato", horario: "horario_fato", identificacao: "numero_registro", local: "local", ra: "ra_nome" } as const
 export function occurrenceSql(query: PersistentQuery, id?: string) {
   const values: unknown[] = []
   const bind = (v: unknown) => { values.push(v); return `$${values.length}` }
-  const filters = ["true"]
+  const filters = [visibleOccurrence]
   if (id) filters.push(`o.id=${bind(id)}::uuid`)
   if (query.raId) filters.push(`o.ra_id=${bind(query.raId)}::uuid`)
   if (query.naturezaId) filters.push(`EXISTS (SELECT 1 FROM sentinela.ocorrencia_naturezas a JOIN sentinela.naturezas_criminais n ON n.id=a.natureza_id WHERE a.ocorrencia_id=o.id AND n.id=${bind(query.naturezaId)}::uuid)`)

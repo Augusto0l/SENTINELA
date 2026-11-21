@@ -151,3 +151,41 @@ O manifesto integral do SENTINELA-DADOS registra **6.393 associações** para `p
 6. A consolidação exige autorização e regras adicionais para identidade policial e precedência entre extrações, mapeamentos criminais, códigos e vigência de RA, CRS, datum, eixos e marcador `NULL` em coordenadas. A camada de consulta, a Central em escala real e a exposição de dados dependem de política institucional específica.
 
 A verificação de um arquivo sintético não autoriza o uso de registros reais. Registros reais, XML e CSVs do SENTINELA-DADOS não foram usados pelos ensaios.
+
+## Sequência histórica
+
+O inventário documental conferiu 68 competências consecutivas, de `2021-01` a `2026-08`, com 369.660 associações e layout de 34 campos. A impressão observada do manifesto integral é `892ec5e61d493088bb9c7008bbaadfa4566401fd32df64562bc0684da7fcff8e`. A aprovação independente desse artefato continua com o custodiante e o aprovador institucional. [Checklist de janeiro](piloto-pcdf-2021-01.md#checklist-de-autorização)
+
+```powershell
+python -B database/local/pcdf-sandbox/pilot_history.py --manifesto <manifesto-integral> --inventario
+python -B database/local/pcdf-sandbox/pilot_history.py --manifesto <manifesto-integral> --manifesto-sha256 <hash-independente> --cluster <manifesto-local-do-cluster> --aceites <diretorio-privado> --chave <chave-publica-institucional>
+```
+
+O modo atestado usa uma transação de leitura com snapshot consistente. Ele cruza competência, hashes, lote, execução, contagens, ausência de promoção e recibo correlacionado com a tentativa auditada. Uma divergência, um lote duplicado ou um mês adiantado bloqueia a sequência. Uma execução durável fica `AGUARDANDO_ACEITE` e dispensa reimportação. Uma tentativa sem execução aparece como `ultima_tentativa`. Reutilize a requisição somente com a mesma autorização vigente e os mesmos hashes. Caso a autorização mude, o DBA e o custodiante registram novo contexto antes de retomar.
+
+O homologador conserva em área privada um JSON e a assinatura Ed25519 em `<AAAA-MM>.json` e `<AAAA-MM>.sig`. O JSON usa os campos comuns das decisões de janeiro, o escopo `pcdf-historico-aceite-staging`, `competencia`, `csv_sha256`, `lote`, `execucao`, `requisicao`, `reconciliacao` igual à comparação integral do recibo, `publicacao: false` e `consolidacao: false`. O controlador verifica a assinatura com a âncora institucional, a janela, os identificadores duráveis e todos os critérios da reconciliação. Comprometa o aceite somente depois da conferência campo a campo conduzida por responsável autorizado. Mantenha as janelas dos aceites anteriores vigentes para a conferência da sequência.
+
+Somente a primeira competência ainda sem aceite pode ser indicada. Depois do aceite de janeiro, o controlador indica fevereiro. O DBA apresenta novas decisões assinadas por competência. A opção `--verificar-entrega` recebe os argumentos de evidência, CSV e XML do preflight, aplica escopos vinculados ao mês selecionado e valida hashes, layout, contagem e proveniência antes de devolver `APROVADA_PARA_CONFERENCIA`. A preparação histórica é de leitura e conferência. O executor de escrita instalado aceita apenas janeiro. Depois do aceite do piloto, a ampliação técnica do executor para escrita mês a mês precisa ser qualificada preservando o bloqueio no banco, o vínculo à autorização de cada lote e a trilha de auditoria. Complete a reconciliação e o aceite de cada competência antes de iniciar a seguinte.
+
+## Leitura funcional e limites
+
+As consultas locais de ocorrências, detalhe, indicadores e referência de calor aplicam uma regra comum. Preservam registros manuais e só admitem importações ativas, consolidadas e de origem sintética `PCDF-SANDBOX` na homologação isolada. O PostgreSQL continua a aplicar RLS. O mapa usa coordenadas presentes e validadas. Ocorrências sem coordenadas continuam representadas nos totais elegíveis. A Central mantém suas permissões existentes, com correções exclusivas do Administrador.
+
+Para integrar dados reais às consultas, a equipe responsável precisa aprovar identidade policial e precedência entre extrações, natureza criminal, RA e vigência, e CRS, datum, eixos e coordenadas ausentes. Na etapa funcional, a equipe qualifica a fonte publicada, as regras de leitura, acesso por perfil, as dimensões dos gráficos e o mapa. O staging continua isolado da consolidação e da publicação.
+
+### Verificações da continuidade em 21/11/2026
+
+- O destino dedicado passou nas 20 verificações sintéticas. O ensaio de concorrência sincronizou as duas conexões pelo recibo recebido da primeira e pela espera observada no lock da segunda. A reconciliação aprovou 6.393 IDs distintos, 34 campos e 18 originais, com zero divergências. A reversão deixou o banco vazio. Recibo `pilot-executor-da33bf79-f220-42f6-917e-f98dcdc4cb9a.json`.
+- O laboratório repetiu nove verificações, incluindo reenvio com commit, RLS e recuperação em 55482, com zero promoções. Recibo `receiver-result.json` em `rls-sandbox-663e695d-e9ac-46e1-a614-9ed40c959534`.
+- As 12 verificações SQL com fixtures em memória e PostGIS cobriram visibilidade, paginação, múltiplas naturezas, séries, filtros e falta de coordenadas. A aferição do navegador usou respostas HTTP sintéticas no Dashboard e Mapa Criminal, em 1.440 e 390 pixels, incluindo indisponibilidade. O relatório HTTP `282f215e-059c-4c8f-806a-03203053912e` também registra as verificações de sessão e perfis sem conexão com banco compartilhado.
+- Passaram 254 testes Node, 177 Python, TypeScript, ESLint, contratos/OpenAPI, rotas estáticas, baseline e build. A preparação do receptor segue em 100%. A integração geral permanece em 50%, com piloto real e integração histórica e funcional ainda pendentes.
+
+## Descrição do PR institucional
+
+**Título** — Preparar receptor PCDF v1.0, piloto em staging e sequência histórica
+
+**Resumo** — Adiciona recepção do manifesto v1.0, executor PostgreSQL restrito, verificação de três decisões institucionais, reconciliação auditada e controlador cronológico de conferência. Restringe a visibilidade da importação sintética em consultas, indicadores e mapa à homologação isolada. Atualiza o procedimento de ativação e aceite.
+
+**Validação** — Anexar os totais de testes e os resultados sanitizados da atestação, reconciliação sintética, recuperação, APIs e build. Preservar em área privada credenciais, dumps, assinaturas, dados de origem e evidências com conteúdo restrito.
+
+**Base e publicação** — Usar `CAMPUSCEUB/Sentinela`, base `main`, cabeça `feat/integracao-pcdf-real`. A consulta institucional confirmou `main` em `69a8bdeb0a4673bd3f7e1cfb727e5499a5971d8d`, ancestral da branch e sem divergência com `ceub/main`. Após autorização institucional de publicação, conferir novamente `main`, fazer `git push ceub HEAD:refs/heads/feat/integracao-pcdf-real` e abrir o PR como rascunho para revisão. A revisão desse PR cobre código e testes. A ativação e o tratamento de dados dependem das decisões registradas no checklist do piloto.

@@ -7,6 +7,9 @@ const { parseAnalyticsSearch, persistentAnalyticsData, PERSISTENT_ANALYTICS_PATH
 const { analyticsSql } = await import("../src/lib/db/analytics-query.ts")
 const { analyticsGET } = await import("../src/lib/db/analytics-http.ts")
 const { isLocalReadEndpoint } = await import("../src/lib/db/http.ts")
+const { DatabaseUnavailable, persistentDestination } = await import("../src/lib/db/config.ts")
+const { occurrenceSql } = await import("../src/lib/db/occurrence-query.ts")
+const { persistentQuerySchema } = await import("../src/contracts/persistent-occurrences.ts")
 const { projectOfficialRegions } = await import("../src/components/map/officialRegions.ts")
 const { CARTOGRAPHY_SHA256 } = await import("../src/data/territorial-validation.ts")
 
@@ -21,6 +24,24 @@ test("persistent filters reject duplicate, malformed and out-of-order inputs", (
   assert.equal(sql.values.at(-1), "XXXVII")
   assert(!sql.text.includes("XXXVII"))
   assert(!sql.text.includes("numero_registro"))
+})
+
+test("occurrence list, detail, dashboard and heat reference share the same local fixture boundary", () => {
+  const query = persistentQuerySchema.parse({ page: 2, pageSize: 3 })
+  const list = occurrenceSql(query)
+  const detail = occurrenceSql(query, "30000000-0000-4000-8000-000000000001")
+  const analytics = analyticsSql({})
+  for (const statement of [list, detail, analytics]) {
+    assert.match(statement.text, /o\.origem='manual'/)
+    assert(statement.text.includes(`current_database()='${persistentDestination.database}'`))
+    assert.match(statement.text, /o\.fonte='PCDF-SANDBOX' AND o\.ativo AND o\.consolidacao_status='consolidada'/)
+    assert.doesNotMatch(statement.text, /linhas_staging|linhas_origem/)
+  }
+  assert.deepEqual(list.values, [3, 3])
+  assert.deepEqual(detail.values, ["30000000-0000-4000-8000-000000000001", 1, 0])
+  assert.match(analytics.text, /matched AS MATERIALIZED \(SELECT \* FROM visible/)
+  assert.match(analytics.text, /reference AS \(\s*SELECT .* FROM visible/)
+  assert.equal(analytics.text.match(/localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL/g)?.length, 2)
 })
 
 test("operational map projects all 37 official features without modifying the pinned source", async () => {
@@ -53,6 +74,10 @@ test("persistent analytics authenticates before querying and returns only privat
       assert.match(response.headers.get("cache-control"),/no-store/)
       persistentAnalyticsData.parse((await response.json()).data)
     }
+    const unavailable = await analyticsGET(request(), async () => user, async () => { throw new DatabaseUnavailable() })
+    assert.equal(unavailable.status,503)
+    assert.match(unavailable.headers.get("cache-control"),/no-store/)
+    assert.equal((await unavailable.json()).success,false)
     assert(!persistentAnalyticsData.safeParse({ ...data, points:[{ raCode:"RA-I", latitude:-15.8, longitude:-47.8, local:"private" }] }).success)
     assert(isLocalReadEndpoint(PERSISTENT_ANALYTICS_PATH,"GET"))
     assert(!isLocalReadEndpoint(PERSISTENT_ANALYTICS_PATH,"POST"))

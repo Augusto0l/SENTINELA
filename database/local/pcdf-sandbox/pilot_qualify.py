@@ -1,12 +1,14 @@
 """Qualify the dedicated pilot with an expiring SCRAM login and rollback-only synthetic traffic."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
 import runpy
 import secrets
+import subprocess
 from time import monotonic, sleep
 from uuid import uuid4
 
@@ -14,7 +16,8 @@ from manifest_receiver import compact_json, prepare_month
 from pipeline import InvalidFile
 from pilot_preflight import SCOPE, approval
 from pilot_runtime import (ACTOR, FIXTURE, HERE, LOGIN, RECEIPT_PREFIX, SCHEMA, Pilot,
-                           control, document_sql, expect_denial, fixture_role, literal, receive_sql, reconciliation,
+                           backup, control, document_sql, expect_denial, fixture_role, literal, receive_sql, reconciliation,
+                           recovery,
                            verify_denials)
 
 VOLUME = 6393
@@ -48,16 +51,37 @@ def connection_refused(pilot, secret, *, role=FIXTURE, database=None):
         raise AssertionError("Unauthorized connection accepted")
 
 
-def wait_for(pilot, event, job):
-    deadline = monotonic() + 25
+def wait_for_advisory_lock(pilot, job):
+    deadline = monotonic() + 90
     while monotonic() < deadline and not job.done():
         if pilot.query(f"""SELECT EXISTS (SELECT FROM pg_stat_activity
-          WHERE usename='{FIXTURE}' AND wait_event={literal(event)})"""):
+          WHERE usename='{FIXTURE}' AND wait_event_type='Lock' AND wait_event='advisory')"""):
             return
         sleep(0.2)
     if job.done():
         job.result()
-    raise AssertionError(f"Concurrent observation missing: {event}")
+    raise AssertionError("Concurrent advisory wait not observed")
+
+
+@contextmanager
+def staging_session(pilot, secret, statement):
+    command = [str(control.BIN / "psql.exe"), "-X", "-qAt", *recovery.endpoint(pilot.cluster, FIXTURE),
+               "-v", "ON_ERROR_STOP=1", "-f", "-"]
+    with subprocess.Popen(command, env=backup.clean_env(secret, False), stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding="utf8",
+                          creationflags=subprocess.CREATE_NO_WINDOW) as client:
+        try:
+            client.stdin.write(statement + "\n")
+            client.stdin.flush()
+            yield client.stdout
+        finally:
+            try:
+                client.stdin.write("ROLLBACK;\n")
+                client.stdin.close()
+                control.require(client.wait(timeout=15) == 0, "First staging session failed")
+            except (BrokenPipeError, subprocess.TimeoutExpired):
+                client.kill()
+                raise
 
 
 def qualify(pilot, receipt):
@@ -146,21 +170,23 @@ def qualify(pilot, receipt):
         control.require(pilot.counts() == baseline, "Rollback left residual data")
         checks.append("rollback")
 
-        def concurrent(request_id, pause):
+        def concurrent(request_id):
             commands = type(pilot.commands)()
             result = restricted(f"""BEGIN;
               SELECT {call('record_attempt',request_id)};
               SELECT {call('receive',request_id)};
-              {pause}
               ROLLBACK;""", commands)
             return next(json.loads(line) for line in result.splitlines() if line.strip())
 
+        first_request = uuid4()
         with ThreadPoolExecutor(max_workers=2) as pool:
-            first_job = pool.submit(concurrent, uuid4(), "SELECT pg_sleep(19);")
-            wait_for(pilot, "PgSleep", first_job)
-            second_job = pool.submit(concurrent, uuid4(), "")
-            wait_for(pilot, "advisory", second_job)
-            first_run, second_run = first_job.result(), second_job.result()
+            with staging_session(pilot, qualification_secret, rf"""BEGIN;
+              SELECT {call('record_attempt',first_request)} AS attempted \gset
+              SELECT {call('receive',first_request)};""") as output:
+                first_run = json.loads(pool.submit(output.readline).result(timeout=120))
+                second_job = pool.submit(concurrent, uuid4())
+                wait_for_advisory_lock(pilot, second_job)
+            second_run = second_job.result()
         control.require(first_run["records"] == second_run["records"] == VOLUME
                         and not first_run["replay"] and not second_run["replay"]
                         and first_run["run"] != second_run["run"], "Concurrent retry after rollback differs")

@@ -1,21 +1,22 @@
 import { ANALYTICS_POINT_LIMIT, persistentAnalyticsQuery, type PersistentAnalyticsQuery } from "@/contracts/persistent-analytics"
+import { visibleOccurrence } from "@/lib/db/occurrence-visibility"
 
 export function analyticsSql(input: PersistentAnalyticsQuery) {
   const query = persistentAnalyticsQuery.parse(input)
   const values: unknown[] = []
   const bind = (value: unknown) => { values.push(value); return `$${values.length}` }
-  const base = ["o.ativo"]
-  if (query.startDate) base.push(`o.data_fato >= ${bind(query.startDate)}::date`)
-  if (query.endDate) base.push(`o.data_fato <= ${bind(query.endDate)}::date`)
+  const filters = ["true"]
+  if (query.startDate) filters.push(`o.data_fato >= ${bind(query.startDate)}::date`)
+  if (query.endDate) filters.push(`o.data_fato <= ${bind(query.endDate)}::date`)
   if (query.hour) {
     const [start, end] = query.hour.split("-").map(Number)
-    base.push(`o.horario_fato >= make_time(${bind(start)}::int,0,0) AND o.horario_fato < ${bind(end === 24 ? "24:00" : `${end}:00`)}::time`)
+    filters.push(`o.horario_fato >= make_time(${bind(start)}::int,0,0) AND o.horario_fato < ${bind(end === 24 ? "24:00" : `${end}:00`)}::time`)
   }
   if (query.nature || query.category) {
     const constraints = ["a.ocorrencia_id=o.id"]
     if (query.nature) constraints.push(`n.id=${bind(query.nature)}::uuid`)
     if (query.category) constraints.push(`c.id=${bind(query.category)}::uuid`)
-    base.push(`EXISTS (SELECT 1 FROM sentinela.ocorrencia_naturezas a
+    filters.push(`EXISTS (SELECT 1 FROM sentinela.ocorrencia_naturezas a
       JOIN sentinela.naturezas_criminais n ON n.id=a.natureza_id
       LEFT JOIN sentinela.mapeamentos_natureza m ON m.id=a.mapeamento_id AND m.natureza_id=a.natureza_id
       LEFT JOIN sentinela.categorias_criminais c ON c.id=m.categoria_id WHERE ${constraints.join(" AND ")})`)
@@ -24,19 +25,20 @@ export function analyticsSql(input: PersistentAnalyticsQuery) {
   const limit = ANALYTICS_POINT_LIMIT
   const text = `WITH regions AS MATERIALIZED (
     SELECT id,codigo_interno::text AS code,nome::text AS name FROM sentinela.regioes_administrativas
-  ), matched AS MATERIALIZED (
+  ), visible AS MATERIALIZED (
     SELECT o.id,r.code,o.data_fato,o.horario_fato,o.latitude,o.longitude,o.localizacao_status
     FROM sentinela.ocorrencias o LEFT JOIN regions r ON r.id=o.ra_id
-    WHERE ${base.join(" AND ")}
-  ), selected AS MATERIALIZED (SELECT * FROM matched${selected}),
+    WHERE o.ativo AND ${visibleOccurrence}
+  ), matched AS MATERIALIZED (SELECT * FROM visible o WHERE ${filters.join(" AND ")}),
+  selected AS MATERIALIZED (SELECT * FROM matched${selected}),
   points AS (
     SELECT id,code AS "raCode",latitude,longitude FROM selected
     WHERE code IS NOT NULL AND localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL
     ORDER BY id LIMIT ${limit + 1}
   ), reference AS (
-    SELECT o.id,code AS "raCode",latitude,longitude FROM sentinela.ocorrencias o JOIN regions r ON r.id=o.ra_id
-    WHERE ativo AND localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL
-    ORDER BY o.id LIMIT ${limit + 1}
+    SELECT id,code AS "raCode",latitude,longitude FROM visible
+    WHERE code IS NOT NULL AND localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL
+    ORDER BY id LIMIT ${limit + 1}
   )
   SELECT jsonb_build_object(
     'total',(SELECT count(*) FROM selected),'mapTotal',(SELECT count(*) FROM matched),

@@ -34,11 +34,15 @@ export async function checkPersistentAnalyticsInterface({ origin, cookie }) {
         await route.fulfill({ status: 200, json })
       })
       const page = await context.newPage()
+      page.setDefaultTimeout(60000)
       const errors = []
       page.on("pageerror", error => errors.push(error.name))
       const verify = async path => {
+        stage = `${width} ${path} navigation`
+        const response = await page.goto(origin + path, { waitUntil: "domcontentloaded", timeout: 90000 })
+        assert.equal(response?.status(), 200)
+        assert.equal(new URL(page.url()).pathname, path.split("?")[0])
         stage = `${width} ${path} indicators`
-        await page.goto(origin + path)
         await page.locator('[data-testid="analytics-total"][data-count="1"]').waitFor()
         stage = `${width} ${path} heatmap`
         await page.getByTestId("crime-heatmap").waitFor()
