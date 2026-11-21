@@ -59,8 +59,11 @@ def requirement(identifier, description, status, evidence, blocking=None):
 
 
 def report(checks):
-    states = {check["resultado"] for check in checks}
-    status = "REPROVADO" if "REPROVADO" in states else "PENDENTE" if "PENDENTE" in states else "APROVADO"
+    states = {check.get("resultado") for check in checks}
+    if not states or states - {"APROVADO", "PENDENTE"}:
+        status = "REPROVADO"
+    else:
+        status = "PENDENTE" if "PENDENTE" in states else "APROVADO"
     return {"resultado": status, "requisitos": checks}
 
 

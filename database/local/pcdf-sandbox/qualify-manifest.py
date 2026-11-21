@@ -11,11 +11,13 @@ import secrets
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
 from manifest_receiver import HEADERS, LINE_VERSION, ORIGINALS, TECHNICAL, compact_json, line_id, prepare_month
 from pipeline import InvalidFile, MAX_BYTES, XML_FIXTURE
-from pilot_preflight import approval
+from pilot_preflight import approval, report as preflight_report
+import pilot_recovery
 from qualify import HERE, backup, control, fixture
 from workspace import prepare_synthetic
 
@@ -103,6 +105,36 @@ def synthetic_approval(manifest, target):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_preflight_never_promotes_an_unresolved_requirement(self):
+        passed = {"resultado": "APROVADO"}
+        self.assertEqual(preflight_report([])["resultado"], "REPROVADO")
+        self.assertEqual(preflight_report([passed, {}])["resultado"], "REPROVADO")
+        self.assertEqual(preflight_report([passed])["resultado"], "APROVADO")
+        self.assertEqual(preflight_report([passed, {"resultado": "PENDENTE"}])["resultado"], "PENDENTE")
+        self.assertEqual(preflight_report([passed, {"resultado": "PENDENTE"}, {"resultado": "REPROVADO"}])[
+            "resultado"], "REPROVADO")
+
+    def test_pilot_catalog_refuses_incompatible_evidence(self):
+        inspect = pilot_recovery.dedicated.inspect
+        evidence = {"postgres": "17.11", "postgis": "3.6.2", "rls": 19, "fks": 34,
+                    "staging": 0, "origins": 0, "occurrences": 0, "audit": 0, "role_restricted": True,
+                    "memberships": 0, "no_schema_create": True, "no_write": True, "public_connect": False}
+        with patch.object(control, "attest"), patch.object(control, "psql", return_value=json.dumps(evidence)):
+            self.assertEqual(inspect({}, "", None), evidence)
+        for key, value in (("postgis", None), ("fks", 33), ("rls", 18), ("role_restricted", False),
+                           ("no_write", False), ("public_connect", True), ("staging", 1)):
+            broken = {**evidence, key: value}
+            with self.subTest(key=key), patch.object(control, "attest"), patch.object(
+                control, "psql", return_value=json.dumps(broken)
+            ), self.assertRaises(control.Refused):
+                inspect({}, "", None)
+        for failure in ("wrong database", "wrong cluster", "unavailable", "bad credential"):
+            with self.subTest(failure=failure), patch.object(
+                control, "attest", side_effect=control.Refused(failure)
+            ), patch.object(control, "psql") as query, self.assertRaises(control.Refused):
+                inspect({}, "", None)
+            query.assert_not_called()
+
     def test_approval_rejects_wrong_scope_target_key_expiry_and_signature(self):
         signed = synthetic_approval(b"fixture", "sandbox-test")
         grant = approval(*signed, "sandbox-test", scope="pcdf-fixture")
@@ -270,10 +302,13 @@ def qualify_database():
     runner = backup.bootstrap_runner(commands, password)
     cluster = control.prepare("Portuguese_Brazil.1252", run=runner)
     sql = HERE / "receiver-staging-fixture.sql"
+    service_sql = HERE / "receiver-service-fixture.sql"
     cluster["artifacts"][str(sql.relative_to(control.REPO))] = control.digest(sql)
+    cluster["artifacts"][str(service_sql.relative_to(control.REPO))] = control.digest(service_sql)
     control.save(cluster)
     evidence = Path(cluster["root"]) / "evidence"
     report = {"result": "FAIL", "checks": [], "data": "synthetic"}
+    service_secret = secrets.token_urlsafe(40)
 
     def query(statement):
         return json.loads(control.psql(cluster, password, sql=statement, run=runner))
@@ -281,6 +316,14 @@ def qualify_database():
     def sql_delivery(payload):
         encoded = base64.b64encode(compact_json(payload).encode()).decode()
         return f"convert_from(decode('{encoded}','base64'),'UTF8')::jsonb"
+
+    def admin_stdin(statement):
+        def stdin(exe, args, password=None, console=False):
+            return commands.call(exe, args, password=password, input=statement, timeout=90)
+        return control.psql(cluster, password, file="-", run=stdin)
+
+    def service(statement):
+        return pilot_recovery.login_sql(commands, cluster, service_secret, statement)
 
     def record(payload):
         request = uuid4()
@@ -333,10 +376,15 @@ def qualify_database():
 
     try:
         control.create(cluster, run=runner)
+        pilot_recovery.allow_fixture_login(cluster)
         control.start(cluster, password, run=runner)
         control.install(cluster, password, run=runner)
         control.attest(cluster, password, run=runner)
         control.psql(cluster, password, file=sql, run=runner)
+        admin_stdin(pilot_recovery.role_sql(service_secret))
+        control.psql(cluster, password, file=service_sql, run=runner)
+        report["serviceDenials"] = pilot_recovery.permissions(commands, cluster, service_secret)
+        mark("authenticated_service_negative_permissions")
         report["database"] = query("""SELECT json_build_object('name',current_database(),'host',host(inet_server_addr()),
           'port',inet_server_port(),'version',current_setting('server_version'),
           'postgis',(SELECT extversion FROM pg_extension WHERE extname='postgis'))""")
@@ -416,8 +464,29 @@ def qualify_database():
         signed = synthetic_approval(large_manifest, cluster["uuid"])
         grant = approval(*signed, cluster["uuid"], scope="pcdf-fixture")
         large_payload = prepare_month(large, MONTH, large_manifest, grant["manifesto_sha256"], (large_xml,))
-        volume = stage(large_payload, record(large_payload))
+        batch = sql_delivery(large_payload)
+        admin_stdin(f"""INSERT INTO sentinela_pcdf_receiver_fixture.approved_delivery
+          SELECT d->>'manifestSha',d->'batch'->>'sha256',d->'source'->>'sha256',
+            encode(sha256(convert_to(d::text,'UTF8')),'hex') FROM (SELECT {batch} d) q;""")
+        service(f"""DO $test$ BEGIN
+          PERFORM sentinela_pcdf_receiver_fixture.receive_fixture({batch},gen_random_uuid());
+          RAISE EXCEPTION 'Unaudited delivery accepted';
+          EXCEPTION WHEN SQLSTATE '22023' THEN NULL; END $test$;""")
+        def service_request():
+            request = uuid4()
+            audit = sql_delivery({"sha256": large_payload["batch"]["sha256"], "manifesto_sha256": grant["manifesto_sha256"]})
+            service(f"SELECT sentinela_pcdf_receiver_fixture.record_attempt({audit},'{request}');")
+            return f"SELECT sentinela_pcdf_receiver_fixture.receive_fixture({batch},'{request}');"
+
+        service("BEGIN;" + service_request() + "ROLLBACK;")
+        assert query("SELECT count(*) FROM sentinela.linhas_staging") == 6
+        requests = [service_request(), service_request()]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            volume, replay = sorted(map(json.loads, pool.map(service, requests)), key=lambda row: row["replay"])
         assert volume["records"] == 6393 and not volume["replay"]
+        assert replay["replay"] and replay["lot"] == volume["lot"] and replay["run"] == volume["run"]
+        assert query("""SELECT count(*) FROM sentinela.eventos_auditoria
+          WHERE acao='tentativa_iniciada' AND depois->>'login'='pcdf_fixture_login'""") == 3
         assert query(f"""SELECT jsonb_build_array(count(*), count(DISTINCT linha_origem_id))
           FROM sentinela.linhas_staging WHERE execucao_id='{volume["run"]}'""") == [6393, 6393]
         matched = reconcile(volume, large)
@@ -426,6 +495,8 @@ def qualify_database():
           (SELECT count(*) FROM sentinela.ocorrencias),
           (SELECT count(*) FROM sentinela.ocorrencia_naturezas))""") == [0, 0]
         mark("volume_6393_rows_and_independent_extraction")
+        report["backup"] = pilot_recovery.restore_and_compare(cluster, password, runner, commands, service_secret)
+        mark("independent_restore_schema_acl_and_exact_rows")
         report.update(result="PASS", stagingRows=6399, promoted=0, volumeBytes=len(large),
                       comparedRows=matched, differences=0, syntheticApproval="ed25519")
     except (Exception, KeyboardInterrupt) as error:

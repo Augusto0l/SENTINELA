@@ -137,6 +137,8 @@ O destino sugerido é `D:\Projetos\SENTINELA-PCDF`, na mesma unidade e fora de `
 
 ## Primeiro piloto real em janeiro de 2021
 
+O procedimento operacional e os comandos de qualificação da identidade sintética e de recuperação estão no [runbook de janeiro](piloto-pcdf-2021-01.md).
+
 O fluxo real permanece sem ponto de entrada. A próxima implementação deve criar uma operação administrativa dedicada que receba os bytes do canal privado, obtenha o hash aprovado por fonte independente e use um principal de serviço restrito ao staging no destino atestado. A função SQL de fixture continua reservada à homologação sintética.
 
 O manifesto integral do SENTINELA-DADOS registra **6.393 associações** para `pcdf_naturezas_2021-01.csv`, contagem também indicada na distribuição mensal. O tamanho registrado é de **2.948.416 bytes** e o SHA-256 do CSV é `e202df3622fbd5f0b4ae53e7a8f435bce9ad58ff30a43a3c248ce2d369fd3770`. Esses metadados foram consultados no manifesto. A conferência dos bytes do CSV fica para a execução autorizada.
