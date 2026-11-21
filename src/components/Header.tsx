@@ -11,7 +11,7 @@ import styles from "@/components/Navigation.module.css"
 interface HeaderProps {
   title: string
   subtitle?: string
-  dataMode?: "read-only"
+  dataMode?: "read-only" | "pcdf-staging"
 }
 
 export default function Header({ title, subtitle, dataMode }: HeaderProps) {
@@ -22,6 +22,11 @@ export default function Header({ title, subtitle, dataMode }: HeaderProps) {
   const notify = useDemoToast()
   const group = pathname.startsWith("/ocorrencias") || pathname === "/importar"
     ? "Ocorrências" : pathname === "/usuarios" || pathname === "/configuracoes" ? "Gestão" : "Visão Geral"
+  const dataBadge = dataMode === "pcdf-staging"
+    ? { label: "PostgreSQL local · staging PCDF", title: "Recepção persistente em origem e staging." }
+    : dataMode === "read-only"
+      ? { label: "PostgreSQL local · leitura", title: "Consulta PostgreSQL local, somente leitura. Dados sintéticos." }
+      : { label: "Demonstração · sem persistência", title: "Dados fictícios. Alterações somente em memória, perdidas ao recarregar." }
   return (
     <header className={`system-topbar ${styles.header}`}>
       <div className={styles.pageContext}>
@@ -29,7 +34,7 @@ export default function Header({ title, subtitle, dataMode }: HeaderProps) {
           <span className={styles.breadcrumbBrand}>SENTINELA</span>
           <NavigationIcon name="chevron" size={11} />
           <span>{group}</span>
-          <span className={styles.demoBadge} title={dataMode ? "Consulta PostgreSQL local, somente leitura. Dados sintéticos." : "Dados fictícios. Alterações somente em memória, perdidas ao recarregar."}>{dataMode ? "PostgreSQL local · leitura" : "Demonstração · sem persistência"}</span>
+          <span className={styles.demoBadge} title={dataBadge.title}>{dataBadge.label}</span>
         </div>
         <div className={styles.pageTitleRow}>
           <span className={styles.pageTitle}>{title}</span>

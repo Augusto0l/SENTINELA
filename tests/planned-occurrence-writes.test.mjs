@@ -80,6 +80,7 @@ test("static route inventory allows only the explicitly gated isolated write han
   const expected = new Map([
     ["ocorrencias/route.ts", "POST"], ["ocorrencias/[id]/route.ts", "PATCH"], ["ocorrencias/[id]/inativacao/route.ts", "POST"],
     ["importacoes/pcdf/route.ts", "POST"], ["importacoes/pcdf/[id]/consolidacao/route.ts", "POST"],
+    ["importacoes/pcdf/direta/route.ts", "POST"],
     ["importacoes/geral/route.ts", "POST"], ["importacoes/geral/revisao/[id]/route.ts", "PATCH"],
     ["central-revisao/[id]/route.ts", "PATCH"],
   ])
@@ -104,7 +105,8 @@ test("static route inventory allows only the explicitly gated isolated write han
     const relative = decodeURIComponent(file.pathname).split("/api/v1/")[1]
     const method = expected.get(relative)
     assert.deepEqual(names.filter(name=>["POST","PUT","PATCH","DELETE"].includes(name)),method ? [method] : [])
-    if (generalOperations.has(relative)) assert(source.includes(`return pcdfWorkspace(request, "${generalOperations.get(relative)}"`))
+    if (relative === "importacoes/pcdf/direta/route.ts") assert.match(source, /export const POST = directPcdf/)
+    else if (generalOperations.has(relative)) assert(source.includes(`return pcdfWorkspace(request, "${generalOperations.get(relative)}"`))
     else if (method) assert.match(source, relative.startsWith("ocorrencias/")
       ? /return isolatedOccurrenceMutation\(request\)/ : /return pcdfWorkspace\(request, "(upload|promote|decide)"/)
     assert.equal(names.includes("GET"), !writeOnly.has(relative))

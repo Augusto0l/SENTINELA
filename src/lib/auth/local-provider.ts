@@ -57,8 +57,10 @@ export async function localConfig(env = process.env): Promise<Config> {
   return { accounts, directory: join(dirname(actual), "sentinela-sessions"), fingerprint: createHash("sha256").update(raw).digest("hex") }
 }
 const tokenName = (token: string) => createHash("sha256").update(token).digest("hex") + ".json"
-export function localPrincipal(account: Account): Principal & { localSubject?: string } {
+export function localPrincipal(account: Account): Principal & { localSubject?: string; localAccountId: string } {
+  const localAccountId = createHash("sha256").update(JSON.stringify(["sentinela-local", account.role, account.email])).digest("hex")
   return { id: `LOCAL-${account.role}`, authUserId: "", name: `Desenvolvimento — ${account.role}`, role: account.role, source: "local",
+    localAccountId,
     ...(account.subject && { localSubject: account.subject }) }
 }
 export async function localSession(token: string | undefined, host: string | null, env = process.env, now = Date.now()): Promise<ReturnType<typeof localPrincipal> | null> {

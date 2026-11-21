@@ -4,7 +4,7 @@
 
 O fluxo geral de `/importar` usa o laboratório PostgreSQL 17/PostGIS com dados sintéticos e autenticação local. O frontend reutiliza seleção e arraste, Worker de leitura, mapeamento automático e manual, prévia paginada e filtro por situação. O navegador envia os bytes originais somente depois da confirmação.
 
-O receptor institucional PCDF conserva o procedimento de manifesto, identidade autorizada e liberação específica da carga. A importação geral recusa o padrão de nome e os cabeçalhos de layout ou proveniência PCDF no Worker e no servidor. A API sintética PCDF existente permanece regida pela sua própria validação de fixture. [Importação PCDF v1.0](../contratos/importacao-pcdf-v1.0.md) · [Piloto institucional](piloto-pcdf-2021-01.md)
+O receptor PCDF direto usa um banco local dedicado e aceita o manifesto técnico opcional. A importação geral recusa o padrão de nome e os cabeçalhos de layout ou proveniência PCDF no Worker e no servidor. A API sintética PCDF existente permanece regida pela sua própria validação de fixture. [Importação PCDF v1.0](../contratos/importacao-pcdf-v1.0.md) · [Recepção direta PCDF](piloto-pcdf-2021-01.md)
 
 ## Formatos e limites
 
@@ -13,9 +13,9 @@ O receptor institucional PCDF conserva o procedimento de manifesto, identidade a
 | CSV | UTF-8 e BOM, UTF-16 com BOM e Windows-1252. Suporta vírgula, ponto e vírgula e tabulação, aspas escapadas, quebras em campos citados e linhas iniciais em branco. Quando o cabeçalho admite mais de um separador, escolha manualmente. |
 | XLSX | Seleção de planilha, cabeçalho e células reais. Datas seriais usam o calendário da planilha, sem mudar o valor bruto. Zeros à esquerda são preservados quando armazenados como texto. Fórmulas e erros de célula são diagnosticados, e fórmulas ficam apenas como texto de origem, sem avaliação. |
 | XLS | Exporte no aplicativo de origem como CSV ou XLSX. O fluxo qualificado usa o leitor OOXML com inspeção ZIP e limites de expansão. |
-| XML SpreadsheetML | O XML histórico permanece no fluxo institucional. O receptor confere o XML por fluxo de bytes e recebe os CSVs mensais autorizados. |
+| XML SpreadsheetML | O receptor PCDF direto recebe os CSVs mensais produzidos a partir do XML. O manifesto técnico permite conferir o vínculo declarado com a extração. |
 
-O upload geral aceita um arquivo de até 8 MiB, até 10 mil linhas por planilha, 64 colunas, 200 mil células, 4 mil caracteres por célula e 16 Mi caracteres por planilha. XLSX tem limites de 50 abas, 2.048 entradas ZIP e 100 MiB expandidos. A expansão real é conferida antes de entregar o conteúdo ao leitor. O Worker faz a prévia fora da thread da interface. O servidor limita os bytes enquanto lê o corpo e processa um arquivo por requisição. Divida arquivos que excedam os limites em partes ou use o procedimento institucional quando aplicável.
+O upload geral aceita um arquivo de até 8 MiB, até 10 mil linhas por planilha, 64 colunas, 200 mil células, 4 mil caracteres por célula e 16 Mi caracteres por planilha. XLSX tem limites de 50 abas, 2.048 entradas ZIP e 100 MiB expandidos. A expansão real é conferida antes de entregar o conteúdo ao leitor. O Worker faz a prévia fora da thread da interface. O servidor limita os bytes enquanto lê o corpo e processa um arquivo por requisição. Divida os arquivos gerais que excedam os limites em partes.
 
 ## Mapeamento, validação e staging
 
@@ -65,4 +65,4 @@ A inspeção autenticada do banco registrou quatro lotes, quatro execuções, 2.
 
 A regressão aprovou 259 testes Node, 177 testes Python, TypeScript, ESLint, contratos e OpenAPI, baseline, rotas estáticas e build do Next.js. O inventário de rotas de escrita inclui explicitamente os dois novos métodos protegidos da importação geral e continua recusando métodos não autorizados.
 
-A ativação fora do laboratório, a carga oficial PCDF e a consolidação ou publicação de registros reais dependem de homologação e autorização próprias.
+A recepção direta PCDF foi implementada em ambiente local dedicado. A consolidação e a publicação de registros reais ficam fora da recepção.

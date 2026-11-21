@@ -33,6 +33,8 @@
 .tableScroll th { background: var(--theme-0d1728); }
 .tableScroll th:first-child { width: 105px; }
 .tableScroll th:last-child { width: 260px; }
+.tableScroll .pcdfTable { min-width: 7100px; }
+.pcdfTable td { white-space: pre-wrap; }
 .tableScroll dl { margin-top: 8px; }
 .tableScroll dt { color: var(--theme-94a3b8); }
 .tableScroll dd { margin: 0 0 8px; white-space: pre-wrap; }

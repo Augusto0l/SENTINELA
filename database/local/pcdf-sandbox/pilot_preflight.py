@@ -1,16 +1,14 @@
-"""Read-only pilot preflight. The institutional key and execution release are external."""
+"""Offline PCDF file checks and read-only verification of historical pilot evidence."""
 import argparse
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
-import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 from uuid import UUID
 
-from manifest_receiver import MAX_MANIFEST_BYTES, prepare_month, read_manifest, unique_object
+from manifest_receiver import MAX_MANIFEST_BYTES, read_manifest, unique_object
 from pipeline import InvalidFile, MAX_BYTES
 
 MONTH = "2021-01"
@@ -166,140 +164,23 @@ def release_matches(catalog, bound):
                for key, value in bound.items())
 
 
-def check(pilot, args):
-    from pilot_runtime import SCHEMA, control, dedicated, document_sql, literal, recovery
-
-    checks = []
-    if not pilot.cluster.get("pilot_executor_schema_sha256"):
-        dedicated.inspect(pilot.cluster, pilot.admin, pilot.runner)
-        checks.append(requirement("executor", "Executor do piloto", "PENDENTE", None, "Provisão pendente"))
-        return report(checks), None
-
-    catalog = pilot.inspect()
-    consolidated = pilot.query("""BEGIN READ ONLY;
-      SELECT EXISTS (SELECT FROM sentinela.ocorrencias) OR EXISTS (SELECT FROM sentinela.ocorrencia_naturezas);
-      COMMIT;""")
-    control.require(not consolidated, "O destino dedicado contém ocorrências ou associações consolidadas")
-    checks.append(requirement("ambiente", "Cluster, schema, RLS, integridade e privilégios atestados", "APROVADO",
-                              {"cluster": pilot.cluster["uuid"], "banco": dedicated.DATABASE, "porta": dedicated.PORT,
-                               "rls": catalog["rls"], "fks": catalog["fks"], "consolidacao": False}))
-    pin = catalog["institutionalKey"]
-    secret = os.environ.get("SENTINELA_PCDF_EXECUTOR_PASSWORD")
-    if pin and args.chave_sha256 is not None and args.chave_sha256 != pin:
-        raise InvalidFile("chave_diverge_ancora_institucional")
-    decisions, verified = verify_documents(args, pilot.cluster["uuid"], pin)
-    checks.extend(decisions)
-    if (not catalog["active"] or not secret) and (not args.registrar or not secret):
-        checks.append(requirement("executor", "Autenticação e privilégios da identidade operacional", "PENDENTE",
-                                  None, "Aguardando ativação e credencial institucional"))
-    if len(verified) != 3 or not args.manifesto:
-        checks.append(requirement("entrega", "Manifesto e artefatos da entrega", "PENDENTE", None,
-                                  "Aguardando decisões verificadas e manifesto"))
-        return report(checks), None
-
-    bound = bind_release(verified, pin, MONTH, NAME, CSV_SHA256)
-    effective = pilot.effective(secret) if catalog["active"] and secret else None
-    manifest = read_bounded(args.manifesto, MAX_MANIFEST_BYTES)
-    evidence = metadata(manifest, bound["manifesto"])
-    if not args.csv or not args.xml:
-        checks.append(requirement("artefatos", "Bytes, estrutura e proveniência", "PENDENTE", None,
-                                  "Aguardando CSV de janeiro e XML correspondente"))
-        return report(checks), None
-
-    with args.xml.open("rb") as xml:
-        payload = prepare_month(read_bounded(args.csv, MAX_BYTES), MONTH, manifest, bound["manifesto"],
-                                iter(lambda: xml.read(1024 * 1024), b""))
-    sql = document_sql(payload)
-    checksum = pilot.admin_sql(f"""BEGIN READ ONLY;
-      SET LOCAL log_min_error_statement = 'panic';
-      SET LOCAL log_error_verbosity = 'terse';
-      SET LOCAL log_statement = 'none';
-      SET LOCAL log_min_duration_statement = -1;
-      SELECT encode(sha256(convert_to(({sql})::text,'UTF8')),'hex');
-      COMMIT;""")
-    bound.update(xml=payload["source"]["sha256"], payload=checksum)
-    checks.append(requirement("artefatos", "Bytes, estrutura e proveniência", "APROVADO", evidence))
-
-    if args.registrar and secret:
-        control.require(not catalog["active"] and not catalog["release"] and secret,
-                        "A fresh institutional credential and an inactive role are required")
-        # Only verified records reach the authorization registry. Recheck the trust anchor
-        # and actor in the same transaction that enables the login.
-        values = ",".join(literal(value) for value in bound.values())
-        verifier = recovery.scram(secret)
-        pilot.admin_sql(f"""BEGIN;
-          SET LOCAL log_min_error_statement = 'panic';
-          SET LOCAL log_error_verbosity = 'terse';
-          SET LOCAL log_statement = 'none';
-          SET LOCAL log_min_duration_statement = -1;
-          LOCK TABLE {SCHEMA}.target, {SCHEMA}.release IN EXCLUSIVE MODE;
-          DO $check$ BEGIN
-            IF NOT EXISTS (SELECT FROM {SCHEMA}.target WHERE institutional_key={literal(pin)})
-               OR NOT EXISTS (SELECT FROM sentinela.usuarios WHERE id={literal(bound["actor"])}
-                              AND ativo AND perfil='Operador')
-               OR clock_timestamp() >= {literal(bound["expires_at"])}::timestamptz THEN
-              RAISE EXCEPTION 'Authorization, actor or anchor refused';
-            END IF;
-          END $check$;
-          INSERT INTO {SCHEMA}.release ({",".join(bound)}) VALUES ({values});
-          ALTER ROLE pcdf_pilot_executor LOGIN PASSWORD {literal(verifier)}
-            VALID UNTIL {literal(bound["expires_at"])};
-          COMMIT;""")
-        try:
-            catalog = pilot.inspect()
-            effective = pilot.effective(secret)
-        except BaseException:
-            pilot.admin_sql(f"""BEGIN;
-              ALTER ROLE pcdf_pilot_executor NOLOGIN PASSWORD NULL VALID UNTIL 'infinity';
-              DELETE FROM {SCHEMA}.release WHERE release_record={literal(bound["release_record"])};
-              COMMIT;""")
-            raise
-
-    if catalog["release"] and not release_matches(catalog["release"], bound):
-        raise InvalidFile("autorizacao_diverge_registro_do_destino")
-    checks.append(requirement("liberacao", "Autorização vinculada aos bytes e ao executor",
-                              "APROVADO" if catalog["release"] else "PENDENTE", None,
-                              None if catalog["release"] else "Aguardando registro da autorização no destino"))
-    if effective:
-        checks.append(requirement("executor", "Autenticação e privilégios da identidade operacional", "APROVADO", effective))
-    return report(checks), sql
-
-
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    for option in ("manifesto", "aprovacao", "assinatura", "chave", "csv", "xml", "cluster",
-                   "autorizacao", "assinatura-autorizacao", "identidade", "assinatura-identidade"):
-        parser.add_argument("--" + option, type=Path)
-    parser.add_argument("--chave-sha256")
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--registrar", action="store_true")
-    mode.add_argument("--executar", action="store_true")
-    parser.add_argument("--requisicao", type=UUID, help="UUID de correlação reutilizável para retentativa")
+    from direct_input import prepare_direct, preview
+
+    parser = argparse.ArgumentParser(description="Validate a monthly PCDF CSV and optional technical manifest")
+    parser.add_argument("--csv", type=Path, required=True)
+    parser.add_argument("--manifesto", type=Path)
     args = parser.parse_args()
-    if args.executar and not args.requisicao:
-        parser.error("--executar exige --requisicao")
-    from pilot_runtime import Pilot, SCHEMA, control, receive_sql
-    if not args.cluster:
-        outcome = report([requirement("ambiente", "Atestação do destino", "PENDENTE", None,
-                                      "Informe o manifesto local do cluster dedicado")])
-    else:
-        try:
-            pilot = Pilot(args.cluster)
-            with pilot.running():
-                outcome, payload = check(pilot, args)
-                if args.executar and outcome["resultado"] == "APROVADO":
-                    secret = os.environ["SENTINELA_PCDF_EXECUTOR_PASSWORD"]
-                    request = args.requisicao
-                    pilot.restricted(secret, f"SELECT {SCHEMA}.record_attempt({payload},'{request}');")
-                    result = pilot.restricted(secret, "BEGIN;\n" + receive_sql(payload, request, ROWS) + "COMMIT;")
-                    outcome["recepcao"] = json.loads(result)
-        except (InvalidFile, control.Refused, OSError, RuntimeError, ValueError) as error:
-            outcome = report([requirement("preflight", "Destino, credenciais, assinatura e entrega",
-                                          "REPROVADO", None,
-                                          str(error) if isinstance(error, (InvalidFile, control.Refused))
-                                          else type(error).__name__)])
-    print(json.dumps(outcome, ensure_ascii=True))
-    return {"APROVADO": 0, "PENDENTE": 2, "REPROVADO": 1}[outcome["resultado"]]
+    try:
+        data = preview(prepare_direct(args.csv.name, read_bounded(args.csv, MAX_BYTES),
+                       read_bounded(args.manifesto, MAX_MANIFEST_BYTES) if args.manifesto else None))
+        result = {key: data[key] for key in ("name", "month", "sha256", "bytes", "manifestSha")}
+        result.update(resultado="APROVADO", campos=len(data["headers"]), linhas=len(data["records"]))
+    except (OSError, InvalidFile) as error:
+        print(json.dumps({"resultado":"REPROVADO", "erro": str(error) if isinstance(error, InvalidFile) else type(error).__name__}))
+        return 1
+    print(json.dumps(result, ensure_ascii=True))
+    return 0
 
 
 if __name__ == "__main__":

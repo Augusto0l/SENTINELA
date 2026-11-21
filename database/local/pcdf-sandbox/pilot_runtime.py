@@ -296,32 +296,12 @@ def catalog(pilot, *, fixture):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Consult the preserved historical PCDF pilot catalog")
     parser.add_argument("--cluster", required=True, type=Path)
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--provision", action="store_true")
-    mode.add_argument("--enroll-key-sha256", help="Institutional public key fingerprint verified out of band")
-    mode.add_argument("--deactivate", action="store_true")
     args = parser.parse_args()
     pilot = Pilot(args.cluster)
-    if args.provision:
-        result = pilot.provision()
-    else:
-        with pilot.running():
-            result = pilot.inspect()
-            if args.enroll_key_sha256:
-                control.require(re.fullmatch(r"[0-9a-f]{64}", args.enroll_key_sha256)
-                                and not result["institutionalKey"] and not result["release"],
-                                "Refusing duplicate or invalid institutional trust anchor")
-                pilot.admin_sql(f"UPDATE {SCHEMA}.target SET institutional_key={literal(args.enroll_key_sha256)};")
-                result = pilot.inspect()
-            if args.deactivate:
-                pilot.admin_sql(f"""BEGIN;
-                  ALTER ROLE {LOGIN} NOLOGIN PASSWORD NULL VALID UNTIL 'infinity';
-                  DELETE FROM {SCHEMA}.release;
-                  COMMIT;
-                  SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename='{LOGIN}';""")
-                result = pilot.inspect()
+    with pilot.running():
+        result = pilot.inspect()
     print(json.dumps({"cluster": pilot.cluster["uuid"], "state": pilot.cluster["phase"], "catalog": result}))
 
 

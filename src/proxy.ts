@@ -7,6 +7,7 @@ import { localDemoEnabled } from "@/lib/auth/local-demo"
 import { apiError, isLocalReadEndpoint } from "@/lib/db/http"
 import { isolatedWriteMode, isIsolatedMutation, isolatedPcdfMode, isPcdfEndpoint, generalImportMode, isGeneralImportEndpoint } from "@/lib/db/isolated-write-mode"
 import { persistentCrudEnabled, persistentPcdfEnabled } from "@/lib/db/config"
+import { directPcdfMode, isDirectPcdfEndpoint } from "@/lib/db/pcdf-direct-mode"
 
 export async function proxy(request: NextRequest) {
   const config = publicSupabaseConfig()
@@ -26,7 +27,8 @@ export async function proxy(request: NextRequest) {
       const isolatedMutation = (isolatedWriteMode() || persistentCrudEnabled()) && isIsolatedMutation(request.nextUrl.pathname, request.method)
       const pcdf = (isolatedPcdfMode() || persistentPcdfEnabled()) && isPcdfEndpoint(request.nextUrl.pathname, request.method)
       const general = generalImportMode() && isGeneralImportEndpoint(request.nextUrl.pathname, request.method)
-      if (!isolatedMutation && !pcdf && !general && !isLocalReadEndpoint(request.nextUrl.pathname, request.method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
+      const directPcdf = directPcdfMode() && isDirectPcdfEndpoint(request.nextUrl.pathname, request.method)
+      if (!isolatedMutation && !pcdf && !general && !directPcdf && !isLocalReadEndpoint(request.nextUrl.pathname, request.method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
       if (!principal) return apiError("UNAUTHORIZED", "Sessão necessária.")
       if (!hasPermission(principal.role, "analisar")) return apiError("FORBIDDEN", "Consulta não autorizada.")
       return noStore(response)

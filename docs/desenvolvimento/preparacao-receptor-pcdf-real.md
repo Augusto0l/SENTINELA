@@ -1,34 +1,12 @@
-# Preparação do receptor PCDF v1.0
+# Receptor PCDF v1.0
 
-21/11/2026 · SENTINELA · Qualificação exclusivamente sintética
+O SENTINELA recebe o CSV mensal em `/importar` por conexão restrita ao PostgreSQL/PostGIS local. A sessão de Administrador ou Operador permite prévia, confirmação e consulta do histórico. Consulte o [procedimento de início e importação](piloto-pcdf-2021-01.md) e o [contrato PCDF v1.0](../contratos/importacao-pcdf-v1.0.md).
 
-## Objetivo e arquitetura
+## Integridade e proveniência
 
-O receptor preserva o CSV candidato de 34 campos e seus vínculos com a extração XML. O teste usa o parser de transporte existente, uma camada de verificação do manifesto e uma operação de staging em banco descartável. O desenho usa as tabelas existentes em `sentinela` e mantém a consolidação fora dessa operação. A auditoria de compatibilidade que antecedeu esta implementação está em `docs/desenvolvimento/auditoria-integracao-pcdf-real.md` no checkout original. [Contrato v1.0](../contratos/importacao-pcdf-v1.0.md)
+O receptor exige CSV UTF-8, com ou sem BOM, delimitador ponto e vírgula e os 34 cabeçalhos na ordem do contrato. A competência vem do nome mensal e é comparada com as datas interpretáveis. Valores incompletos das associações ficam no snapshot com diagnósticos. Cabeçalhos, posições XML, largura de registros e identificadores técnicos incompatíveis impedem a gravação.
 
-| Fluxo | Entrada | Destino e autorização |
-| --- | --- | --- |
-| Demonstração | Tela e worker de importação demonstrativa | Resultado local da sessão, com os sete destinos demonstrativos. |
-| PCDF sintético existente | `/importar` e `/api/v1/importacoes/pcdf` com modo local habilitado | Parser de 34 campos, identidade de fixture e guardas SQL existentes. Administrador e Operador enviam no escopo previsto. Analista consulta a Central. |
-| Qualificação do formato de origem | Fixtures geradas localmente, em memória e na pasta privada de evidências | Mesmo parser de transporte, manifesto no formato de origem, SHA do XML e IDs no algoritmo v1.0. Função fixture isolada, executada por papel próprio sem login e sem bypass de RLS. |
-| Futuro piloto real | Operação administrativa dedicada, com lote previamente autorizado | A ativação depende de destino, papel de serviço, canal privado e manifesto aprovados. O verificador está disponível como módulo interno. Sua chamada para dados reais não está exposta por rota, comando público ou sinalizador da aplicação. |
-
-O módulo `manifest_receiver.py` recebe bytes do manifesto e do CSV, a competência, o hash SHA-256 aprovado por canal independente e um iterador dos bytes XML. Ele não abre arquivos nem resolve caminhos do manifesto. O SQL de ensaio exige conexão local ao cluster descartável na porta 55432, marcador de sandbox, papel específico e a versão de tratamento própria da fixture. A função recebe a entrega preparada pelo verificador do lado do serviço. As contas locais da aplicação não podem executar essa função. Nenhuma alteração foi feita na API ou na UI existentes. [Verificador](../../database/local/pcdf-sandbox/manifest_receiver.py) · [Revisão SQL exclusiva para ensaio](../../database/local/pcdf-sandbox/receiver-staging-fixture.sql)
-
-## Proveniência, integridade e staging
-
-1. Comparar o hash do manifesto recebido com o aprovado fora do canal de entrega. Exigir UTF-8, chaves JSON únicas, layout e algoritmo esperados, um estado aceito, contagens e distribuição coerentes. Nomes mensais são restritos ao padrão de competência e os dois artefatos auxiliares têm caminhos fixos aceitos como metadados. O nome declarado do XML não é usado para ler um arquivo.
-2. Conferir hash, tamanho e contagem do CSV da competência selecionada, mais cabeçalho e largura por registro. Uma data civil inequivocamente de outro mês impede registrar aquele arquivo nessa partição. Ausência ou invalidez de campos da associação permanece em staging com diagnóstico.
-3. Recalcular SHA-256 em JSON compacto UTF-8 de `["pcdf-linha-v1", sha256_xml_minúsculo, "NATUREZAS", índice_inteiro]`. Verificar a aba, a versão e a posição lógica entregue. Comparar a chave candidata com a tupla literal de origem, em paralelo ao snapshot. A chave ainda depende de homologação. Vínculo por hash comprova concordância com os bytes e com o manifesto aprovados. A correspondência do conteúdo de cada posição com o XML continua dependendo da reconciliação do produtor e da conferência autorizada antes do piloto.
-4. Conferir tamanho e hash dos bytes originais do XML por leitura incremental, com interrupção se a contagem ultrapassar a declarada. A versão do manifesto e as referências por hash são registradas. Em homologação, os artefatos sintéticos ficam na área privada do cluster. A futura operação deve arquivar os bytes antes de confirmar o staging, manter referência resolvível por hash e comprovar ACL e retenção. O digest fixado é um controle de integridade a partir de uma aprovação confiável. Uma assinatura institucional futura poderá agregar autenticação criptográfica do emissor.
-
-### Estados aceitos no manifesto v1.0
-
-O processamento integral do SENTINELA-DADOS produz `reconciliado` após conferir o conteúdo dos CSVs com o XML. O controlador gera o manifesto de publicação com `validado` após aprovar o preflight, comparar a estrutura do XML observada nas duas etapas e registrar a reconferência do hash da fonte. O manifesto `validado` conserva a evidência de reconciliação integral. A incompatibilidade vinha da comparação do receptor apenas com o estado da etapa intermediária.
-
-O receptor aceita exclusivamente `reconciliado` e `validado` no layout 1.0. Ambos exigem reconciliação integral, zero erros de transformação e consistência entre distribuição mensal, associações, IDs técnicos, originais, quarentena e linhas físicas. `validado` exige ainda preflight `aprovado`, `execucao.hash_fonte_reconferido` igual a `true` e coincidência entre o preflight e a entrega para SHA-256 e tamanho do XML, associações lidas e linhas estruturais vazias. As três verificações independentes de bytes, para manifesto, CSV e XML, e a validação da proveniência de cada linha continuam obrigatórias para preparar a entrega. A aceitação do estado do produtor não concede autorização de carga.
-
-`extracoes_origem` identifica o XML e o manifesto, `lotes_importacao` identifica os bytes mensais e `execucoes_importacao` registra os estados e os contadores. As FKs compostas vinculam a extração, o lote, a execução, a origem e o ordinal CSV. `linhas_origem` guarda os 18 textos. `linhas_staging` guarda os 34 textos, os derivados efetivos e os diagnósticos. `pendencias_revisao` recebe pendências de regra versionada por linha. `eventos_auditoria` registra a tentativa, a execução ou a falha sem copiar conteúdo bruto para o evento. `ocorrencias`, `ocorrencia_naturezas` e `historico_correcoes` permanecem sob as proteções da baseline. O ensaio de manifesto não cria registros nessas três tabelas.
+O manifesto técnico opcional aceita os estados de produção `reconciliado` e `validado`. O receptor confere estrutura, contagens e algoritmo, compara SHA-256 e tamanho do CSV recebido e recalcula os IDs em JSON compacto UTF-8 de `["pcdf-linha-v1", sha256_xml, "NATUREZAS", índice_inteiro]`. O hash XML vem do manifesto. Com CSV avulso, o receptor confere formato e unicidade dos IDs, posições e versão de tratamento e registra a proveniência como declarada no CSV.
 
 ### Matriz de preservação
 
@@ -73,119 +51,14 @@ O receptor aceita exclusivamente `reconciliado` e `validado` no layout 1.0. Ambo
 
 String vazia, espaço sem informação e marcador desconhecido são estados distintos em E. Valor inválido e informação pendente geram diagnósticos distintos e continuam recuperáveis em S. Booleanos policiais só são efetivos no vocabulário explícito. A validação lexical de datas e horários não certifica informações policiais. A operação não calcula coordenadas nem atribui classificações criminais.
 
-## Reenvio, concorrência e recuperação
+## Transação e auditoria
 
-O staging usa uma transação por competência. Sob lock transacional, o mesmo hash mensal da mesma extração, com competência, versão, tamanho e contagem coerentes, devolve o lote e a execução existentes. A tentativa já tem um evento durável por UUID antes da transação de staging. Finalizar ou reconhecer o replay acrescenta um evento correlacionado. Falha conhecida registrada pelo ensaio gera evento com SQLSTATE. Uma interrupção sem confirmação pode deixar só o evento inicial. A retentativa verifica o estado durável e reinicia a competência inteira se não houve commit. Não há checkpoint de sublote. Essa escolha é apropriada aos limites atuais e deve ser reavaliada se o volume ou o tempo de retomada comprovado exigir processamento por blocos.
+A API compara os hashes da prévia com os bytes da confirmação e revalida o arquivo. A tentativa correlaciona a sessão autenticada, o perfil, a competência e o SHA-256. A função de staging reconfere os bytes recebidos e usa bloqueio transacional para serializar a recepção. Originais, snapshots, lote, execução, pendências e evento de sucesso são gravados juntos. As contagens são reconciliadas antes do commit. O histórico informa reenvio com os mesmos IDs e registra a falha após rollback quando a conexão permite.
 
-Repetir o mesmo ID ou a mesma posição dentro do arquivo falha na validação. Colisão de ID ou posição entre entregas falha em constraints de origem e reverte o lote todo. Uma mesma chave policial pode ter várias naturezas ou até conteúdo idêntico com posições diferentes. O ensaio preserva as linhas e registra conflito de contexto dentro do lote ou coincidência candidata com outra entrega. O mesmo XML com novo manifesto e a mesma competência com bytes diferentes exigem revisão de versões. O modelo atual não cadastra dois meses de cabeçalho idêntico como dois lotes da mesma extração, pois o hash é único por extração. O histórico documentado contém 68 meses com dados.
+A instalação aplica o [SQL local](../../database/local/pcdf-sandbox/direct.sql) sobre a baseline. As 19 tabelas do núcleo usam RLS forçada. Os logins da aplicação executam funções delimitadas e o proprietário das funções fica sem login e sem bypass de RLS. A prévia verifica o destino, o perfil, a estrutura e as permissões de staging. A confirmação retorna sucesso após o commit.
 
-## Segurança e limites operacionais
+## Evidências históricas
 
-O ensaio usa PostgreSQL 17.11 e PostGIS 3.6.2 no sandbox identificado, com RLS forçada em 19 tabelas e 34 FKs. O papel de teste é `NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT`, com grants limitados ao escopo de staging e auditoria. O trigger de revisão requer que o papel possa preparar uma consulta às três colunas `id`, `ativo` e `perfil` de `usuarios`. Esse grant é por coluna e a RLS mantém as linhas de usuários invisíveis para o papel. A revisão SQL de ensaio não é uma migration da aplicação. Foi aplicada apenas à base descartável. Preservar essa separação e reavaliar os grants com o principal autenticado do piloto.
+A primeira qualificação conferiu 6.399 associações sintéticas, os 34 campos em staging, os 18 originais, reenvio concorrente, rollback e restauração. Os recibos `receiver-result.json` dos sandboxes `rls-sandbox-8f97edec-267d-46ef-b709-a53df14c6bbd`, `rls-sandbox-f4f76132-58fe-42f2-a796-86d60feebec9` e `rls-sandbox-663e695d-e9ac-46e1-a614-9ed40c959534` registram as etapas anteriores. O piloto de 55481 também reconciliou 6.393 associações sintéticas em transação revertida, conforme o recibo `pilot-executor-da33bf79-f220-42f6-917e-f98dcdc4cb9a.json`.
 
-O manifesto tem limite de 1 MiB, o CSV de 16 MiB, cada competência de 10.000 registros e cada célula de 16.384 caracteres. O parser mantém texto Unicode e registro CSV lógico. O XML é conferido por fluxo, limitado pelo tamanho autenticado no manifesto. O CSV e seu JSON de staging são materializados por competência. O ensaio de volume mede o processamento de uma competência representativa, sem inferir capacidade para fila de 68 competências ou carga simultânea em produção.
-
-## Homologação e evidências
-
-No worktree, com Python 3.12, Node 22 e pnpm 10.34.3:
-
-```powershell
-python -B database/local/pcdf-sandbox/qualify-manifest.py -v
-python -B database/local/pcdf-sandbox/qualify-manifest.py --isolated-only
-pnpm test
-pnpm validate:contracts
-pnpm check:routes
-pnpm lint
-pnpm build
-pnpm typecheck
-```
-
-O ensaio PostgreSQL usa o controlador de sandbox existente, exige a porta 55432 livre, atesta cluster e ACL e encerra apenas o PostgreSQL que iniciou. Os artefatos ficam na área privada ignorada pelo Git sob `.cache/pcdf-receiver-qualification`. O leitor da homologação persistente e a entrada funcional sintética têm procedimentos documentados separadamente. [Guia de homologação existente](../../database/local/persistent-homologation/README.md)
-
-Para repetir a verificação HTTP, iniciar `qualify.mjs --serve-functional` com as contas sintéticas já provisionadas, gerar uma fixture com `syntheticPcdfFixture()` e enviá-la pela tela com a competência da fixture. Conferir o recibo 201, o histórico, o replay 200 e as permissões com uma conta de Analista. Para qualificar somente a recepção, encerrar o servidor Next após a conferência e manter a execução recebida em staging.
-
-| Verificação | Resultado |
-| --- | --- |
-| Testes de manifesto, parser e proveniência | 7 de 7 aprovados. Incluem transporte inválido, contagens e hashes divergentes, cabeçalho vazio de registros, limites, textos literais e separação em relação à fixture legada. |
-| PostgreSQL descartável | 7 verificações aprovadas. A recuperação integral comparou os 34 campos e os 18 originais contra o CSV sintético. Erro após staging reverteu a transação, com tentativa e erro auditáveis. Reenvio concorrente resultou em um lote e uma execução. Uma competência de 6.393 registros e 4.148.708 bytes foi aceita. Ao final havia 6.399 linhas em staging e zero promoções. O cluster confirmou estado `STOPPED`. |
-| Regressão de aplicação | 253 de 253 testes Node aprovados. Contratos/OpenAPI, rotas estáticas, ESLint, build Next.js de produção e typecheck aprovados. |
-| Regressão do sandbox | 132 de 132 testes Python do controlador, RLS e recuperação aprovados. A verificação do parser sintético existente também passou. |
-| API e navegador | A tela `/importar` enviou um CSV sintético no Edge headless pelo fluxo funcional existente. A API retornou 201 e a tela mostrou duas linhas em staging, oito pendências e o lote no histórico. O reenvio retornou 200 com os mesmos IDs, e o histórico manteve um lote com duas linhas e zero consolidação. A Central respondeu para o Analista. Foram verificadas as recusas para sessão ausente, Analista tentando enviar, Origin incorreto, cabeçalho inválido e versão de proveniência do novo ensaio na API legada. |
-
-Na revisão de preservação, os 392 testes Node e Python e as sete verificações em um novo PostgreSQL descartável passaram novamente. O recibo SQL mais recente é `receiver-result.json` no sandbox `rls-sandbox-8f97edec-267d-46ef-b709-a53df14c6bbd`. O recibo HTTP da homologação inicial é `.cache/pcdf-receptor-http-b55bf52a-e04a-41fb-8475-a9d155459ee9.json` no checkout original onde o serviço preexistente foi executado. Os logs da revisão estão em `node_modules/.preservacao-*.log` no worktree. Os recibos e logs ficam fora do Git.
-
-Na revisão de compatibilidade de estados, passaram os 10 testes de manifesto e parser, o parser sintético legado e as sete verificações no PostgreSQL descartável. O ensaio usou manifesto `validado` para o teste de preservação e reenvio e `reconciliado` para o teste de volume. O recibo `receiver-result.json` do sandbox `rls-sandbox-f4f76132-58fe-42f2-a796-86d60feebec9` registra 6.399 linhas sintéticas em staging e zero promoções. ESLint, build e typecheck também passaram nessa revisão.
-
-## Preservação e versionamento
-
-A branch `feat/integracao-pcdf-real` parte de `ceub/main` no commit `69a8bde`. A proposta é manter a implementação, a homologação e este documento em um único commit, `feat(pcdf): prepara e homologa receptor de manifesto v1.0`. A inclusão deve usar a lista explícita abaixo. Os arquivos de ensaio são gerados pelo código. As credenciais temporárias, os recibos, os logs e os diretórios do PostgreSQL descartável ficam na área local ignorada. A auditoria de compatibilidade do checkout original e as mudanças do redesign ficam fora deste conjunto.
-
-| Arquivo | Conteúdo |
-| --- | --- |
-| `database/local/pcdf-sandbox/manifest_receiver.py` | Validação do manifesto, da proveniência e dos campos do lote. |
-| `database/local/pcdf-sandbox/receiver-staging-fixture.sql` | Staging transacional, idempotência, auditoria e guardas exclusivas do banco descartável. |
-| `database/local/pcdf-sandbox/qualify-manifest.py` | Fixtures geradas, testes do contrato e qualificação em PostgreSQL isolado. |
-| `docs/desenvolvimento/preparacao-receptor-pcdf-real.md` | Limites da homologação, evidências e requisitos do piloto. |
-
-### Mudança do worktree
-
-O destino sugerido é `D:\Projetos\SENTINELA-PCDF`, na mesma unidade e fora de `.cache`. Um ensaio em clone local comprovou que `git worktree move` preserva os bytes de arquivos modificados, não rastreados e ignorados. O Windows manteve o alvo absoluto de uma junction apontando para o caminho antigo. O worktree PCDF tem junctions absolutas em `node_modules`. A mudança física e a reconstrução do ambiente são etapas distintas.
-
-1. Encerrar processos do worktree e conferir que o destino continua livre. Guardar o estado do Git e os SHA-256 dos quatro arquivos em local privado fora da origem. Preservar também os recibos e a área de evidências, com suas ACLs.
-2. Executar a mudança pelo repositório principal, com `git -C D:/Projetos/SENTINELA worktree move D:/Projetos/SENTINELA/.cache/pcdf-receptor-worktree D:/Projetos/SENTINELA-PCDF`. Conferir `git worktree list`, branch, HEAD, status, SHA-256 e ACLs no destino.
-3. Preservar os logs antes de recriar `node_modules` e os caches de build. Reinstalar com a versão fixada do pnpm e `--frozen-lockfile` e repetir as verificações principais no novo caminho. Tratar diretórios antigos de ensaio PostgreSQL e seus manifestos com caminhos absolutos como evidência histórica. Para nova rodada, criar outro sandbox com o controlador.
-
-## Primeiro piloto real em janeiro de 2021
-
-O procedimento operacional e os comandos de qualificação da identidade sintética e de recuperação estão no [runbook de janeiro](piloto-pcdf-2021-01.md).
-
-O executor `pcdf_pilot_executor` está provisionado em estado `NOLOGIN` no destino dedicado, com herança restrita de `pcdf_pilot_service`. O fluxo requer aprovação independente do manifesto, autorização nominativa para o responsável e autorização assinada para a competência. A preparação e a ativação usam o preflight. A recepção e a reconciliação usam a conexão restrita ao staging.
-
-O manifesto integral do SENTINELA-DADOS registra **6.393 associações** para `pcdf_naturezas_2021-01.csv`, contagem também indicada na distribuição mensal. O tamanho registrado é de **2.948.416 bytes** e o SHA-256 do CSV é `e202df3622fbd5f0b4ae53e7a8f435bce9ad58ff30a43a3c248ce2d369fd3770`. Esses metadados foram consultados no manifesto. A conferência dos bytes do CSV fica para a execução autorizada.
-
-1. Obter autorização específica para o piloto em staging PostgreSQL isolado e dedicado. Atestar o destino e a RLS e aprovar conta de serviço restrita à operação de staging, sem bypass. Definir acesso aos brutos e diagnósticos, retenção, trilha de auditoria e backup verificável. Obter, por canal independente, a aprovação do SHA-256 do manifesto original. A compatibilidade do estado `validado` foi conferida em leitura contra o manifesto e o relatório do produtor.
-2. Disponibilizar o XML, o manifesto aprovado e somente o CSV da competência 2021-01 por canal privado controlado, com permissão de leitura para o operador autorizado. Conferir hash e tamanho nos bytes originais. A assinatura ou forma institucional de aprovação, a fonte de artefatos e o principal de serviço são pendências para a ativação.
-3. Preparar a entrega, verificar versão, ordem, competência, contagem, ID e posição lógica. Arquivar os bytes originais em área privada com referência por hash antes de confirmar a gravação em staging. Comparar as 34 células por linha, os 18 originais, a posição, o ID e os vínculos. Revisar amostra de concordância bidirecional com o XML no ambiente privado.
-4. Aceitar com 6.393 origens e snapshots novos no primeiro envio, zero perda, zero divergência, zero consolidação, zero ponto publicado e replay estável com auditoria correlacionada. Contabilizar pendências sem tratá-las como exclusões ou publicar seus valores. O Dashboard e os mapas permanecem fora dessa etapa.
-5. Após a homologação do piloto, considerar os arquivos posteriores em ordem cronológica, a partir de fevereiro de 2021. Avaliar cada competência antes de avançar.
-6. A consolidação exige autorização e regras adicionais para identidade policial e precedência entre extrações, mapeamentos criminais, códigos e vigência de RA, CRS, datum, eixos e marcador `NULL` em coordenadas. A camada de consulta, a Central em escala real e a exposição de dados dependem de política institucional específica.
-
-A verificação de um arquivo sintético não autoriza o uso de registros reais. Registros reais, XML e CSVs do SENTINELA-DADOS não foram usados pelos ensaios.
-
-## Sequência histórica
-
-O inventário documental conferiu 68 competências consecutivas, de `2021-01` a `2026-08`, com 369.660 associações e layout de 34 campos. A impressão observada do manifesto integral é `892ec5e61d493088bb9c7008bbaadfa4566401fd32df64562bc0684da7fcff8e`. A aprovação independente desse artefato continua com o custodiante e o aprovador institucional. [Checklist de janeiro](piloto-pcdf-2021-01.md#checklist-de-autorização)
-
-```powershell
-python -B database/local/pcdf-sandbox/pilot_history.py --manifesto <manifesto-integral> --inventario
-python -B database/local/pcdf-sandbox/pilot_history.py --manifesto <manifesto-integral> --manifesto-sha256 <hash-independente> --cluster <manifesto-local-do-cluster> --aceites <diretorio-privado> --chave <chave-publica-institucional>
-```
-
-O modo atestado usa uma transação de leitura com snapshot consistente. Ele cruza competência, hashes, lote, execução, contagens, ausência de promoção e recibo correlacionado com a tentativa auditada. Uma divergência, um lote duplicado ou um mês adiantado bloqueia a sequência. Uma execução durável fica `AGUARDANDO_ACEITE` e dispensa reimportação. Uma tentativa sem execução aparece como `ultima_tentativa`. Reutilize a requisição somente com a mesma autorização vigente e os mesmos hashes. Caso a autorização mude, o DBA e o custodiante registram novo contexto antes de retomar.
-
-O homologador conserva em área privada um JSON e a assinatura Ed25519 em `<AAAA-MM>.json` e `<AAAA-MM>.sig`. O JSON usa os campos comuns das decisões de janeiro, o escopo `pcdf-historico-aceite-staging`, `competencia`, `csv_sha256`, `lote`, `execucao`, `requisicao`, `reconciliacao` igual à comparação integral do recibo, `publicacao: false` e `consolidacao: false`. O controlador verifica a assinatura com a âncora institucional, a janela, os identificadores duráveis e todos os critérios da reconciliação. Comprometa o aceite somente depois da conferência campo a campo conduzida por responsável autorizado. Mantenha as janelas dos aceites anteriores vigentes para a conferência da sequência.
-
-Somente a primeira competência ainda sem aceite pode ser indicada. Depois do aceite de janeiro, o controlador indica fevereiro. O DBA apresenta novas decisões assinadas por competência. A opção `--verificar-entrega` recebe os argumentos de evidência, CSV e XML do preflight, aplica escopos vinculados ao mês selecionado e valida hashes, layout, contagem e proveniência antes de devolver `APROVADA_PARA_CONFERENCIA`. A preparação histórica é de leitura e conferência. O executor de escrita instalado aceita apenas janeiro. Depois do aceite do piloto, a ampliação técnica do executor para escrita mês a mês precisa ser qualificada preservando o bloqueio no banco, o vínculo à autorização de cada lote e a trilha de auditoria. Complete a reconciliação e o aceite de cada competência antes de iniciar a seguinte.
-
-## Leitura funcional e limites
-
-As consultas locais de ocorrências, detalhe, indicadores e referência de calor aplicam uma regra comum. Preservam registros manuais e só admitem importações ativas, consolidadas e de origem sintética `PCDF-SANDBOX` na homologação isolada. O PostgreSQL continua a aplicar RLS. O mapa usa coordenadas presentes e validadas. Ocorrências sem coordenadas continuam representadas nos totais elegíveis. A Central mantém suas permissões existentes, com correções exclusivas do Administrador.
-
-Para integrar dados reais às consultas, a equipe responsável precisa aprovar identidade policial e precedência entre extrações, natureza criminal, RA e vigência, e CRS, datum, eixos e coordenadas ausentes. Na etapa funcional, a equipe qualifica a fonte publicada, as regras de leitura, acesso por perfil, as dimensões dos gráficos e o mapa. O staging continua isolado da consolidação e da publicação.
-
-### Verificações da continuidade em 21/11/2026
-
-- O destino dedicado passou nas 20 verificações sintéticas. O ensaio de concorrência sincronizou as duas conexões pelo recibo recebido da primeira e pela espera observada no lock da segunda. A reconciliação aprovou 6.393 IDs distintos, 34 campos e 18 originais, com zero divergências. A reversão deixou o banco vazio. Recibo `pilot-executor-da33bf79-f220-42f6-917e-f98dcdc4cb9a.json`.
-- O laboratório repetiu nove verificações, incluindo reenvio com commit, RLS e recuperação em 55482, com zero promoções. Recibo `receiver-result.json` em `rls-sandbox-663e695d-e9ac-46e1-a614-9ed40c959534`.
-- As 12 verificações SQL com fixtures em memória e PostGIS cobriram visibilidade, paginação, múltiplas naturezas, séries, filtros e falta de coordenadas. A aferição do navegador usou respostas HTTP sintéticas no Dashboard e Mapa Criminal, em 1.440 e 390 pixels, incluindo indisponibilidade. O relatório HTTP `282f215e-059c-4c8f-806a-03203053912e` também registra as verificações de sessão e perfis sem conexão com banco compartilhado.
-- Passaram 254 testes Node, 177 Python, TypeScript, ESLint, contratos/OpenAPI, rotas estáticas, baseline e build. A preparação do receptor segue em 100%. A integração geral permanece em 50%, com piloto real e integração histórica e funcional ainda pendentes.
-
-## Descrição do PR institucional
-
-**Título** — Preparar receptor PCDF v1.0, piloto em staging e sequência histórica
-
-**Resumo** — Adiciona recepção do manifesto v1.0, executor PostgreSQL restrito, verificação de três decisões institucionais, reconciliação auditada e controlador cronológico de conferência. Restringe a visibilidade da importação sintética em consultas, indicadores e mapa à homologação isolada. Atualiza o procedimento de ativação e aceite.
-
-**Validação** — Anexar os totais de testes e os resultados sanitizados da atestação, reconciliação sintética, recuperação, APIs e build. Preservar em área privada credenciais, dumps, assinaturas, dados de origem e evidências com conteúdo restrito.
-
-**Base e publicação** — Usar `CAMPUSCEUB/Sentinela`, base `main`, cabeça `feat/integracao-pcdf-real`. A consulta institucional confirmou `main` em `69a8bdeb0a4673bd3f7e1cfb727e5499a5971d8d`, ancestral da branch e sem divergência com `ceub/main`. Após autorização institucional de publicação, conferir novamente `main`, fazer `git push ceub HEAD:refs/heads/feat/integracao-pcdf-real` e abrir o PR como rascunho para revisão. A revisão desse PR cobre código e testes. A ativação e o tratamento de dados dependem das decisões registradas no checklist do piloto.
+Os objetos e recibos do piloto assinado ficam preservados para consulta histórica. A interface, o preflight e a API ativos usam o receptor local direto.

@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 import { persistentPcdfEnabled } from "./src/lib/db/config";
+import { directUploadLimit } from "./src/contracts/pcdf-direct";
+import { directPcdfMode } from "./src/lib/db/pcdf-direct-mode";
 const validation = process.env.SENTINELA_VALIDATE_BUILD === "1";
 const httpId = process.env.SENTINELA_HTTP_VALIDATION_ID;
 const pcdf = persistentPcdfEnabled() || (process.env.NODE_ENV === "development"
@@ -18,6 +20,8 @@ const output = httpId ? {
 } : {};
 const nextConfig: NextConfig = {
   ...output,
-  ...(pcdf && { experimental: { proxyClientMaxBodySize: 16 * 1024 * 1024 + 1 } }),
+  ...(directPcdfMode()
+    ? { experimental: { proxyClientMaxBodySize: directUploadLimit + 1 } }
+    : pcdf && { experimental: { proxyClientMaxBodySize: 16 * 1024 * 1024 + 1 } }),
 };
 export default nextConfig;

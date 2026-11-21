@@ -95,7 +95,7 @@ Caso se exija booleano normalizado também no CSV, revisar o layout e sua versã
 - **Endereço:** `local` pode combinar área e quadra disponíveis com separador documentado, sem duplicar componentes idênticos; regra deve ser versionada. Não presumir que área seja bairro ou quadra seja logradouro completo. Não truncar texto para caber nos 240 caracteres do formulário atual.
 - **Mensais:** nome proposto `pcdf_naturezas_YYYY-MM.csv`. Mês sem dados pode ter somente cabeçalho, registrado no manifesto. Se uma data não puder ser classificada, preservar a linha em quarentena de tratamento e incluí-la na reconciliação; não atribuir mês fictício. A base auditada teve zero datas não interpretadas, mas novas extrações podem divergir.
 
-Proposta de manifesto externo aos 34 campos: hash/nome/tamanho do XML e dos CSVs, versão do layout, execução e versão do tratamento, tabela de nulos/tipos, versões de mapeamento e catálogo, regra espacial aplicada ou pendente, contagens mensais, exclusões estruturais justificadas e linhas em quarentena. O hash do XML não pode depender só do nome do arquivo. Nenhum desses artefatos foi gerado nesta tarefa.
+Manifesto técnico opcional na recepção, externo aos 34 campos: hash/nome/tamanho do XML e dos CSVs, versão do layout, execução e versão do tratamento, tabela de nulos/tipos, versões de mapeamento e catálogo, regra espacial aplicada ou pendente, contagens mensais, exclusões estruturais justificadas e linhas em quarentena. O produtor calcula o hash a partir dos bytes do XML. O SENTINELA confere tamanho, SHA-256 e contagem do CSV com o manifesto quando presente e verifica os identificadores contra o hash do XML declarado. O CSV avulso mantém a identidade técnica declarada e a rastreabilidade a seus próprios bytes.
 
 ## 5. Identidade, naturezas e duplicação
 
@@ -177,7 +177,7 @@ Um registro sem chave confiável permanece no staging e aparece na Central como 
 
 SENTINELA-DADOS extrai e trata preservando proveniência; SENTINELA recebe, revalida e decide consolidação. A validação no produtor não substitui a validação no servidor.
 
-Fluxo proposto: registrar arquivo/manifesto → upload privado e hash conferido → validar estrutura → staging incremental → validar identidade, classificação e localização → produzir prévia paginada e pendências → confirmação autorizada → consolidar por blocos transacionais → reconciliar → concluir com resumo durável. Falhas críticas não somem do relatório; nenhuma mensagem deve afirmar gravação que não ocorreu.
+Na recepção local, a seleção do CSV inicia a verificação dos bytes e a prévia paginada. Administrador e Operador confirmam o envio pela interface. O servidor revalida a entrega e grava origem, staging e auditoria em transação, com reconciliação e recibo durável. O manifesto é opcional e técnico. A consolidação é uma etapa separada de homologação de identidade, classificação e localização. [Procedimento de recepção local](../desenvolvimento/piloto-pcdf-2021-01.md)
 
 Prever fila de 68 partições, limites explícitos, repetição segura, controle de concorrência, checkpoints e retomada. Mostrar fases e contagens de linhas lidas/validadas/processadas, associações e ocorrências separadamente, sem percentuais artificiais quando o denominador não for conhecido. Bloqueios/rejeições são resultados auditáveis, não perda de origem. Dimensão dos blocos, transporte, fila, cancelamento, rollback e SLA ainda não estão definidos.
 

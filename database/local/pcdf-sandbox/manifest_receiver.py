@@ -54,9 +54,8 @@ def digest(value):
     return value
 
 
-def read_manifest(content, approved_sha):
+def parse_manifest(content):
     require(0 < len(content) <= MAX_MANIFEST_BYTES)
-    require(sha256(content).hexdigest() == digest(approved_sha), "manifesto_nao_aprovado")
     try:
         manifest = json.loads(content.decode("utf-8"), object_pairs_hook=unique_object)
         source = manifest["fonte"]
@@ -128,6 +127,12 @@ def read_manifest(content, approved_sha):
     return manifest, months
 
 
+def read_manifest(content, approved_sha):
+    """Check the separately pinned hash when reading historical signed-pilot evidence."""
+    require(sha256(content).hexdigest() == digest(approved_sha), "manifesto_nao_aprovado")
+    return parse_manifest(content)
+
+
 def presence(value):
     if not value:
         return "ausente"
@@ -147,7 +152,7 @@ def issue(field, kind, rule, blocking=False):
 
 def validate_row(row, source_hash, month, treatment):
     raw, derived, diagnostics = row["raw"], row["derived"], row["diagnostics"]
-    require(raw["linha_origem_id"] == line_id(source_hash, int(raw["linha_xml"]))
+    require((source_hash is None or raw["linha_origem_id"] == line_id(source_hash, int(raw["linha_xml"])))
             and raw["versao_tratamento"] == treatment, "proveniencia_linha_invalida")
 
     identity = [raw[name] for name in ("ano_registro", "unidade_registro", "numero_registro")]
