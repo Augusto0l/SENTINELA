@@ -6,7 +6,7 @@ import * as XLSX from "xlsx";
 const base = process.env.SENTINELA_TEST_URL ?? "http://127.0.0.1:3000";
 const output = "tmp/import-evidence";
 await mkdir(output, { recursive: true });
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "msedge", headless: true });
 const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
 page.setDefaultTimeout(20000);
 page.setDefaultNavigationTimeout(60000);
@@ -22,13 +22,14 @@ const valid = "29/02/2024,12:00,Furto|Ameaça,Plano Piloto,Quadra demonstrativa 
 const csv = `${head}\n${valid}\n${valid}\n${valid.replace("-15.79,-47.88", ",")}\n${valid.replace("12:00", "25:99")}`;
 const upload = async (name, text, mimeType = "text/csv") => page.getByLabel("Arquivo CSV ou XLSX", { exact: true }).setInputFiles({ name, mimeType, buffer: Buffer.isBuffer(text) ? text : Buffer.from(text) });
 const validate = async () => {
-  await page.getByRole("button", { name: "Validar e pré-visualizar", exact: true }).click();
-  await page.getByRole("heading", { name: "Pré-visualização dos registros", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Validar arquivo", exact: true }).click();
+  await page.getByRole("button", { name: "Revisar registros", exact: true }).click();
+  await page.getByRole("heading", { name: "Revisar registros", exact: true }).waitFor();
 };
 const check = message => { checks.push(message); console.log(message); };
 try {
   console.log(`Verificando importação em ${base}`);
-  assert.equal((await page.goto(`${base}/importar`, { waitUntil: "domcontentloaded" })).status(), 200);
+  assert.equal((await page.goto(`${base}/importar`, { waitUntil: "networkidle" })).status(), 200);
   await page.getByRole("heading", { name: "Importar ocorrências", exact: true }).waitFor();
   await upload("erro.txt", "conteúdo");
   await page.getByRole("alert").filter({ hasText: /Formato não aceito/ }).waitFor();
@@ -40,14 +41,21 @@ try {
 
   await upload("ocorrencias.csv", csv);
   await validate();
+  await page.getByRole("button", { name: "Voltar à validação" }).click();
   const counts = await page.locator("dl").first().innerText();
-  for (const expected of [/Total de linhas\s+4/, /Válidos\s+2/, /Inválidos\s+1/, /Pendentes de localização\s+1/, /Possíveis duplicatas\s+1/]) assert.match(counts, expected);
-  await page.getByRole("combobox", { name: "Filtrar linhas" }).selectOption("invalido");
-  assert.match(await page.getByRole("region", { name: "Registros interpretados" }).innerText(), /Coluna 2 \(horario\)/);
-  await page.getByRole("combobox", { name: "Filtrar linhas" }).selectOption("todos");
-  await page.getByText("Valores originais da linha 2", { exact: true }).click();
-  assert.match(await page.getByRole("region", { name: "Registros interpretados" }).innerText(), /Furto\|Ameaça/);
-  await page.getByText("Valores originais da linha 2", { exact: true }).click();
+  for (const expected of [/Registros\s+4/, /Válidos\s+2/, /Inválidos\s+1/, /Com pendências\s+1/]) assert.match(counts, expected);
+  await page.getByText(/1 possível duplicata/).waitFor();
+  await page.getByRole("button", { name: "Revisar registros", exact: true }).click();
+  await page.getByRole("combobox", { name: "Filtrar registros" }).selectOption("invalido");
+  await page.getByRole("button", { name: /Detalhes do registro/ }).click();
+  const invalid = page.getByRole("dialog");
+  await invalid.getByText("Avisos deste registro").click();
+  assert.match(await invalid.innerText(), /horario/);
+  await page.keyboard.press("Escape");
+  await page.getByRole("combobox", { name: "Filtrar registros" }).selectOption("todos");
+  await page.getByRole("button", { name: /Detalhes do registro 2$/ }).click();
+  assert.match(await page.getByRole("dialog").innerText(), /Furto\|Ameaça/);
+  await page.keyboard.press("Escape");
   check("Prévia real: contagens, múltiplas naturezas, duplicata preservada, filtro e valores originais corretos.");
 
   for (const theme of ["claro", "escuro"]) {
@@ -56,37 +64,39 @@ try {
     for (const width of [1366, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${theme} ${width}: overflow horizontal na página`);
-      const region = page.getByRole("region", { name: "Registros interpretados" });
-      assert.equal(await region.evaluate(element => getComputedStyle(element).overflowX), "auto");
+      const region = page.getByRole("region", { name: "Prévia do arquivo geral" });
+      assert(await region.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `${theme} ${width}: prévia compacta excede a largura disponível`);
       await region.screenshot({ path: `${output}/preview-${theme}-${width}.png` });
       await page.locator('[class*="ImportWorkflow"][class*="content"]').evaluate(element => { element.scrollTop = 0; });
       await page.screenshot({ path: `${output}/page-${theme}-${width}.png` });
     }
   }
-  check("Temas claro/escuro em 1366, 768, 390 e 320 px: sem overflow da página, tabela com rolagem própria.");
+  check("Temas claro/escuro em 1366, 768, 390 e 320 px: sem overflow da página, prévia adaptada à largura.");
   await page.setViewportSize({ width: 1366, height: 900 });
-  await page.getByRole("button", { name: "Preparar simulação", exact: true }).click();
-  await page.getByRole("button", { name: "Voltar à pré-visualização", exact: true }).click();
-  await page.getByRole("button", { name: "Preparar simulação", exact: true }).click();
+  await page.getByRole("button", { name: "Revisar confirmação", exact: true }).click();
+  await page.getByRole("button", { name: "Voltar e revisar", exact: true }).click();
+  await page.getByRole("button", { name: "Revisar confirmação", exact: true }).click();
   await page.getByRole("button", { name: "Confirmar simulação", exact: true }).click();
   await page.getByRole("heading", { name: "Simulação concluída", exact: true }).waitFor();
-  assert.match(await page.getByRole("status").filter({ hasText: /Resultado demonstrativo/ }).innerText(), /2 aptos, 1 pendentes de localização e 1 rejeitados/);
-  await page.getByRole("button", { name: "Rever registros analisados", exact: true }).click();
-  await page.getByRole("button", { name: "Voltar ao mapeamento", exact: true }).click();
+  assert.match(await page.getByRole("status").filter({ hasText: /Simulação concluída/ }).innerText(), /2 aptos · 1 pendentes · 1 rejeitados/);
+  await page.getByRole("button", { name: "Nova importação", exact: true }).click();
+  await upload("ocorrencias.csv", csv);
+  await page.getByText("Mapeamento de colunas", { exact: true }).click();
   await page.getByLabel("Horário *", { exact: true }).selectOption("-1");
-  assert.equal(await page.getByRole("button", { name: "Validar e pré-visualizar" }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Validar arquivo", exact: true }).isDisabled(), true);
   await page.getByLabel("Horário *", { exact: true }).selectOption("1");
   await validate();
   check("Confirmação explícita sem persistência, retorno à prévia e correção de mapeamento funcionam.");
 
   const manualCsv = csv.replace(head, "A,B,C,D,E,F,G");
   await upload("manual.csv", manualCsv);
-  await page.getByRole("heading", { name: "Mapeamento de colunas", exact: true }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Validar e pré-visualizar" }).isDisabled(), true);
+  await page.getByText("Mapeamento de colunas", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Validar arquivo", exact: true }).isDisabled(), true);
   for (const [label, index] of [["Data *", 0], ["Horário *", 1], ["Naturezas criminais *", 2], ["Região Administrativa *", 3], ["Local/endereço *", 4], ["Latitude (opcional)", 5], ["Longitude (opcional)", 6]]) await page.getByLabel(label, { exact: true }).selectOption(String(index));
   await page.locator('[class*="ImportWorkflow"][class*="content"]').evaluate(element => { element.scrollTop = element.scrollHeight; });
   await page.screenshot({ path: `${output}/mapping-desktop.png` });
   await validate();
+  await page.getByRole("button", { name: "Voltar à validação" }).click();
   assert.match(await page.locator("dl").first().innerText(), /Válidos\s+2/);
   check("Mapeamento inteiramente manual de cabeçalhos desconhecidos produz a mesma análise.");
 
@@ -96,24 +106,26 @@ try {
   await upload("planilhas.xlsx", XLSX.write(book, { bookType: "xlsx", type: "buffer", compression: true }), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   await page.getByRole("combobox", { name: "Planilha", exact: true }).selectOption("Dados reais");
   await validate();
+  await page.getByRole("button", { name: "Voltar à validação" }).click();
   assert.match(await page.locator("dl").first().innerText(), /Válidos\s+1/);
+  await page.getByRole("button", { name: "Editar mapeamento" }).click();
   await page.getByRole("combobox", { name: "Planilha", exact: true }).selectOption("Vazia");
   await page.getByRole("alert").filter({ hasText: /vazia/ }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Preparar simulação" }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Revisar confirmação" }).count(), 0);
   check("XLSX identifica planilhas, lê a selecionada e limpa a análise ao selecionar planilha vazia.");
 
-  await page.locator('input[type="file"]').setInputFiles([]);
+  await page.getByRole("button", { name: "Remover seleção", exact: true }).click();
   await page.locator("[class*='drop']").first().evaluate((element, content) => {
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(new File([content], "arrastado.csv", { type: "text/csv" }));
     element.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
   }, csv);
   await validate();
-  assert.match(await page.locator("dl").first().innerText(), /Total de linhas\s+4/);
-  await page.getByRole("button", { name: "Limpar seleção", exact: true }).click();
-  assert.equal(await page.getByRole("heading", { name: "Pré-visualização dos registros" }).count(), 0);
+  assert.equal(await page.locator("tbody tr").count(), 4);
+  await page.getByRole("button", { name: "Remover seleção", exact: true }).click();
+  assert.equal(await page.getByRole("heading", { name: "Revisar registros" }).count(), 0);
   await upload("ocorrencias.csv", csv);
-  await page.getByRole("heading", { name: "Mapeamento de colunas", exact: true }).waitFor();
+  await page.getByText("Mapeamento de colunas", { exact: true }).waitFor();
   check("Drag-and-drop, limpeza e seleção repetida funcionam sem dados antigos.");
   await upload("paginado.csv", `${head}\n${Array.from({ length: 26 }, () => valid).join("\n")}`);
   await validate();
@@ -126,6 +138,7 @@ try {
     assert.equal(response.status(), 200);
     assert.ok((await response.body()).length > 0);
   }
+  await page.getByRole("button", { name: "Remover seleção", exact: true }).click();
   await page.getByRole("button", { name: "Selecionar arquivo", exact: true }).focus();
   await page.keyboard.press("Tab");
   await page.keyboard.press("Shift+Tab");

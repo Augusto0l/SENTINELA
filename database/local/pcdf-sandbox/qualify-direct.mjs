@@ -129,39 +129,146 @@ try {
   await page.goto(origin + "/importar", { waitUntil: "domcontentloaded" });
   await data(await historyLoaded, 200);
   await page.getByRole("heading", { name: integrated ? "Importar ocorrências" : "Importação PCDF", exact: true }).waitFor();
+  const areas = page.getByRole("navigation", { name: "Área de importação" });
+  const newImport = () => areas.getByRole("button", { name: "Nova importação" }).click();
+  const openHistory = () => areas.getByRole("button", { name: "Histórico", exact: true }).click();
+  const step = (number) => page.locator('[aria-current="step"]').getAttribute("aria-label").then(label => assert.match(label, new RegExp("^Etapa " + number)));
+  const capture = async (label) => {
+    await page.locator('[class*="ImportWorkflow"][class*="content"]').evaluate(element => { element.scrollTop = 0; });
+    await page.screenshot({ path: join(root, "evidence", label + ".png"), animations: "disabled", style: "nextjs-portal { display: none !important; }" });
+  };
+  const responsivity = async (sizes) => {
+    for (const width of sizes) {
+      await page.setViewportSize({ width, height: 960 });
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Página com rolagem horizontal em " + width);
+      for (const region of await page.locator("main section:visible").all()) {
+        assert(await region.evaluate(el => el.scrollWidth <= el.clientWidth + 1), "Seção com rolagem horizontal em " + width);
+      }
+      for (const preview of await page.locator('[class*="previewTable"]:visible').all()) {
+        assert(await preview.evaluate(el => el.scrollWidth <= el.clientWidth + 1), "Prévia compacta excede a largura em " + width);
+      }
+    }
+  };
   if (integrated) {
+    await page.getByText("PostgreSQL conectado", { exact: true }).waitFor();
     await page.getByText("Importar Dados", { exact: true }).first().waitFor();
-    await page.getByText("Arraste um arquivo CSV ou XLSX para esta área").waitFor();
-    await page.getByRole("button", { name: "Selecionar arquivo" }).waitFor();
+    await page.getByText("Arraste um arquivo para cá").waitFor();
+    const picker = page.getByRole("button", { name: "Selecionar arquivo", exact: true });
+    await picker.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    assert(await picker.evaluate(element => element.matches(":focus-visible")));
+    await step(1);
+    assert.equal(await page.getByRole("heading", { name: "Histórico de importações" }).count(), 0);
+    assert.equal(await page.getByRole("button", { name: /^Etapa 4/ }).isDisabled(), true);
+    for (const [width, label] of [[1440, "desktop"], [1366, ""], [1024, ""], [768, "tablet"], [390, "mobile"]]) {
+      await responsivity([width]);
+      if (label) await capture(label);
+    }
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.getByText("Como preparar o arquivo?").click();
     await page.getByRole("link", { name: "Baixar modelo CSV" }).waitFor();
     await page.getByRole("link", { name: "Baixar modelo XLSX" }).waitFor();
+    await page.getByText("Como preparar o arquivo?").click();
+    assert.equal(await page.getByText("Ambiente demonstrativo", { exact: true }).count(), 0);
     assert.equal(await page.getByText("Demonstração · sem persistência", { exact: true }).count(), 0);
   }
   stage = "browser_preview";
   await page.getByLabel(integrated ? "Arquivo CSV ou XLSX" : "Arquivo CSV mensal").setInputFiles(join(root, name(january)));
   await page.getByText("Layout PCDF v1.0 reconhecido").waitFor();
-  assert.match(await page.getByText("6.393 associações · 34 campos", { exact: false }).innerText(), /2.948.416 bytes/);
-  assert.equal(await page.locator("thead th").count(), 36);
-  assert.equal(await page.locator("tbody tr").count(), 25);
-  assert.equal(await page.locator("tbody tr").first().locator("td").count(), 35);
-  await page.getByText("Campos vazios e avisos da validação").click();
-  assert.match(await page.getByText(/natureza_original · .* vazios/).innerText(), /1 vazios/);
-  assert(await page.getByText(/identidade incompleta/).count() > 0);
+  if (integrated) {
+    await step(2);
+    for (const text of ["6.393", "34", "janeiro de 2021"]) await page.locator("dl dd").getByText(text, { exact: true }).first().waitFor();
+    await page.getByText(/2\.948\.416 bytes/).waitFor();
+    await page.getByText("Verificação adicional de integridade", { exact: true }).click();
+    await page.getByLabel("Manifesto técnico JSON (opcional)").setInputFiles({
+      name: "manifesto-invalido.json", mimeType: "application/json", buffer: Buffer.from("{}") });
+    await page.getByRole("alert").filter({ hasText: /manifesto são inconsistentes/i }).waitFor();
+    await page.getByText("Última prévia disponível.", { exact: false }).waitFor();
+    await page.getByRole("button", { name: "Remover manifesto" }).click();
+    await page.getByText("Layout PCDF v1.0 reconhecido").waitFor();
+    await page.getByText("Avisos e campos vazios", { exact: true }).click();
+    const empty = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: /^Campos vazios/ }) }).last();
+    await empty.locator("summary").click();
+    await empty.getByText(/natureza_original · 1/).waitFor();
+    await openHistory();
+    await page.getByText("Nenhuma importação registrada.").waitFor();
+    await newImport();
+    await step(2);
+    await page.getByRole("button", { name: "Revisar registros", exact: true }).click();
+    await step(3);
+    const compact = page.getByRole("region", { name: "Prévia PCDF", exact: true });
+    assert.equal(await compact.locator("thead th").count(), 6);
+    assert.equal(await compact.locator("tbody tr").count(), 25);
+    await capture("previa");
+    await responsivity([1366, 1024, 768, 390]);
+    await page.getByRole("button", { name: "Ver todos os campos" }).click();
+    const expanded = page.getByRole("region", { name: "Prévia PCDF · todos os campos" });
+    assert.equal(await expanded.locator("thead th").count(), 35);
+    assert.equal(await expanded.locator("tbody tr").first().locator("td").count(), 34);
+    assert(await expanded.evaluate(el => el.scrollWidth > el.clientWidth && document.documentElement.scrollWidth <= innerWidth));
+    await page.getByRole("button", { name: "Voltar à prévia resumida" }).click();
+    const firstRow = page.getByRole("button", { name: "Detalhes do registro 1", exact: true });
+    await firstRow.click();
+    const rowDialog = page.getByRole("dialog", { name: "Registro 1" });
+    assert.equal(await rowDialog.locator("dt").count(), 34);
+    await rowDialog.getByRole("heading", { name: "Rastreabilidade técnica" }).waitFor();
+    await page.keyboard.press("Escape");
+    await rowDialog.waitFor({ state: "hidden" });
+    assert(await firstRow.evaluate(el => el === document.activeElement));
+    await page.setViewportSize({ width: 1440, height: 960 });
+  } else {
+    assert.match(await page.getByText("6.393 associações · 34 campos", { exact: false }).innerText(), /2.948.416 bytes/);
+    assert.equal(await page.locator("thead th").count(), 36);
+    assert.equal(await page.locator("tbody tr").count(), 25);
+    assert.equal(await page.locator("tbody tr").first().locator("td").count(), 35);
+    await page.getByText("Campos vazios e avisos da validação").click();
+    assert.match(await page.getByText(/natureza_original · .* vazios/).innerText(), /1 vazios/);
+    assert(await page.getByText(/identidade incompleta/).count() > 0);
+  }
   await page.getByRole("button", { name: "Próxima", exact: true }).click();
-  assert.equal((await page.locator("tbody tr th").first().innerText()).trim(), "26");
+  assert.match((await page.locator("tbody tr th").first().innerText()).trim(), /^26(?:\s|$)/);
   await page.getByRole("button", { name: "Anterior", exact: true }).click();
-  assert.equal((await page.locator("tbody tr th").first().innerText()).trim(), "1");
+  assert.match((await page.locator("tbody tr th").first().innerText()).trim(), /^1(?:\s|$)/);
   assert.deepEqual(await data(await get(admin), 200), []);
   await page.getByRole("button", { name: "Revisar confirmação" }).click();
   stage = "browser_commit";
-  const importing = page.waitForResponse(r => r.url() === origin + route + "?etapa=confirmar" && r.request().method() === "POST",
-    { timeout: 85000 });
+  if (integrated) await step(4);
+  let confirmRequests = 0;
+  const confirmPath = origin + route + "?etapa=confirmar";
+  page.on("request", request => { if (request.url() === confirmPath && request.method() === "POST") confirmRequests++; });
+  let release;
+  const waiting = new Promise(resolve => { release = resolve; });
+  if (integrated) await page.route(confirmPath, async intercepted => { await waiting; await intercepted.continue(); });
+  const importing = page.waitForResponse(r => r.url() === confirmPath && r.request().method() === "POST", { timeout: 85000 });
   await page.getByRole("button", { name: "Confirmar importação", exact: true }).click();
+  if (integrated) {
+    try {
+      assert(await page.getByRole("button", { name: "Gravando…" }).isDisabled());
+      await openHistory();
+      await page.getByRole("heading", { name: "Histórico de importações" }).waitFor();
+    } finally { release(); }
+  }
   const first = await data(await importing, 201);
   assert.equal(first.records, 6393);
+  assert.equal(confirmRequests, 1);
+  if (integrated) { await page.unroute(confirmPath); await newImport(); }
   await page.getByRole("heading", { name: "Gravação confirmada" }).waitFor();
+  if (integrated) {
+    await page.getByText("PostgreSQL conectado", { exact: true }).waitFor();
+    await capture("resultado");
+    await page.getByRole("button", { name: "Ver detalhes", exact: true }).click();
+    await page.getByRole("dialog").getByText(first.run, { exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Consultar histórico", exact: true }).click();
+    await page.getByRole("row", { name: /pcdf_naturezas_2021-01.csv/ }).waitFor();
+  }
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.getByText(/Gravada em staging · .*6\.393 associações · Administrador/).waitFor();
+  if (integrated) {
+    await page.getByText("PostgreSQL conectado", { exact: true }).waitFor();
+    await openHistory();
+    await page.getByRole("row", { name: /pcdf_naturezas_2021-01.csv/ }).waitFor();
+  } else await page.getByText(/Gravada em staging · .*6\.393 associações · Administrador/).waitFor();
   checks.push("selecao, reconhecimento, 34 campos, paginacao, incompletos, confirmacao, historico apos recarregar");
 
   stage = "api_integrity";
@@ -209,13 +316,22 @@ try {
     stage = "general_xlsx_and_detail";
     const general = "/api/v1/importacoes/geral";
     assert.equal((await get(analystCookie, general)).status, 403);
-    await page.getByRole("button", { name: "Atualizar histórico PCDF" }).click();
-    const januaryEntry = page.locator("article").filter({ hasText: first.run }).filter({ hasText: "Reconciliação conferida" }).first();
-    await januaryEntry.getByRole("button", { name: "Consultar registros PCDF" }).click();
-    const persisted = page.getByRole("region", { name: "Registros PCDF gravados" });
+    await page.getByRole("button", { name: "Atualizar histórico", exact: true }).click();
+    await page.getByLabel("Buscar pelo nome").fill("janeiro-inexistente");
+    await page.getByText("Nenhuma importação corresponde aos filtros.").waitFor();
+    await page.getByLabel("Buscar pelo nome").fill("2021-01");
+    await page.getByLabel("Tipo", { exact: true }).selectOption("PCDF");
+    await page.getByLabel("Situação", { exact: true }).selectOption("concluida");
+    await page.getByRole("button", { name: "Ver detalhes de pcdf_naturezas_2021-01.csv", exact: true }).click();
+    const detail = page.getByRole("dialog", { name: "Detalhes da importação" });
+    await detail.getByText(first.run, { exact: true }).waitFor();
+    await detail.getByText(sha(januaryBytes), { exact: true }).waitFor();
+    await detail.getByRole("button", { name: "Abrir registros importados" }).click();
+    const persisted = detail.getByRole("region", { name: "Registros PCDF gravados", exact: true });
     await persisted.waitFor();
-    assert.equal(await persisted.locator("thead th").count(), 36);
+    assert.equal(await persisted.locator("thead th").count(), 6);
     assert.equal(await persisted.locator("tbody tr").count(), 25);
+    await page.keyboard.press("Escape");
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, utils.aoa_to_sheet([["Data", "Hora", "Tipo de crime", "RA", "Endereço alternativo", "Nota"],
       ["2026-01-06", "13:04", "Furto", "Plano Piloto", "Via sintética de integração", "000007"],
@@ -227,22 +343,44 @@ try {
     await data(await operatorSession, 200);
     await page.getByLabel("Arquivo CSV ou XLSX").setInputFiles({
       name: "sintetico-local.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: content });
-    await page.getByRole("heading", { name: "Mapeamento de colunas" }).waitFor();
+    await page.getByText("Mapeamento de colunas", { exact: true }).waitFor();
     await page.getByLabel("Local/endereço *", { exact: true }).selectOption("4");
-    await page.getByRole("button", { name: "Validar e pré-visualizar" }).click();
-    await page.getByRole("button", { name: "Revisar confirmação" }).click();
-    const upload = page.waitForResponse(r => r.url() === origin + general && r.request().method() === "POST");
-    await page.getByRole("button", { name: "Confirmar importação", exact: true }).click();
-    assert.equal((await data(await upload, 201)).persisted, 2);
+    async function persistGeneral() {
+      await page.getByRole("button", { name: "Validar arquivo", exact: true }).click();
+      await page.getByRole("button", { name: "Revisar registros", exact: true }).click();
+      await page.getByRole("button", { name: "Revisar confirmação", exact: true }).click();
+      const upload = page.waitForResponse(r => r.url() === origin + general && r.request().method() === "POST");
+      await page.getByRole("button", { name: "Confirmar importação", exact: true }).click();
+      return data(await upload, 201);
+    }
+    assert.equal((await persistGeneral()).persisted, 2);
     await page.getByRole("heading", { name: "Gravação confirmada" }).waitFor();
+    await page.getByRole("button", { name: "Nova importação", exact: true }).last().click();
+    await page.getByLabel("Arquivo CSV ou XLSX").setInputFiles({ name: "sintetico-local.csv", mimeType: "text/csv",
+      buffer: Buffer.from("Data;Hora;Natureza;RA;Local\n2026-01-08;13:04;Furto;Plano Piloto;Via sintética CSV\n") });
+    assert.equal((await persistGeneral()).persisted, 1);
+    await page.getByRole("heading", { name: "Gravação confirmada" }).waitFor();
+    await page.getByRole("button", { name: "Nova importação", exact: true }).last().click();
     await page.getByLabel("Arquivo CSV ou XLSX").setInputFiles({ name: "pcdf_naturezas_2021-01.csv",
       mimeType: "text/csv", buffer: Buffer.from("campo;outro\n") });
     await page.getByText(/Layout PCDF v1.0 incompatível/).waitFor();
-    checks.push("tela original, detalhes de staging, XLSX do Operador, mapeamento manual, CSV incompatível");
+    assert.equal(await page.getByRole("button", { name: /^Etapa 4/ }).isDisabled(), true);
+    await openHistory();
+    await page.getByRole("row", { name: /sintetico-local.xlsx/ }).waitFor();
+    await page.getByRole("row", { name: /sintetico-local.csv/ }).waitFor();
+    await page.getByRole("row", { name: /pcdf_naturezas_2021-01.csv/ }).first().waitFor();
+    const failedEntry = page.getByRole("row", { name: /pcdf_naturezas_2026-04.csv/ });
+    assert.equal(await failedEntry.getByRole("cell").nth(2).innerText(), "0");
+    await failedEntry.getByText("Falhou", { exact: true }).waitFor();
+    await capture("historico");
+    await responsivity([1440, 1366, 1024, 768, 390]);
+    checks.push("fluxo guiado, detalhes de staging, CSV e XLSX gerais, mapeamento manual, arquivo incompatível, filtros e seis capturas");
     stage = "backend_failure_and_restart";
     await page.route("**" + route, intercepted => intercepted.abort("failed"));
-    await page.getByRole("button", { name: "Atualizar histórico PCDF" }).click();
-    await page.getByText("Backend de importação indisponível.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Atualizar histórico", exact: true }).click();
+    await page.getByText(/PCDF · Backend de importação indisponível/).waitFor();
+    await page.getByText("Conexão indisponível", { exact: true }).waitFor();
+    await page.getByRole("row", { name: /sintetico-local.xlsx/ }).waitFor();
     await page.unroute("**" + route);
     await page.close();
     await lifecycle.finish();
@@ -251,8 +389,11 @@ try {
     const restored = await context.newPage();
     restored.setDefaultTimeout(60000);
     await restored.goto(origin + "/importar", { waitUntil: "domcontentloaded" });
-    await restored.getByText(/Gravada em staging · .*6\.393 associações · Administrador/).waitFor();
-    await restored.getByText("sintetico-local.xlsx", { exact: true }).waitFor();
+    await restored.getByText("PostgreSQL conectado", { exact: true }).waitFor();
+    await restored.getByRole("button", { name: "Histórico", exact: true }).click();
+    await restored.getByRole("row", { name: /pcdf_naturezas_2021-01.csv.*6\.393/ }).first().waitFor();
+    await restored.getByRole("row", { name: /sintetico-local.xlsx/ }).waitFor();
+    await restored.getByRole("row", { name: /sintetico-local.csv/ }).waitFor();
     for (const path of ["/dashboard", "/mapa-criminal", "/ocorrencias", "/login"]) {
       const view = await restored.goto(origin + path, { waitUntil: "domcontentloaded", timeout: 70000 });
       assert.equal(view?.status(), 200);

@@ -151,7 +151,7 @@ def qualify(cluster, admin, runner, credentials, integrated=False):
                 'rls',(SELECT count(*) FROM pg_class WHERE relnamespace IN ('sentinela_import_local'::regnamespace,
                    'sentinela_general_accounts'::regnamespace) AND relrowsecurity AND relforcerowsecurity))
             """, run=runner))
-            control.require(counts == {"persistidas": 2, "execucoes": 1, "reconciliacao": True, "rls": 3},
+            control.require(counts == {"persistidas": 3, "execucoes": 2, "reconciliacao": True, "rls": 3},
                             "General intake reconciliation failed")
             report["general"] = counts
         report["resultado"] = "APROVADO"

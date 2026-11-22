@@ -75,27 +75,26 @@ const upload=(data,cookie,{meta=selection,site=origin,key=randomUUID(),mime=csvT
     "x-sentinela-import":encodeURIComponent(JSON.stringify(meta)),...(cookie && {cookie})},body:data,signal:AbortSignal.timeout(85000)})
 
 async function selectFile(page,file) {
-  const choosing = page.waitForEvent("filechooser")
-  await page.getByRole("button",{name:"Selecionar arquivo",exact:true}).click()
-  await (await choosing).setFiles(file)
+  await page.getByRole("navigation",{name:"Área de importação"}).getByRole("button",{name:"Nova importação"}).click()
+  await page.getByLabel("Arquivo CSV ou XLSX",{exact:true}).setInputFiles(file)
 }
 
 async function browserUpload(page,file,expected,mapManually=false,sheet) {
   await selectFile(page,file)
   if (sheet) {
     await page.getByLabel("Planilha").selectOption(sheet)
-    await page.getByRole("button",{name:"Validar e pré-visualizar"}).waitFor()
+    await page.getByRole("button",{name:"Validar arquivo",exact:true}).waitFor()
   }
   if (mapManually) await page.getByLabel("Local/endereço *",{exact:true}).selectOption("4")
-  await page.getByRole("button",{name:"Validar e pré-visualizar"}).click()
-  await page.getByRole("heading",{name:"Pré-visualização dos registros"}).waitFor()
+  await page.getByRole("button",{name:"Validar arquivo",exact:true}).click()
+  await page.getByRole("button",{name:"Revisar registros",exact:true}).click()
   await page.getByRole("button",{name:"Revisar confirmação"}).click()
   const post = page.waitForResponse(r => r.url() === origin + path && r.request().method()==="POST",{timeout:85000})
   await page.getByRole("button",{name:"Confirmar importação",exact:true}).click()
   const response=await post
   const payload=await response.json()
   assert.equal(response.status(),expected,JSON.stringify(payload.error ?? {}))
-  await page.getByRole("heading",{name:"Gravação confirmada"}).waitFor()
+  await page.getByRole("heading",{name:expected===200 ? "Arquivo já recebido" : "Gravação confirmada"}).waitFor()
   return payload.data
 }
 
@@ -127,8 +126,8 @@ try {
   await page.goto(origin + "/importar",{waitUntil:"networkidle",timeout:90000})
   const file={name:"geral.csv",mimeType:csvType,buffer:csv}
   await selectFile(page,file)
-  await page.getByRole("heading",{name:"Mapeamento de colunas"}).waitFor()
-  await page.getByRole("button",{name:"Limpar seleção"}).click()
+  await page.getByText("Mapeamento de colunas",{exact:true}).waitFor()
+  await page.getByRole("button",{name:"Remover seleção"}).click()
   assert.equal((await (await get(path,operator.cookie)).json()).data.length,0)
   const first=await browserUpload(page,file,201,true)
   assert.equal(first.persisted,3)
@@ -142,11 +141,14 @@ try {
   assert.equal(persistedBody.data.rows.length,3)
   await page.reload({waitUntil:"networkidle",timeout:90000})
   const detailResponse = page.waitForResponse(r=>r.url()===origin+path+"/"+first.run+"?pagina=1",{timeout:70000})
-  await page.getByRole("button",{name:"Abrir detalhes"}).click()
+  await page.getByRole("button",{name:"Histórico",exact:true}).click()
+  await page.getByRole("button",{name:"Ver detalhes de geral.csv",exact:true}).click()
+  await page.getByRole("button",{name:"Abrir registros importados"}).click()
   assert.equal((await detailResponse).status(),200)
-  await page.getByRole("region",{name:"Detalhes do lote"}).waitFor()
-  await page.getByText("Ver valores da linha 3").click()
+  await page.getByRole("region",{name:"Registros gerais gravados"}).waitFor()
+  await page.locator("summary").filter({hasText:/^Registro 3 ·/}).click()
   await page.getByText("00021",{exact:true}).waitFor()
+  await page.keyboard.press("Escape")
   checks.push("csv_preview_manual_cancel_commit_refresh_detalhe_mobile")
 
   stage="browser_xlsx_replay"
@@ -229,9 +231,14 @@ try {
   await restartedContext.route(/^https:\/\//, route=>route.abort())
   await restartedContext.addCookies([{name:"sentinela-local-session",value:operator.token,url:origin,httpOnly:true}])
   const reopened=await restartedContext.newPage()
-  await reopened.goto(origin+"/importar",{waitUntil:"domcontentloaded",timeout:90000})
+  await reopened.goto(origin+"/importar",{waitUntil:"networkidle",timeout:90000})
+  await reopened.getByRole("button",{name:"Histórico",exact:true}).click()
   await reopened.getByRole("heading",{name:"Histórico de importações"}).waitFor({timeout:70000})
-  await reopened.getByText(first.run,{exact:false}).first().waitFor({timeout:70000})
+  const originalRow=reopened.getByRole("row").filter({
+    has:reopened.locator('td[data-label="Persistidos"]').filter({hasText:/^3$/}),
+  }).filter({has:reopened.getByRole("button",{name:"Ver detalhes de geral.csv",exact:true})})
+  await originalRow.getByRole("button",{name:"Ver detalhes de geral.csv",exact:true}).click()
+  await reopened.getByRole("dialog").getByText(first.run,{exact:true}).waitFor({timeout:70000})
   checks.push("reinicio_next_historico_e_originais_recuperados")
   console.log(JSON.stringify({result:"PASS",checks,runs:[first.run,second.run,receipts[0].run],rows:2506}))
 } catch (error) {

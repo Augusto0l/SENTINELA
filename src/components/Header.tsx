@@ -23,7 +23,7 @@ export default function Header({ title, subtitle, dataMode }: HeaderProps) {
   const group = pathname.startsWith("/ocorrencias") || pathname === "/importar"
     ? "Ocorrências" : pathname === "/usuarios" || pathname === "/configuracoes" ? "Gestão" : "Visão Geral"
   const dataBadge = dataMode === "import-staging"
-    ? { label: "PostgreSQL local · staging", title: "Importação persistente em origem e staging." }
+    ? { label: "Importação local", title: "Recepção de arquivos em origem e staging." }
     : dataMode === "pcdf-staging"
     ? { label: "PostgreSQL local · staging PCDF", title: "Recepção persistente em origem e staging." }
     : dataMode === "read-only"

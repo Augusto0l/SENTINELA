@@ -4,50 +4,15 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 import Header from "@/components/Header";
 import Button from "@/components/ui/button";
-import { directDetail, directHistory, directPcdfPath, directPreview, directReceipt } from "@/contracts/pcdf-direct";
+import { directDetail, directHistory, directPreview, directReceipt } from "@/contracts/pcdf-direct";
 import styles from "./ImportWorkflow.module.css";
+import { callDirectPcdf as call, confirmPcdf, previewPcdf } from "./pcdf-intake-client";
+import { Pager } from "./ImportUi";
+import { PcdfRecords } from "./PcdfRecords";
 
 const pageSize = 25;
 const total = (value: number) => value.toLocaleString("pt-BR");
 const statuses = { recebida: "Recebida", concluida: "Gravada em staging", reenvio: "Reenvio sem duplicação", falhou: "Gravação revertida" };
-const diagnostics: Record<string, string> = {
-  nome_competencia_invalido: "Use o arquivo mensal com o nome pcdf_naturezas_AAAA-MM.csv.",
-  cabecalho_invalido: "Layout PCDF v1.0 incompatível. Confira se todos os 34 campos estão presentes na ordem original.",
-  csv_divergente_manifesto: "O SHA-256 ou o tamanho do CSV diverge do manifesto.",
-  contagem_csv_divergente: "A quantidade de registros diverge do manifesto.",
-  contagem_csv_invalida: "O CSV mensal precisa conter de 1 a 10.000 associações.",
-  proveniencia_linha_invalida: "Há identificadores de origem ou versões de tratamento incompatíveis.",
-  linha_de_origem_duplicada: "O CSV contém identificador de origem ou posição XML repetidos.",
-  registro_fora_da_competencia: "Há uma data válida fora da competência indicada pelo nome do CSV.",
-  manifesto_inconsistente: "Os dados técnicos do manifesto são inconsistentes.",
-  competencia_nao_manifestada: "A competência do CSV não está no manifesto.",
-};
-
-async function call<T>(schema: z.ZodType<T>, query = "", body?: FormData, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(directPcdfPath + query, {
-    cache: "no-store", signal, ...(body && { method: "POST", body }),
-  }).catch(error => {
-    if (signal?.aborted) throw error;
-    throw new Error("Backend de importação indisponível.");
-  });
-  const result = await response.json().catch(() => null);
-  if (!result) throw new Error("Backend de importação indisponível.");
-  if (response.status === 401) throw new Error("Sessão expirada. Entre novamente.");
-  if (response.status === 403) throw new Error("Importação não autorizada para este perfil ou ambiente.");
-  if (!response.ok || result.success !== true) {
-    const detail = result.error?.diagnostic;
-    throw new Error(diagnostics[detail] ?? result.error?.message ?? "Receptor PCDF local indisponível.");
-  }
-  return schema.parse(result.data);
-}
-
-function form(csv: File, manifest: File | undefined) {
-  const body = new FormData();
-  body.set("csv", csv);
-  if (manifest) body.set("manifesto", manifest);
-  return body;
-}
-
 type EmbeddedPcdf = { file?: File; onSaving?: (saving: boolean) => void; onComplete?: () => void };
 
 export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf = {}) {
@@ -65,7 +30,7 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
   useEffect(() => {
     if (!file) return;
     const controller = new AbortController();
-    void call(directPreview, "?etapa=validar", form(file, undefined), controller.signal)
+    void previewPcdf(file, undefined, controller.signal)
       .then(data => { if (!controller.signal.aborted) setPreview(data); },
         failure => { if (!controller.signal.aborted) setError(failure.message); })
       .finally(() => { if (!controller.signal.aborted) setBusy(undefined); });
@@ -80,7 +45,7 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
     setPage(1);
     if (!file) return;
     setBusy("validar");
-    try { setPreview(await call(directPreview, "?etapa=validar", form(file, technicalManifest))); }
+    try { setPreview(await previewPcdf(file, technicalManifest)); }
     catch (failure) { setError((failure as Error).message); }
     finally { setBusy(undefined); }
   }
@@ -90,11 +55,8 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
     setBusy("confirmar");
     onSaving?.(true);
     setError("");
-    const body = form(csv, manifest);
-    body.set("sha256", preview.sha256);
-    if (preview.manifestSha) body.set("manifestSha", preview.manifestSha);
     try {
-      setReceipt(await call(directReceipt, "?etapa=confirmar", body));
+      setReceipt(await confirmPcdf(csv, preview, manifest));
       setReview(false);
     } catch (failure) { setError((failure as Error).message); }
     finally {
@@ -191,36 +153,23 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
   </div>;
 }
 
-function StoredPcdfRows({ run }: { run: string }) {
+export function StoredPcdfRows({ run }: { run: string }) {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<{ page: number; data?: z.infer<typeof directDetail>; error?: string }>();
   useEffect(() => {
     const controller = new AbortController();
     const query = "?" + new URLSearchParams({ execucao: run, pagina: String(page) });
-    void call(directDetail, query, undefined, controller.signal).then(
+    void call(directDetail, query, undefined, AbortSignal.any([controller.signal, AbortSignal.timeout(25000)])).then(
       data => { if (!controller.signal.aborted) setResult({ page, data }); },
       failure => { if (!controller.signal.aborted) setResult({ page, error: failure.message }); });
     return () => controller.abort();
   }, [page, run]);
-  if (result?.page !== page) return <p role="status">Consultando registros gravados…</p>;
-  if (result.error) return <p role="alert">{result.error}</p>;
-  const details = result.data!;
+  if (result?.page !== page) return <p role="status">Consultando registros gravados?</p>;
+  if (!result.data) return <p role="alert">{result.error}</p>;
   return <>
-    <div className={styles.tableScroll} role="region" aria-label="Registros PCDF gravados" tabIndex={0}>
-      <table className={styles.pcdfTable}>
-        <caption>Valores gravados em staging</caption>
-        <thead><tr><th scope="col">Registro</th>{details.headers.map(field => <th scope="col" key={field}>{field}</th>)}<th scope="col">Avisos</th></tr></thead>
-        <tbody>{details.rows.map(row => <tr key={row.ordinal}>
-          <th scope="row">{row.ordinal}</th>{row.cells.map((value, i) => <td key={details.headers[i]}>{value}</td>)}
-          <td>{row.issues.map(issue => <div key={issue.field + issue.rule}>{issue.field} · {issue.rule.replace(/_/g, " ")}</div>)}</td>
-        </tr>)}</tbody>
-      </table>
-    </div>
-    <nav className={styles.actions} aria-label="Paginação de registros gravados">
-      <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</Button>
-      <span>Página {total(page)} · {total(details.total)} associações</span>
-      <Button variant="outline" disabled={page * pageSize >= details.total} onClick={() => setPage(page + 1)}>Próxima</Button>
-    </nav>
+    <PcdfRecords headers={result.data.headers} label="Registros PCDF gravados"
+      rows={result.data.rows.map(row => ({ ...row, issues: row.issues.map(({ field, rule }) => [field, rule]) }))} />
+    <Pager page={page} total={result.data.total} onChange={setPage} label="Pagina??o de registros gravados" />
   </>;
 }
 
