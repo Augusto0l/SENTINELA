@@ -115,7 +115,8 @@ test("static route inventory allows only explicitly gated write handlers under a
       assert.match(source, /hasPermission\(principal\.role, "cadastrar"\)/)
       assert.match(source, /request\.headers\.get\("origin"\) !== mode\.origin/)
       assert.match(source, /withOperationalDatabase\(principal, false,/)
-      assert.match(source, /hostedOperationalMode\(\)\?\.write === false/)
+      assert.match(source, /hostedOperationalMode\(\) && !hostedManualCreationEnabled\(\)/)
+      assert.match(source, /\}, !!actor, 8000, "manual-create"\)/)
     }
     else if (relative === "ocorrencias/gestao/route.ts") {
       assert.match(source, /occurrenceManagementMode\(\)/)

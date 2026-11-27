@@ -8,7 +8,7 @@ import authGateway from "@/lib/auth/gateway"
 import { resolveAccess } from "@/lib/auth/core"
 import { LocalImportDbError } from "@/lib/db/local-import-db"
 import type { OperationalPrincipal } from "@/lib/auth/operational-access"
-import { hostedOperationalMode, institutionalUsersWriteEnabled } from "@/lib/db/pcdf-direct-mode"
+import { hostedManualCreationEnabled, hostedOperationalMode, institutionalUsersWriteEnabled } from "@/lib/db/pcdf-direct-mode"
 import { headers } from "next/headers"
 
 const logins = {
@@ -79,10 +79,11 @@ export async function withHostedImportDatabase<T>(principal: HostedImportPrincip
 }
 
 export async function withHostedOperationalDatabase<T>(principal: OperationalPrincipal, readOnly: boolean,
-  callback: (client: Client) => Promise<T>, statementTimeout: number, scope: "operational" | "users" = "operational") {
+  callback: (client: Client) => Promise<T>, statementTimeout: number, scope: "operational" | "users" | "manual-create" = "operational") {
   const mode = hostedOperationalMode()
   const writable = scope === "users" ? institutionalUsersWriteEnabled() && principal.role === "Administrador"
-    : mode?.write && principal.role !== "Analista"
+    : scope === "manual-create" ? hostedManualCreationEnabled() && ["Administrador", "Operador"].includes(principal.role)
+      : mode?.write && principal.role !== "Analista"
   if (!mode || principal.source !== "supabase" || (!readOnly && !writable)
     || (await headers()).get("host") !== new URL(mode.origin).host)
     throw Object.assign(new Error("Operação institucional não autorizada."), { code: "42501" })

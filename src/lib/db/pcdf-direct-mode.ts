@@ -25,6 +25,11 @@ export function hostedOperationalMode(env = process.env) {
   return mode && { origin: mode.origin, write: env.SENTINELA_SUPABASE_OPERATIONAL_WRITE === "1" };
 }
 
+export function hostedManualCreationEnabled(env = process.env) {
+  return Boolean(hostedOperationalMode(env)
+    && (env.SENTINELA_SUPABASE_MANUAL_WRITE ?? env.SENTINELA_SUPABASE_OPERATIONAL_WRITE) === "1");
+}
+
 export function institutionalDatabaseMode(env = process.env) {
   return hostedOperationalMode(env) ?? integratedSupabaseMode(env);
 }

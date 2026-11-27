@@ -19,6 +19,7 @@ import { renderDensityHeatmap, renderProjectedHeatmap } from "@/components/map/h
 import { clusterCell, frameDetail, pointRadius } from "@/components/map/mapSymbols";
 import { officialRaLines } from "@/components/map/raTooltip";
 import { useStreetNavigation } from "@/components/map/useStreetNavigation";
+import type { ManualMapPoint } from "@/lib/db/manual-map";
 import type { MapOccurrenceInteraction } from "@/components/map/MapOccurrenceTooltip";
 import styles from "@/components/map/AnalyticMap.module.css";
 
@@ -65,6 +66,8 @@ type Props = {
   streetBasemap?: boolean;
   satelliteOccurrences?: { visible: boolean; onChange: (visible: boolean) => void };
   occurrenceInteraction?: MapOccurrenceInteraction;
+  manualPoints?: readonly ManualMapPoint[];
+  focusedOccurrence?: string;
 };
 
 function colorFor(value: number, min: number, max: number) {
@@ -112,6 +115,8 @@ export default function MapaDF({
   streetBasemap = false,
   satelliteOccurrences,
   occurrenceInteraction,
+  manualPoints,
+  focusedOccurrence,
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
@@ -478,6 +483,20 @@ export default function MapaDF({
             <circle cx={pinX} cy={pinY} r={3} fill="#fff" />
           </g>
         )}
+
+        {manualPoints?.filter(point => !selectedRA || point.raCode === selectedRA.code).map(point => {
+          const { x, y } = projectLonLat(point.longitude, point.latitude);
+          const review = point.status === "em_revisao";
+          const label = review ? "Ocorrência manual em revisão" : "Ocorrência manual consolidada";
+          const isFocused = point.id === focusedOccurrence;
+          return <a key={point.id} href={`/ocorrencias?${review ? "manual" : "ocorrencia"}=${point.id}`} aria-label={label}>
+            <circle cx={x} cy={y} r={isFocused ? 8 : 5} fill={review ? "#fbbf24" : "#60a5fa"}
+              stroke={isFocused ? "#fff" : "#422006"} strokeWidth={2} vectorEffect="non-scaling-stroke"
+              data-testid="manual-map-marker" data-occurrence={point.id}>
+              <title>{label}</title>
+            </circle>
+          </a>;
+        })}
 
         {/* Legacy occurrencePoints */}
         {showPoints && occurrencePoints.length > 0 && mapMode !== "points" && mapMode !== "clusters" && (

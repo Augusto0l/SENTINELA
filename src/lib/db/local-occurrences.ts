@@ -40,9 +40,10 @@ export class LocalOccurrenceForbidden extends Error {}
 export class LocalOccurrenceReadOnly extends DatabaseUnavailable {}
 
 export function withOperationalDatabase<T>(principal: OperationalPrincipal, readOnly: boolean,
-  run: (client: Client) => Promise<T>, operational = false, statementTimeout = 8000) {
+  run: (client: Client) => Promise<T>, operational = false, statementTimeout = 8000,
+  scope: "operational" | "manual-create" = "operational") {
   return hostedOperationalMode()
-    ? withHostedOperationalDatabase(principal, readOnly, run, statementTimeout)
+    ? withHostedOperationalDatabase(principal, readOnly, run, statementTimeout, scope)
     : withLocalOccurrenceDatabase(principal, readOnly, run, operational, statementTimeout)
 }
 

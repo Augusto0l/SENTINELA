@@ -76,7 +76,7 @@ export async function withHostedImportEnvironment(test, { operational = false, r
     }
     db = new Client(dbConfig)
     await db.connect()
-    const sql = async (statement, params) => (await db.query(statement, params)).rows[0]?.data
+    const sql = async (statement, params) => (await db.query(statement, params)).rows?.[0]?.data
     const identity = await sql("SELECT jsonb_build_array(current_setting('data_directory'),inet_server_port(),current_setting('ssl')) AS data")
     assert.deepEqual([realpathSync(identity[0]), ...identity.slice(1)], [realpathSync(data), pgPort, "on"])
     attested = true
