@@ -2,15 +2,24 @@ import { createRequire } from "node:module";
 import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { assertHostedEnvironment } from "./hosted-env.mjs";
 
 const require = createRequire(import.meta.url);
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const [requested, ...args] = process.argv.slice(2);
+const workspaceDev = requested === "workspace-dev";
+if (workspaceDev && process.platform === "win32") {
+  const launcher = spawnSync("python", ["-B", "database/local/pcdf-sandbox/serve-import-3000.py", ...args],
+    { stdio: "inherit", cwd: projectRoot });
+  if (launcher.error) throw launcher.error;
+  process.exit(launcher.status ?? 1);
+}
+const command = workspaceDev ? "dev" : requested;
+if (workspaceDev) args.unshift("--hostname", "0.0.0.0");
 const nextPackage = require.resolve("next/package.json");
 const nextRequire = createRequire(nextPackage);
 const nextRoot = dirname(nextPackage);
-const [command, ...args] = process.argv.slice(2);
 // Load private configuration before selecting the listener. Never trust Host alone.
 nextRequire("@next/env").loadEnvConfig(projectRoot, command === "dev", { info() {}, error() {} });
 assertHostedEnvironment();
@@ -19,7 +28,14 @@ if (process.env.SENTINELA_PERSISTENT_HOMOLOGATION === "1"
   throw new Error("Homologação persistente exige desenvolvimento com o provedor local.");
 }
 delete process.env.SENTINELA_LOCAL_BIND;
-if (command === "dev" && (process.env.SENTINELA_AUTH_PROVIDER === "local" || process.env.SENTINELA_LOCAL_DEMO === "1")) {
+const integratedSupabase = process.env.SENTINELA_AUTH_PROVIDER === "supabase" && process.env.SENTINELA_INTEGRATED_SUPABASE === "1";
+if (integratedSupabase && (command !== "dev"
+  || process.env.SENTINELA_APP_ORIGIN !== "http://localhost:3000"
+  || process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://hcmqsqfbrynpfjvmuqdb.supabase.co"
+  || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.startsWith("sb_publishable_"))) {
+  throw new Error("Confira a configuração pública do projeto Supabase SENTINELA e a origem localhost:3000.");
+}
+if (command === "dev" && (integratedSupabase || process.env.SENTINELA_AUTH_PROVIDER === "local" || process.env.SENTINELA_LOCAL_DEMO === "1")) {
   for (let i = args.length - 1; i >= 0; i--) {
     if (args[i] === "--hostname" || args[i] === "-H") args.splice(i, 2);
     else if (args[i].startsWith("--hostname=")) args.splice(i, 1);

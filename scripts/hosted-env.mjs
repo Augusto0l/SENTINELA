@@ -2,7 +2,7 @@
 export function assertHostedEnvironment(env = process.env) {
   if (env.VERCEL !== "1" && !["preview", "production"].includes(env.VERCEL_ENV)) return
   const localOnly = [
-    "SENTINELA_LOCAL_BIND", "SENTINELA_LOCAL_ACCOUNTS_FILE", "SENTINELA_LOCAL_READER_URL",
+    "SENTINELA_LOCAL_BIND", "SENTINELA_LOCAL_ACCOUNTS_FILE", "SENTINELA_LOCAL_READER_URL", "SENTINELA_INTEGRATED_SUPABASE",
     "SENTINELA_PERSISTENT_HOMOLOGATION", "SENTINELA_PERSISTENT_PASSWORD_sprint4_homolog_admin_read",
     "SENTINELA_PERSISTENT_PASSWORD_sprint4_homolog_operator_read", "SENTINELA_PERSISTENT_PASSWORD_sprint4_homolog_analyst_read",
     "SENTINELA_PERSISTENT_CRUD", "SENTINELA_PERSISTENT_PASSWORD_s4_hom_admin_write", "SENTINELA_PERSISTENT_PASSWORD_s4_hom_operator_write",

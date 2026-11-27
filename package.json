@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/next-cli.mjs dev --hostname 0.0.0.0",
+    "dev": "node scripts/next-cli.mjs workspace-dev",
+    "dev:next": "node scripts/next-cli.mjs dev --hostname 0.0.0.0",
+    "dev:local": "python -B database/local/pcdf-sandbox/serve-import-3000.py",
     "build": "node scripts/next-cli.mjs build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",

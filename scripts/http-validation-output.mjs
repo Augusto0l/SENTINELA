@@ -150,11 +150,11 @@ export function httpValidation(id, { port = 3317, evidence, root = projectRoot, 
     await create(join(tmp, `tsconfig-http-${id}.json`), JSON.stringify({ extends: "../tsconfig.json", compilerOptions: { incremental: false }, include }))
   }
 
-  function start(env, stdio) {
+  function start(env, stdio, { detached = false } = {}) {
     assert(lock && owned.has(dist) && !child && env.SENTINELA_HTTP_VALIDATION_ID === id)
     spawnedAt = Date.now()
     child = spawn(process.execPath, ["scripts/next-cli.mjs", "dev", "--hostname", "127.0.0.1", "--port", String(port)],
-      { cwd: root, env, stdio, windowsHide: true })
+      { cwd: root, env, stdio, detached, windowsHide: true })
     exit = new Promise(ok => { child.once("exit", ok); child.once("error", ok) })
     return child
   }

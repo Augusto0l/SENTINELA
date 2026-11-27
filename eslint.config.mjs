@@ -10,5 +10,5 @@ export default defineConfig([
     "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
   } },
   { files: ["src/**/*.{tsx,jsx}"], rules: { "jsx-a11y/label-has-associated-control": "error" } },
-  globalIgnores([".next/**", ".next-build-validation/**", ".next-http-validation-*/**", "node_modules/**", "src/imports/**", "next-env.d.ts", ".figma/**", ".tmp-*", "tmp/**", "temp/**", "out/**"]),
+  globalIgnores([".cache/**", ".next/**", ".next-build-validation/**", ".next-http-validation-*/**", "node_modules/**", "src/imports/**", "next-env.d.ts", ".figma/**", ".tmp-*", "tmp/**", "temp/**", "out/**"]),
 ]);
