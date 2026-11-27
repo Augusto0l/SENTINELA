@@ -12,7 +12,7 @@ TEMPLATE = RELEASE / "manual-occurrences-operational.psql.in"
 INVENTORY = REPO / "docs/catalogos/naturezas-manuais-candidatas-v1.json"
 CATALOG = REPO / "docs/catalogos/pcdf-naturezas-xml-v1.json"
 INVENTORY_SHA256 = "ef6ea604d4e1ad85ccaa0016ab383b4d853e5a537a8171b8be94fe0f45e28fa8"
-CATALOG_SHA256 = "df4e3a2be54102ec87c93b84723e1e0c3902808c397de5402dcc966ff6de2567"
+CATALOG_SHA256 = "0e6fe44e64abb8eeb88a4b9f0b9e4c55205026abda225a91a32cd164f5fa9889"
 XML_SHA256 = "faf82ae0620fa3ecc53bc002d9c2e49b24b6ec0126a44449510d12948dc0a022"
 
 

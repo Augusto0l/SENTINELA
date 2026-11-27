@@ -161,3 +161,20 @@
 /database/supabase/migrations/0010_importador_objetos.sql -text
 /database/supabase/migrations/0011_central_revisao_hospedada.sql -text
 /database/supabase/pendentes/* -text
+
+# Keep the SHA-256 pinned bytes of PCDF inputs identical on Windows and Linux checkouts.
+/docs/catalogos/pcdf-naturezas-xml-v1.json text eol=lf
+/docs/desenvolvimento/pcdf-inventario-mensal-2021-2026.csv -text
+/database/release/pcdf-original-natures-clone.psql -text
+
+# Inputs whose text and SHA-256 checks assume LF on every checkout (tests split lines and pin SHA-256).
+/database/release/manual-occurrences-operational-0005.psql text eol=lf
+/database/release/manual-occurrences-operational-rollback.psql text eol=lf
+/database/release/manual-occurrences-operational.psql.in text eol=lf
+/database/release/register-supabase-operator.psql text eol=lf
+/database/release/render-manual-operational.py text eol=lf
+/database/release/render-operational-import-management.py text eol=lf
+/docs/catalogos/naturezas-manuais-candidatas-v1.json text eol=lf
+/src/app/api/v1/ocorrencias/gestao/route.ts text eol=lf
+/src/app/api/v1/ocorrencias/manuais/route.ts text eol=lf
+/src/lib/db/operational-import-review.ts text eol=lf
