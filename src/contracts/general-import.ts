@@ -29,6 +29,7 @@ export const generalAttempt = z.strictObject({
   request: z.uuid(), name: z.string(), format: z.enum(["csv", "xlsx"]), sheet: z.string(),
   actor: z.enum(["Administrador", "Operador"]), created: z.iso.datetime({ offset: true }),
   status: z.enum(["recebida", "concluida", "falhou"]),
+  inativada: z.literal(true).optional(),
   receipt: generalReceipt.nullable(),
 })
 export const generalHistory = z.array(generalAttempt).max(100)

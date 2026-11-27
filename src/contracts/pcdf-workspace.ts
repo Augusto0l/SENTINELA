@@ -23,6 +23,11 @@ export const pcdfReviewPageQuery = pcdfReviewFilters.extend({
   pagina: z.string().regex(/^[1-9]\d{0,4}$/).transform(Number).pipe(z.number().max(10000)),
   limite: z.string().regex(/^[1-9]\d?$/).transform(Number).pipe(z.number().max(50)).optional(),
 })
+export const reviewOrigins = ["pcdf", "geral", "manual", "outra"] as const
+export const hostedReviewQuery = pcdfReviewPageQuery.extend({
+  status: z.enum(["aberta", "em_analise", ...pcdfDecisions]).optional(),
+  origem: z.enum(reviewOrigins).optional(),
+})
 export const pcdfDecision = z.discriminatedUnion("decisao", [
   z.strictObject({ decisao: z.literal("resolvida"), versaoEsperada: version, justificativa: reason,
     valor: z.string().trim().min(1).max(240) }),
@@ -30,14 +35,16 @@ export const pcdfDecision = z.discriminatedUnion("decisao", [
 ])
 export const pcdfIssue = z.strictObject({
   id: z.uuid(), type: z.enum(pcdfIssueTypes), priority: z.enum(pcdfPriorities), field: z.string(),
-  reason: z.string(), status: z.enum(["aberta", ...pcdfDecisions]), version, original: nullableText,
+  reason: z.string(), status: z.enum(["aberta", "em_analise", ...pcdfDecisions]), version, original: nullableText,
   normalized: nullableText, canResolve: z.boolean(), occurrenceId: z.uuid().nullable(), lotId: z.uuid().optional(),
+  origin: z.enum(reviewOrigins).optional(), ordinal: z.number().int().positive().optional(),
   history: z.strictObject({ author: z.uuid(), reason, at: z.iso.datetime({ offset: true }),
     before: nullableText, after: nullableText }).nullable(),
 })
 export const pcdfReviewPage = z.strictObject({
   items: z.array(pcdfIssue).max(50), page: z.number().int().min(1).max(10000),
   pageSize: z.number().int().min(1).max(50), hasMore: z.boolean(),
+  counts: z.strictObject({ active: count, resolved: count, closed: count }).optional(),
 })
 export const pcdfLot = z.strictObject({
   lot: z.uuid(), run: z.uuid(), month: pcdfMonth, rows: count, issues: count, consolidated: count,
