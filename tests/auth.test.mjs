@@ -92,6 +92,36 @@ test("atualização de senha exige sessão, confirmação e logout após sucesso
   const mismatch = await authPost("senha", request("senha", { ...fields, confirmation: "diferente" }), origin, gateway())
   assert.match(mismatch.headers.get("location"), /erro=senha$/)
 })
+
+test("primeiro acesso intercepta o login e mantém a autorização bloqueada antes da nova senha", async () => {
+  let updates = 0
+  const client = gateway({
+    identity: async () => ({ id: authId, onboarding: "password" }),
+    access: async () => assert.fail("Vínculo não deve liberar um primeiro acesso pendente"),
+    updatePassword: async () => { updates++; return true },
+  })
+  assert.deepEqual(await resolveAccess(client), { status: "first_password" })
+  const first = await authPost("login", request("login", { email: "fixture@example.test", password: "temporaria" }), origin, client)
+  assert.equal(target(first), "/atualizar-senha")
+  const weak = await authPost("senha", request("senha", { password: "123456", confirmation: "123456" }), origin, client)
+  assert.match(weak.headers.get("location"), /erro=primeira_senha$/)
+  assert.equal(updates, 0)
+  const fields = { password: "Fixture!long-A7-Test", confirmation: "Fixture!long-A7-Test" }
+  const saved = await authPost("senha", request("senha", fields), origin, client)
+  assert.match(saved.headers.get("location"), /estado=senha$/)
+  assert.equal(updates, 1)
+  const incomplete = gateway({ identity: async () => ({ id: authId, onboarding: "provisioning" }) })
+  assert.equal((await resolveAccess(incomplete)).status, "unlinked")
+  assert.equal(target(await authPost("senha", request("senha", fields), origin, incomplete)), "/acesso-pendente")
+})
+
+test("cadastro institucional normaliza Gmail e rejeita senha fraca, perfil arbitrário e ausência de nome", async () => {
+  const { institutionalCreate } = await import("../src/contracts/institutional-users.ts")
+  const input = { name: "Pessoa de teste", email: " Teste+qa@GMAIL.COM ", perfil: "Operador", password: "Fixture!long-A7-Test" }
+  assert.equal(institutionalCreate.parse(input).email, "teste+qa@gmail.com")
+  for (const invalid of [{ password: "123456" }, { perfil: "root" }, { email: "teste@example.test" }, { name: " " }])
+    assert.equal(institutionalCreate.safeParse({ ...input, ...invalid }).success, false)
+})
 test("permissões dos três perfis, rotas e escopo de dados permanecem restritos", () => {
   for (const role of ROLES) {
     assert.equal(hasPermission(role, "consultar_central"), true)
