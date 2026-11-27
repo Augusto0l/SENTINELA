@@ -161,3 +161,8 @@
 /database/supabase/migrations/0010_importador_objetos.sql -text
 /database/supabase/migrations/0011_central_revisao_hospedada.sql -text
 /database/supabase/pendentes/* -text
+
+# Keep the SHA-256 pinned bytes of PCDF inputs identical on Windows and Linux checkouts.
+/docs/catalogos/pcdf-naturezas-xml-v1.json text eol=lf
+/docs/desenvolvimento/pcdf-inventario-mensal-2021-2026.csv -text
+/database/release/pcdf-original-natures-clone.psql -text
