@@ -52,6 +52,19 @@
                         {
                           "type": "object",
                           "properties": {
+                            "canValidate": {
+                              "type": "boolean"
+                            },
+                            "block": {
+                              "type": "string",
+                              "enum": [
+                                "profile",
+                                "inventory",
+                                "january",
+                                "configuration",
+                                "recovery"
+                              ]
+                            },
                             "items": {
                               "minItems": 68,
                               "maxItems": 68,
@@ -191,6 +204,19 @@
                         {
                           "type": "object",
                           "properties": {
+                            "canValidate": {
+                              "type": "boolean"
+                            },
+                            "block": {
+                              "type": "string",
+                              "enum": [
+                                "profile",
+                                "inventory",
+                                "january",
+                                "configuration",
+                                "recovery"
+                              ]
+                            },
                             "items": {
                               "maxItems": 67,
                               "type": "array",
