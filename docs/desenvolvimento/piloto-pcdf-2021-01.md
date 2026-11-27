@@ -1,32 +1,36 @@
 # Importação direta PCDF no SENTINELA
 
-A importação PCDF dispensa aprovação institucional assinada no software, identidade especial de executor e autorização assinada por lote. Administrador e Operador usam as contas locais normais do SENTINELA. O Analista tem acesso negado à tela e à API de importação.
+A recepção da importação PCDF está disponível a Administradores e Operadores autenticados no Supabase Auth. O Analista tem acesso negado à tela e à API de importação.
 
-## Iniciar e importar janeiro de 2021
+## Iniciar e consultar janeiro de 2021
 
-No Windows, a partir do checkout da integração `D:\Projetos\SENTINELA\.cache\sentinela-local-3000`, use as versões de Node e pnpm do projeto, Python 3.12 e a instalação local do PostgreSQL 17.11 com PostGIS 3.6.2. Garanta que as portas locais 3000 e 55484 estejam livres. Se ainda não houver contas locais, execute `scripts/configure-local-auth.ps1` para configurá-las. O script solicita as três senhas de modo interativo.
+No Windows, abra `D:\Projetos\SENTINELA` no VS Code e use o terminal da raiz. Use as versões de Node e pnpm do projeto, Python 3.12 e a instalação local do PostgreSQL 17.11 com PostGIS 3.6.2. A execução operacional usa a conta institucional existente e as variáveis públicas do Supabase em `.env.local`.
 
-Uma vez por banco, provisione o destino e copie o caminho `manifesto` informado. Esse arquivo identifica a instalação local e fica no diretório privado `%USERPROFILE%\.sentinela-local\pcdf-local`.
-
-```powershell
-pnpm install --frozen-lockfile
-python -B database/local/pcdf-sandbox/direct_runtime.py --provision
-```
-
-Para cada sessão, inicie o PostgreSQL e o Next.js pelo comando abaixo. Substitua o exemplo pelo caminho retornado no provisionamento. O comando usa DPAPI para abrir as credenciais técnicas na conta Windows que criou o banco, aplica a migração local de histórico e importação geral e executa o Next.js em loopback. A porta 3000 deve estar livre.
+Para o piloto já instalado, inicie pelo terminal do VS Code na raiz do projeto.
 
 ```powershell
-python -B database/local/pcdf-sandbox/serve-import-3000.py --cluster '<caminho do manifest.json local>'
+npm run dev:local
 ```
+
+O lançador localiza o único manifesto operacional em `%USERPROFILE%\.sentinela-local\pcdf-local`. Ele reutiliza o PostgreSQL atestado na porta 55484 ou inicia o cluster existente. Após um desligamento inesperado, verifica o PID, a porta e a identidade do cluster. O próprio PostgreSQL trata o `postmaster.pid` residual e faz a recuperação normal na inicialização. O lançador carrega as credenciais dos perfis do PostgreSQL com DPAPI e serve o Next.js na porta 3000. Essa inicialização não aplica migrations. No Windows, `pnpm dev` aciona o mesmo lançador.
+
+Uma segunda execução informa quando o SENTINELA integrado já está respondendo. Se outro aplicativo estiver usando a porta 3000, o lançador informa o PID e o executável quando o Windows permite consultá-lo. Feche esse aplicativo pelo controle que o iniciou antes de tentar novamente.
+
+Use sempre `http://localhost:3000` no navegador. A sessão Supabase usa cookies do host e as rotas de envio exigem o Origin correspondente. Para reiniciar apenas o Next.js com o PostgreSQL já em execução, use o modo explícito abaixo.
+
+```powershell
+npm run dev:local -- --next-only
+```
+
+O argumento `--cluster '<caminho do manifest.json local>'` seleciona um manifesto específico. O provisionamento inicial (`direct_runtime.py --provision`) e as migrations são operações explícitas para ambientes novos ou ajustados, com o [procedimento de leitura separado](../contratos/consulta-ocorrencias-local.md#instalação-local).
 
 1. Abra [http://localhost:3000/importar](http://localhost:3000/importar) e entre como Administrador ou Operador.
-2. Clique em **Selecionar arquivo** ou arraste o CSV original `pcdf_naturezas_2021-01.csv` do SENTINELA-DADOS. Se disponível, selecione também o manifesto técnico JSON correspondente.
-3. Em **Validar arquivo**, confira **janeiro de 2021**, **6.393 associações**, **2.948.416 bytes** e **34 campos**. Abra os avisos para consultar os grupos de registros. Se houver manifesto técnico, use **Verificação adicional de integridade**.
-4. Abra **Revisar registros**. A prévia tem 25 registros por página. Use **Ver todos os campos** para conferir as 34 colunas, ou **Ver registro** para inspecionar uma associação. Em seguida, abra **Revisar confirmação** e confirme a importação.
-5. Depois de **Gravação confirmada**, abra **Histórico** e use **Ver detalhes** para consultar o lote, a execução e o SHA-256. Para janeiro de 2021, o SHA-256 esperado é `e202df3622fbd5f0b4ae53e7a8f435bce9ad58ff30a43a3c248ce2d369fd3770`.
-6. Use Ctrl+C no terminal ao terminar a sessão. O controlador encerra o PostgreSQL que iniciou e conserva os dados para a próxima execução.
+2. Abra **Histórico** e filtre por `pcdf_naturezas_2021-01.csv`. O lote já está gravado, com **6.393 associações** e **20.020 pendências**.
+3. Use **Ver detalhes** para consultar o lote, a execução e o SHA-256 `e202df3622fbd5f0b4ae53e7a8f435bce9ad58ff30a43a3c248ce2d369fd3770`.
+4. Em **Abrir registros importados**, confira a paginação de 25 registros e a opção **Ver todos os campos**. O lote também está disponível em [Registros importados](http://localhost:3000/ocorrencias).
+5. Use Ctrl+C no terminal ao terminar a sessão. O lançador encerra o PostgreSQL se tiver iniciado o cluster nessa sessão.
 
-O destino é `sentinela_pcdf_local` em `127.0.0.1:55484`, com diretório próprio e credenciais restritas. A administração do cluster usa a credencial de manutenção no provisionamento e no controle de ciclo de vida. A aplicação usa dois logins PostgreSQL restritos, um por perfil de escrita. A configuração e as credenciais ficam fora do Git.
+O destino é `sentinela_pcdf_local` em `127.0.0.1:55484`, com diretório próprio e credenciais restritas. A administração do cluster usa a credencial de manutenção no provisionamento e no controle de ciclo de vida. A aplicação usa os logins PostgreSQL dos perfis Administrador, Operador e Analista. A configuração e as credenciais ficam fora do Git.
 
 ## API e armazenamento
 
@@ -38,6 +42,8 @@ O destino é `sentinela_pcdf_local` em `127.0.0.1:55484`, com diretório própri
 | `GET /api/v1/importacoes/pcdf/direta?execucao=<uuid>&pagina=1` | Até 25 associações com os 34 campos gravados e seus diagnósticos. |
 
 O POST usa `multipart/form-data` com `csv` e `manifesto` opcional. A confirmação repete os arquivos e inclui `sha256` da prévia, além de `manifestSha` quando houver manifesto. A API exige sessão e Origin esperado. O receptor aceita um CSV mensal de até 16 MiB e 10.000 associações e um manifesto de até 1 MiB. A prévia pagina em blocos de 25 no navegador.
+
+Uma sessão ausente recebe HTTP 401. Um perfil ou Origin recusado recebe 403. A API usa 503 quando o serviço local está indisponível ou o PostgreSQL não passa na atestação. Se apenas uma fonte do histórico falhar, a tela mantém os dados da fonte disponível e indica histórico parcial.
 
 O manifesto é um recurso técnico para conferir tamanho, contagem, hash do CSV e IDs de linha com o hash XML declarado. Com apenas o CSV, o sistema confere identidade técnica e registra a proveniência declarada. O upload conserva os 18 originais em origem e todos os 34 valores em staging, inclusive campos vazios, espaços, quebras de linha e zeros à esquerda. O histórico conserva hashes e metadados. Guarde os arquivos originais em sua área de trabalho privada.
 
@@ -51,6 +57,6 @@ Uma falha após a tentativa reverte lote, execução, origens, staging, pendênc
 python -B database/local/pcdf-sandbox/direct_runtime.py --qualify-main
 ```
 
-O comando cria um banco de teste separado, usa o Edge em modo headless e o Next.js em `localhost:3000`, com três contas efêmeras. Os CSVs e a planilha XLSX são gerados nos testes. O resultado está em `evidence/pcdf-direct-qualification.json` na pasta privada do cluster de teste. O banco de teste fica encerrado ao final.
+O comando usa um banco de teste separado na porta 55488, o Edge em modo headless e o Next.js em `localhost:3000`, com três contas efêmeras. Libere a porta 3000 antes do ensaio. Os CSVs e a planilha XLSX são gerados nos testes. O resultado está em `evidence/pcdf-direct-qualification.json` na pasta privada do cluster de teste. O banco de teste fica encerrado ao final.
 
 A homologação do redesign em `localhost:3000` usou o cluster sintético `89583bf6-38f1-4dc5-bf1a-43ec57bf292c`. O navegador conferiu as quatro etapas, as duas abas, os filtros, a consulta individual e as larguras de 1440, 1366, 1024, 768 e 390 px. O PostgreSQL reconciliou 6.399 associações PCDF em três lotes, incluindo um CSV de 6.393 associações e 2.948.416 bytes. A planilha XLSX gravou duas linhas e o CSV geral gravou uma. O ensaio confirmou reenvio concorrente, rollback, auditoria, permissões dos três perfis e histórico após reiniciar o Next.js. A contagem de ocorrências e associações consolidadas foi zero. As seis capturas do navegador estão no diretório de evidências da execução.

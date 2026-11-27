@@ -1,0 +1,21 @@
+{
+    "value":  [
+                  {
+                      "width":  1440,
+                      "lote":  "8e19a177-b9df-4ea3-9c63-887ea578c5cb",
+                      "associacao":  "da521902-b26e-43b6-ace1-60466c9ce019",
+                      "auditoriaEdicao":  "c97b8b66-35af-40da-989e-6337300052b7",
+                      "cancelou":  true
+                  },
+                  {
+                      "width":  390,
+                      "lote":  "8e19a177-b9df-4ea3-9c63-887ea578c5cb",
+                      "associacao":  "da521902-b26e-43b6-ace1-60466c9ce019",
+                      "auditoriaEdicao":  "2891fcc4-f5e2-4fda-97fc-a2518d04981d",
+                      "comprovante":  "69957d68-ab05-439c-aba6-29bcdad837b5",
+                      "recebidasAntes":  9,
+                      "recebidasDepois":  8
+                  }
+              ],
+    "Count":  2
+}

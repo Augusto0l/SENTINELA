@@ -1,0 +1,46 @@
+[
+  {
+    "width": 1440,
+    "loteEditado": "38eee99e-af8a-4962-9ab3-aec02f9f79e9",
+    "associacao": "8da91116-4d51-4434-b660-cc919ae0249c",
+    "auditoriaEdicao": "25b02f58-8038-4218-a10b-99506fef37bf",
+    "edicaoVisivelAposRecarregar": true,
+    "originalPreservado": true,
+    "loteExclusao": "0786bf7c-7bbc-4314-bf27-ba47e20662d2",
+    "loteBloqueado": "d6fb05fd-7bbe-4666-9686-4bfa4f39d8fd",
+    "cancelou": true
+  },
+  {
+    "width": 390,
+    "loteEditado": "38eee99e-af8a-4962-9ab3-aec02f9f79e9",
+    "associacao": "8da91116-4d51-4434-b660-cc919ae0249c",
+    "auditoriaEdicao": "9a704f17-7748-48fa-846f-e7bf52720f6c",
+    "edicaoVisivelAposRecarregar": true,
+    "originalPreservado": true,
+    "loteExclusao": "0786bf7c-7bbc-4314-bf27-ba47e20662d2",
+    "loteBloqueado": "d6fb05fd-7bbe-4666-9686-4bfa4f39d8fd",
+    "comprovante": "fb644445-a025-48f9-b771-1c8e87dbf2bc",
+    "recebidasAntes": 11,
+    "recebidasDepois": 9,
+    "sqlAntes": {
+      "lotes": 1,
+      "execucoes": 1,
+      "staging": 2,
+      "origens": 2,
+      "pendencias": 8,
+      "entregas": 1,
+      "auditorias": 1,
+      "comprovantes": 0
+    },
+    "sqlDepoisPorNovaConexao": {
+      "lotes": 0,
+      "execucoes": 0,
+      "staging": 0,
+      "origens": 0,
+      "pendencias": 0,
+      "entregas": 0,
+      "auditorias": 0,
+      "comprovantes": 1
+    }
+  }
+]
