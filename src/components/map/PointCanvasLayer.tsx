@@ -36,8 +36,9 @@ function paintSymbols(context: CanvasRenderingContext2D, scene: PointScene, came
   context.globalAlpha = 1;
 }
 
-function PointCanvasLayer({ points, svgRef, fittedWidth, onHover, onOpen }: {
+function PointCanvasLayer({ points, focusedPoint, svgRef, fittedWidth, onHover, onOpen }: {
   points: readonly MapOccurrence[];
+  focusedPoint?: MapOccurrence;
   svgRef: RefObject<SVGSVGElement | null>;
   fittedWidth: number;
   onHover?: (marker: MarkerHover | null) => void;
@@ -45,6 +46,7 @@ function PointCanvasLayer({ points, svgRef, fittedWidth, onHover, onOpen }: {
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const halo = useRef<HTMLSpanElement>(null);
+  const focusedMarker = useRef<HTMLButtonElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const firstChoice = useRef<HTMLButtonElement>(null);
   const choiceId = useId();
@@ -127,6 +129,12 @@ function PointCanvasLayer({ points, svgRef, fittedWidth, onHover, onOpen }: {
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.clearRect(0, 0, bounds.width, bounds.height);
       paintSymbols(context, scene, camera, fittedWidth / svg.viewBox.baseVal.width);
+      if (focusedPoint && focusedMarker.current) {
+        const x = focusedPoint.x * camera.scale + camera.x;
+        const y = focusedPoint.y * camera.scale + camera.y;
+        focusedMarker.current.hidden = x < 0 || y < 0 || x > bounds.width || y > bounds.height;
+        focusedMarker.current.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      }
       if (lastCounts.symbols !== scene.symbols.length || lastCounts.points !== scene.count || lastCounts.grouped !== scene.grouped) {
         lastCounts = { symbols: scene.symbols.length, points: scene.count, grouped: scene.grouped };
         setCounts(lastCounts);
@@ -189,7 +197,7 @@ function PointCanvasLayer({ points, svgRef, fittedWidth, onHover, onOpen }: {
       clearHighlight();
       view.current = null;
     };
-  }, [svgRef, index, fittedWidth, interactive, clearHighlight, highlight, onOpen, showSelection]);
+  }, [svgRef, index, fittedWidth, focusedPoint, interactive, clearHighlight, highlight, onOpen, showSelection]);
 
   const showViewport = () => {
     const scene = view.current?.scene ?? EMPTY_SCENE;
@@ -201,6 +209,12 @@ function PointCanvasLayer({ points, svgRef, fittedWidth, onHover, onOpen }: {
     <canvas ref={canvas} className={styles.pointsCanvas} aria-hidden="true"
       data-testid="occurrence-points" data-point-count={counts.points} data-symbol-count={counts.symbols} />
     <span ref={halo} className={styles.pointHalo} hidden aria-hidden="true" />
+    {focusedPoint?.occurrenceId && <button ref={focusedMarker} type="button" hidden className={styles.focusedPointMarker}
+      data-testid="occurrence-marker" data-occurrence={focusedPoint.occurrenceId} data-selected="true"
+      aria-label={`${focusedPoint.underReview ? "Ocorrência selecionada em revisão" : "Ocorrência selecionada"} em ${focusedPoint.raName}`}
+      onFocus={() => highlight(focusedPoint, focusedPoint)} onBlur={clearHighlight}
+      onMouseEnter={() => highlight(focusedPoint, focusedPoint)} onMouseLeave={clearHighlight}
+      onClick={() => onOpen(focusedPoint)} />}
     <div className={`${styles.legend} ${styles.pointLegend}`}>
       <div><span className={`${styles.legendSymbol} ${styles.pointSymbol}`} />Ocorrência individual</div>
       {counts.grouped > 0 && <div><span className={`${styles.legendSymbol} ${styles.pointGroupSymbol}`} />Ocorrências agrupadas ou coincidentes</div>}

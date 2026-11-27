@@ -58,7 +58,7 @@ try {
       const y = i % 4 === 0 ? cy : cy + (rnd() + rnd() - 1) * 65
       return { id: String(i), occurrenceId: String(i), x, y, raName: "RA de ensaio" }
     })
-    function Map({ records, canvas }) {
+    function Map({ records, canvas, focused }) {
       const ref = React.useRef(null)
       return h(React.Fragment, null,
         h("svg", { ref, width: 1440, height: 900, viewBox: "0 0 1200 750" },
@@ -66,10 +66,11 @@ try {
           !canvas && h("g", { "data-layer": "svg" }, records.map(p => h("g", { key: p.id, role: "button", tabIndex: 0 },
             h("circle", { cx: p.x, cy: p.y, r: 12, fill: "transparent" }),
             h("circle", { cx: p.x, cy: p.y, r: 2.4, fill: "#ef4444", stroke: "#fecaca", strokeWidth: .6 }))))),
-        canvas && h(PointLayer, { points: records, svgRef: ref, fittedWidth: 1200,
+        canvas && h(PointLayer, { points: records, focusedPoint: focused ? { ...records[0], underReview: true } : undefined,
+          svgRef: ref, fittedWidth: 1200,
           onHover: m => { window.hoveredId = m?.point.occurrenceId }, onOpen: p => { window.openedId = p.occurrenceId } }))
     }
-    window.mount = (count, canvas) => root.render(h(Map, { key: `${count}:${canvas}`, records: points.slice(0, count), canvas }))
+    window.mount = (count, canvas, focused = false) => root.render(h(Map, { key: `${count}:${canvas}:${focused}`, records: points.slice(0, count), canvas, focused }))
     window.unmount = () => root.render(null)
   })
   await page.evaluate(() => window.mount(5000, true))
@@ -91,6 +92,12 @@ try {
   await page.getByRole("button", { name: /Ocorrência 21/ }).waitFor()
   await page.keyboard.press("Escape")
   assert(await page.getByRole("button", { name: "Selecionar ocorrências" }).evaluate(button => button === document.activeElement))
+  await page.evaluate(() => window.mount(5000, true, true))
+  const selected = page.getByTestId("occurrence-marker")
+  await selected.waitFor()
+  assert.equal(await selected.getAttribute("data-selected"), "true")
+  await selected.press("Enter")
+  assert.equal(await page.evaluate(() => window.openedId), "0")
 
   const cdp = await page.context().newCDPSession(page)
   await cdp.send("Performance.enable")

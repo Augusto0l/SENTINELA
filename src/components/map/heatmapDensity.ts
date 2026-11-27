@@ -8,8 +8,8 @@ export const HEAT_COLORS = [[37, 99, 235], [34, 197, 94], [250, 204, 21], [249, 
 export const HEAT_GRADIENT = "linear-gradient(to right, #2563eb, #22c55e, #facc15, #f97316, #ef4444)";
 export const DASHBOARD_HEAT = { radius: 18, sigma: 6, maxOpacity: 0.76 } as const;
 
-export type HeatPoint = { x: number; y: number };
-type GeographicRecord = { latitude: number; longitude: number };
+export type HeatPoint = { x: number; y: number; weight?: number };
+type GeographicRecord = { latitude: number; longitude: number; weight?: number };
 export type DensityField = { values: Float32Array; columns: number; rows: number; step: number; peak: number };
 
 /**
@@ -38,7 +38,7 @@ export function projectHeatRecords(
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return [];
     const point = project(longitude, latitude);
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !contains(point.x, point.y)) return [];
-    return [point];
+    return [record.weight && record.weight > 1 ? { ...point, weight: record.weight } : point];
   });
 }
 
@@ -58,8 +58,9 @@ export function createDensityField(points: readonly HeatPoint[], width: number, 
       for (let column = left; column <= right; column++) {
         const distanceSquared = (column * step - point.x) ** 2 + (row * step - point.y) ** 2;
         if (distanceSquared < radiusSquared) {
-          // Every record contributes equally. Only overlapping kernels increase density.
-          values[row * columns + column] += Math.exp(-distanceSquared / (2 * sigma ** 2));
+          // Every record contributes equally (an aggregated cell counts each of its occurrences).
+          // Only overlapping kernels increase density.
+          values[row * columns + column] += (point.weight ?? 1) * Math.exp(-distanceSquared / (2 * sigma ** 2));
         }
       }
     }

@@ -29,6 +29,8 @@ export type MapOccurrence = MockOccurrence & {
   occurrenceId?: string;
   territorialRaName?: string;
   publicationStatus?: PointPublicationStatus;
+  underReview?: boolean;
+  weight?: number;
 };
 
 const MapOccurrenceDetail = dynamic(() => import("@/features/occurrences/OccurrenceWorkspace")
@@ -64,6 +66,8 @@ type Props = {
   mapMode?: MapMode;
   mockOccurrences?: MapOccurrence[];
   heatReferenceOccurrences?: readonly MapOccurrence[];
+  /** Weighted heat cells of the current filters; without them the heat follows the visible points. */
+  heatOccurrences?: readonly MapOccurrence[];
   officialRegions?: RAData[];
   heatUnavailable?: boolean;
   countsUnavailable?: boolean;
@@ -71,6 +75,7 @@ type Props = {
   streetBasemap?: boolean;
   satelliteOccurrences?: { visible: boolean; onChange: (visible: boolean) => void };
   occurrenceInteraction?: MapOccurrenceInteraction;
+  focusedPoint?: MapOccurrence;
 };
 
 function colorFor(value: number, min: number, max: number) {
@@ -111,6 +116,7 @@ export default function MapaDF({
   mapMode = "heat",
   mockOccurrences = [],
   heatReferenceOccurrences = mockOccurrences,
+  heatOccurrences,
   officialRegions,
   heatUnavailable = false,
   countsUnavailable = false,
@@ -118,6 +124,7 @@ export default function MapaDF({
   streetBasemap = false,
   satelliteOccurrences,
   occurrenceInteraction,
+  focusedPoint,
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
@@ -161,7 +168,7 @@ export default function MapaDF({
     setTooltipPos(null);
     onOccurrenceHover?.(null);
   }, [onOccurrenceHover]);
-  const navigation = useStreetNavigation(svgRef, streetBasemap && mapMode !== "satellite", fittedViewBox, clearHover);
+  const navigation = useStreetNavigation(svgRef, streetBasemap && mapMode !== "satellite", fittedViewBox, clearHover, focusedPoint);
   const symbolLength = (value: number) => `calc(${value}px * var(--street-fit-ratio, 1))`;
 
   useEffect(() => {
@@ -187,9 +194,12 @@ export default function MapaDF({
     if (!selectedRaCode) return mockOccurrences;
     return mockOccurrences.filter((o) => o.raCode === selectedRaCode);
   }, [mockOccurrences, selectedRaCode]);
+  const pointOccurrences = useMemo(() => mapMode === "points" && focusedPoint
+    ? [...visibleOccs.filter(point => point.occurrenceId !== focusedPoint.occurrenceId), focusedPoint] : visibleOccs,
+  [mapMode, focusedPoint, visibleOccs]);
   const canOpenPoint = mapMode === "points" || (mapMode === "satellite" && satelliteOccurrences?.visible);
   const activePoint = canOpenPoint && openedPoint
-    ? visibleOccs.find(point => point.occurrenceId === openedPoint.occurrenceId) : undefined;
+    ? pointOccurrences.find(point => point.occurrenceId === openedPoint.occurrenceId) : undefined;
   if (openedPoint && !activePoint) setOpenedPoint(undefined);
 
   // The point-in-region test depends only on the official geometry. Keeping it per `regions` (not per mode)
@@ -217,7 +227,9 @@ export default function MapaDF({
     return createDensityField(points, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains, heatStyle);
   }, [heatDomain, heatReferenceOccurrences, heatStyle]);
 
-  const heatPoints = useMemo(() => heatDomain ? projectHeatRecords(visibleOccs, projectLonLat, heatDomain.contains) : [], [visibleOccs, heatDomain]);
+  const heatRecords = useMemo(() => !heatOccurrences ? visibleOccs
+    : selectedRaCode ? heatOccurrences.filter(cell => cell.raCode === selectedRaCode) : heatOccurrences, [heatOccurrences, visibleOccs, selectedRaCode]);
+  const heatPoints = useMemo(() => heatDomain ? projectHeatRecords(heatRecords, projectLonLat, heatDomain.contains) : [], [heatRecords, heatDomain]);
   const heatField = useMemo(() => heatDomain ? createDensityField(heatPoints, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains, heatStyle) : null, [heatPoints, heatDomain, heatStyle]);
   const streetHeatActive = streetBasemap && heatmapActive;
   const useFullHeatClip = streetHeatActive && !selectedRA;
@@ -434,9 +446,9 @@ export default function MapaDF({
         {/* Points mode */}
         {mapMode === "points" && !canvasPoints && (
           <g data-testid="occurrence-points">
-            {visibleOccs.map((p) => (
+            {pointOccurrences.map((p) => (
               <g key={p.id} role={p.occurrenceId ? "button" : undefined} tabIndex={p.occurrenceId ? 0 : undefined}
-                aria-label={p.occurrenceId ? `Detalhes da ocorrência em ${p.raName}` : undefined}
+                aria-label={p.occurrenceId ? `${p.underReview ? "Ocorrência em revisão" : "Detalhes da ocorrência"} em ${p.raName}` : undefined}
                 onClick={p.occurrenceId ? () => openOccurrence(p) : undefined}
                 onKeyDown={p.occurrenceId ? event => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -456,10 +468,13 @@ export default function MapaDF({
                   cx={p.x}
                   cy={p.y}
                   r={pointRadius(symbolScale, detail)}
+                  data-testid="occurrence-marker"
+                  data-occurrence={p.occurrenceId}
+                  data-selected={p === focusedPoint || undefined}
                   fill="#ef4444"
                   opacity={0.95}
-                  stroke="#fecaca"
-                  strokeOpacity={0.65}
+                  stroke={p === focusedPoint ? "#93c5fd" : "#fecaca"}
+                  strokeOpacity={p === focusedPoint ? 1 : 0.65}
                   strokeWidth={0.6}
                   vectorEffect="non-scaling-stroke"
                   style={{ cursor: "pointer", r: streetBasemap ? symbolLength(pointRadius(symbolScale, detail)) : undefined }}
@@ -507,7 +522,7 @@ export default function MapaDF({
           </g>
         )}
       </svg>
-      {canvasPoints && <PointCanvasLayer points={visibleOccs} svgRef={svgRef} fittedWidth={width}
+      {canvasPoints && <PointCanvasLayer points={pointOccurrences} focusedPoint={focusedPoint} svgRef={svgRef} fittedWidth={width}
         onHover={hoverCanvasPoint} onOpen={openOccurrence} />}
 
       {streetBasemap && <>

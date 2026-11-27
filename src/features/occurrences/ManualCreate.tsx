@@ -38,7 +38,7 @@ const formatCep = (value: string) => value.replace(/\D/g, "").slice(0, 8).replac
 const territorialNames = new Map(territoryBindings.entries.map(entry => [entry.code, entry.catalogName]))
 const firstStepSchema = manualOccurrenceSchema.pick({ data: true, horario: true, endereco: true, bairroOuSetor: true, coordenadas: true })
 
-export default function ManualCreate({ edit }: { edit?: Edition } = {}) {
+export default function ManualCreate({ edit, mapLink = false }: { edit?: Edition; mapLink?: boolean } = {}) {
   const router = useRouter()
   const initial = edit?.initial
   const cepRequired = !initial || initial.cep !== undefined
@@ -238,7 +238,7 @@ export default function ManualCreate({ edit }: { edit?: Edition } = {}) {
   const registrationBlock = !canContinue ? "Volte à Etapa 1 e revise as informações da ocorrência."
     : !consistent || !confirmed ? "Volte à Etapa 1 e confirme um ponto válido no mapa."
       : catalogBlock ? catalogBlock
-        : !edit && !catalog?.cadastroDisponivel ? "O PostgreSQL deste ambiente ainda não está qualificado para o cadastro."
+        : !edit && !catalog?.cadastroDisponivel ? "O cadastro manual está indisponível neste ambiente. Seus dados continuam no formulário."
           : !fields.success ? "Revise os dados da ocorrência antes de registrar." : ""
   const registrationError = crimeAttempted && !invalidCrimeFields.length && registrationBlock
   const dirty = Boolean(edit) || Object.values(draft).some(Boolean) || selectedRegion != null
@@ -397,10 +397,11 @@ export default function ManualCreate({ edit }: { edit?: Edition } = {}) {
 
   if (id) return <section className={styles.complete} aria-labelledby="manual-confirmation">
     <h1 id="manual-confirmation" tabIndex={-1} ref={element => element?.focus()}>Ocorrência registrada</h1>
-    <p role="status">Gravação confirmada no PostgreSQL de homologação. Situação: em revisão.</p>
+    <p role="status">Gravação confirmada. A ocorrência está em revisão.</p>
     <p>Identificador <strong>{id}</strong></p>
     <div className={styles.actions}>
-      <Button asChild><Link href={`/ocorrencias?manual=${id}`}>Consultar registro</Link></Button>
+      {mapLink && <Button asChild><Link href={`/mapa-criminal?ocorrencia=${id}`}>Ver no mapa</Link></Button>}
+      <Button asChild variant={mapLink ? "outline" : "default"}><Link href={`/ocorrencias?manual=${id}`}>Consultar registro</Link></Button>
       <Button variant="outline" onClick={() => {
         command.current = null
         setDraft(blank)

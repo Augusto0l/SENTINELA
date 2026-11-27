@@ -72,7 +72,19 @@ python database/supabase/tests/compare_catalogs.py --psql "C:\Program Files\Post
 
 Compara tabelas/RLS, colunas/defaults, domínios, constraints/FKs, índices, triggers, funções e ACLs. Normaliza somente a localização espacial; exclui proprietários, OIDs e timestamps de dados. Não certifica a versão 3.3.7 nem o ambiente gerenciado.
 
-## CHECKs NOT VALID e Auth futuro
+## Gestão institucional de usuários
+
+A [migração 0014](pendentes/0014_gestao_usuarios_institucionais.sql) depende da instalação hospedada atestada e da migração 0011. Ela interrompe a aplicação se encontrar provisionamento ou exclusão pendente do fluxo anterior. A migração está separada dos scripts já aplicados e deve passar primeiro por um projeto Supabase de homologação com contas sintéticas.
+
+- Configure `SENTINELA_USERS_AUTH_KEY` com a chave secreta `sb_secret_…` do projeto, como variável exclusiva do servidor. Use `SENTINELA_SUPABASE_USERS_WRITE=1` para liberar a gestão. Esta variável é independente das flags de ocorrências e importação.
+- O cadastro usa uma senha inicial entregue por canal seguro depois de verificar o e-mail do titular. A conta é criada no Auth com o e-mail confirmado administrativamente e exige troca de senha no primeiro acesso. Convite, confirmação por e-mail e recuperação de senha por e-mail dependem das configurações do Auth e de entrega de e-mail. O cadastro com senha inicial dispensa SMTP.
+- A exclusão lógica exige digitar o e-mail de acesso e preserva a identidade Auth, as referências e a auditoria. Contas arquivadas saem da listagem. O bloqueio por status é do SENTINELA e é aplicado às sessões existentes nas próximas requisições. A exclusão definitiva depende de uma política institucional de retenção.
+- Para homologar, confira no projeto de teste o primeiro acesso completo com o Auth gerenciado, a recusa das mutações para Operador e Analista, a proteção do último Administrador com acesso efetivo e a preservação do histórico ao arquivar uma conta vinculada. O ensaio `scripts/check-hosted-operations.mjs` usa PostgreSQL descartável e simula o transporte do Auth.
+- O roteiro `node scripts/check-users-supabase-auth.mjs` testa o primeiro acesso com o binário oficial do Supabase Auth em loopback. Informe o binário e as migrações da mesma release com `SENTINELA_TEST_AUTH_BINARY` e `SENTINELA_TEST_AUTH_MIGRATIONS`. Use somente contas sintéticas.
+- A [reversão da 0014](pendentes/reverter_0014_gestao_usuarios_institucionais.sql) restaura a estrutura, as funções e as permissões anteriores. Ela aborta se houver solicitação, alteração de acesso, arquivamento ou evento de gestão posterior à migração. O teste `node --experimental-transform-types scripts/check-hosted-operations.mjs --rollback-users` exige um UUID em `SENTINELA_HTTP_VALIDATION_ID` e executa aplicação e reversão no PostgreSQL descartável.
+- Se houver falha durante o corte, retorne o domínio canônico ao último deployment estável, desligue `SENTINELA_SUPABASE_USERS_WRITE` e confira os ledgers antes de decidir sobre SQL. Após a primeira escrita, mantenha os registros e a auditoria para uma correção aditiva.
+
+## CHECKs NOT VALID e Auth futuro na baseline
 
 Preservados correcao_nova_transacao_ck e evento_novo_transacao_ck, com transacao_id xid8. NOT VALID dispensa varredura histórica na adição, mas exige a condição em novos registros; triggers carimbam a transação e o instante. Não inventar carimbos retroativos nem validar/reescrever essas constraints silenciosamente.
 

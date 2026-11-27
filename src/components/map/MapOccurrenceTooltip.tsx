@@ -23,6 +23,7 @@ export default function MapOccurrenceTooltip({ id, point, anchor, geometry, regi
   const [result, setResult] = useState<ConsolidatedOccurrence | null>()
 
   useEffect(() => {
+    if (point.underReview) return
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
       readConsolidatedOccurrence(id, "consolidadas", controller.signal)
@@ -30,7 +31,7 @@ export default function MapOccurrenceTooltip({ id, point, anchor, geometry, regi
         .catch(() => { if (!controller.signal.aborted) setResult(null) })
     }, 150)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [id])
+  }, [id, point.underReview])
 
   useLayoutEffect(() => {
     const element = tooltip.current
@@ -46,7 +47,7 @@ export default function MapOccurrenceTooltip({ id, point, anchor, geometry, regi
     (result?.fonte === "PCDF" && result.origem === "importacao" && result.localizacaoStatus !== "validada")
   return <div ref={tooltip} className={styles.occurrenceTooltip} role="tooltip">
     {unverified && <p>Ponto PCDF publicado. CRS de origem sem comprovação formal.</p>}
-    {result === undefined ? "Consultando ocorrência…" : result === null ? "Detalhes da ocorrência indisponíveis." : <>
+    {point.underReview ? "Ocorrência em revisão" : result === undefined ? "Consultando ocorrência…" : result === null ? "Detalhes da ocorrência indisponíveis." : <>
       <strong>Natureza criminal</strong>
       {result.naturezas.length ? <ul>{result.naturezas.map(({ nome }, index) => <li key={index}>{nome}</li>)}</ul>
         : <p>Natureza não informada.</p>}

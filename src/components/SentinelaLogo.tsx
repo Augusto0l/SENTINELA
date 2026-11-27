@@ -7,7 +7,7 @@
 
 export function SentinelaIcon({ size = 40 }: { size?: number }) {
   const w = 36;
-  const h = 44;
+  const h = 46; // room for the outer ring (y up to 44.5) without clipping the shield base
   const id = "si"; // short stable id prefix
 
   return (
@@ -92,17 +92,16 @@ export function SentinelaIcon({ size = 40 }: { size?: number }) {
         opacity="0.3"
       />
 
-      {/* ── S letter ── */}
+      {/* ── S letter: centred on the diamond (18, 22.5), as in the login brand ── */}
       <text
         x="18"
-        y="27.5"
+        y="22.5"
         textAnchor="middle"
-        dominantBaseline="middle"
+        dominantBaseline="central"
         fontSize="13"
-        fontWeight="700"
+        fontWeight="800"
         fontFamily='"Inter","Segoe UI",system-ui,sans-serif'
         fill="#e2e8f0"
-        letterSpacing="-0.5"
       >
         S
       </text>

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import Button from "@/components/ui/button";
-import { directCsvLimit, historicalMonthCount, historicalPreview, historicalReceipt, historicalStatus } from "@/contracts/pcdf-direct";
+import {
+  directCsvLimit, historicalMonthCount, historicalPreview, historicalReceipt, historicalStatus, historicalTreatmentRun,
+} from "@/contracts/pcdf-direct";
 import { callDirectPcdf } from "./pcdf-intake-client";
 import { PcdfHttpError } from "./pcdf-client";
 import styles from "./ImportWorkflow.module.css";
@@ -23,22 +25,40 @@ type Entry = { id: string; name: string; month?: string; file?: File; status: St
   preview?: Preview; result?: Month; error?: string };
 const format = (value: number | null | undefined) => value == null ? "—" : value.toLocaleString("pt-BR");
 const terminal = new Set<Status>(["done", "imported", "review", "error"]);
+const treatmentLabels = {
+  aguardando: "Aguardando", processando: "Processando", concluido: "Concluído",
+  concluido_com_pendencias: "Concluído com pendências", falha_recuperavel: "Falha recuperável",
+} as const;
+function treatmentText(treatment: Month["treatment"]) {
+  if (!treatment) return "";
+  const counts = treatment.treated == null ? "" : ` · ${format(treatment.treated)} tratadas · ${format(treatment.remaining)} restantes`;
+  return `Tratamento: ${treatmentLabels[treatment.state]}${counts}`;
+}
+const blockMessages = {
+  profile: "Somente Administrador pode validar arquivos e confirmar a importação.",
+  inventory: "A confirmação aguarda o inventário completo no PostgreSQL.",
+  january: "A confirmação aguarda a conferência do recibo original de janeiro de 2021.",
+  configuration: "A gravação está desativada neste ambiente. A validação continua disponível.",
+  recovery: "A confirmação aguarda a liberação vinculada a um backup verificável.",
+};
 
 export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => void }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [catalog, setCatalog] = useState<z.infer<typeof historicalStatus>>();
   const [message, setMessage] = useState("");
-  const [mode, setMode] = useState<"check" | "import">();
+  const [mode, setMode] = useState<"check" | "import" | "treat">();
   const [paused, setPaused] = useState(false);
   const stop = useRef(false);
   const input = useRef<HTMLInputElement>(null);
+  const processing = useRef(false);
+  const canValidate = catalog?.canValidate ?? catalog?.canApprove;
 
   useEffect(() => {
     const controller = new AbortController();
     void callDirectPcdf(historicalStatus, query, undefined, controller.signal).then(data => {
       if (controller.signal.aborted) return;
       setCatalog(data);
-      if (!data.canApprove) return;
+      if (!(data.canValidate ?? data.canApprove)) return;
       let saved: Record<string, unknown> = {};
       try { saved = JSON.parse(localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey) ?? "{}") ?? {}; }
       catch { /* The server still retains committed history. */ }
@@ -55,17 +75,22 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
   }, []);
 
   useEffect(() => {
-    if (!catalog?.canApprove) return;
+    if (!canValidate || !entries.length) return;
     const saved = Object.fromEntries(entries.flatMap(entry => entry.month ? [[entry.month, entry.status]] : []));
     try {
       localStorage.setItem(storageKey, JSON.stringify(saved));
       sessionStorage.removeItem(storageKey);
     }
     catch { /* The server still retains committed history. */ }
-  }, [catalog, entries]);
+  }, [canValidate, entries]);
 
   function select(files: File[]) {
-    if (!files.length || mode) return;
+    if (!files.length || processing.current) return;
+    const names = new Set(files.map(file => file.name));
+    if (names.size !== files.length) {
+      setMessage("Selecione apenas um arquivo por competência.");
+      return;
+    }
     const selected = files.map(file => ({
       id: crypto.randomUUID(), name: file.name, month: canonicalName.exec(file.name)?.[1], file, status: "waiting" as const,
     }));
@@ -82,10 +107,11 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
   }
 
   async function processQueue(kind: "check" | "import") {
-    if (mode || !catalog?.canApprove) return;
+    if (processing.current || !(kind === "check" ? canValidate : catalog?.canApprove)) return;
     const work = entries.filter(entry => entry.file && (kind === "import" ? entry.status === "ready"
       : ["waiting", "error", "interrupted"].includes(entry.status)));
     if (!work.length) return;
+    processing.current = true;
     stop.current = false;
     setPaused(false);
     setMode(kind);
@@ -94,11 +120,8 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
       ? [entry.preview.sha256] : []));
     let changed = false;
     try {
-      for (const [index, entry] of work.entries()) {
-        if (stop.current) {
-          for (const remaining of work.slice(index)) change(remaining.id, { status: "interrupted" });
-          break;
-        }
+      for (const entry of work) {
+        if (stop.current) break;
         change(entry.id, { status: kind === "check" ? "validating" : "importing", error: undefined });
         try {
           if (!entry.month) throw new Error("Use o nome original pcdf_naturezas_AAAA-MM.csv.");
@@ -124,13 +147,17 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
           }
         } catch (failure) {
           const status = failure instanceof PcdfHttpError ? failure.status : undefined;
-          change(entry.id, { status: status === 409 || status === 422 ? "review" : status === 503 ||
-            status === 401 || status === 403 ? "interrupted" : "error", error: (failure as Error).message });
-          if (status === 401 || status === 403) { stop.current = true; setMessage((failure as Error).message); }
+          const error = (failure as Error).message;
+          change(entry.id, { status: status === 409 || status === 422 ? "review"
+            : kind === "import" || status === 503 || status === 401 || status === 403 ? "interrupted" : "error", error });
+          if (kind === "import" || status === 401 || status === 403) {
+            stop.current = true;
+            setMessage(kind === "import" ? `${error} Fila pausada. Confira o recibo antes de retomar.` : error);
+          }
         }
       }
       if (kind === "import") {
-        const data = await callDirectPcdf(historicalStatus, query);
+        const data = await callDirectPcdf(historicalStatus, query, undefined, AbortSignal.timeout(30000));
         setCatalog(data);
         setEntries(current => current.map(row => {
           if (row.status !== "interrupted" || !row.preview) return row;
@@ -141,25 +168,40 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
     } catch (failure) { setMessage((failure as Error).message); }
     finally {
       if (changed) onComplete();
+      processing.current = false;
       setMode(undefined);
     }
+  }
+
+  async function resumeTreatment() {
+    if (processing.current || !catalog?.canApprove) return;
+    processing.current = true;
+    setMode("treat");
+    setMessage("");
+    try {
+      const run = await callDirectPcdf(historicalTreatmentRun, query + "&etapa=tratar", new FormData(), AbortSignal.timeout(150000));
+      setCatalog(await callDirectPcdf(historicalStatus, query, undefined, AbortSignal.timeout(30000)));
+      const failed = run.filter(item => item.state === "falha_recuperavel").length;
+      setMessage(failed ? `${failed} competência(s) seguem com falha recuperável. Tente novamente.` : "");
+      if (run.length) onComplete();
+    } catch (failure) { setMessage((failure as Error).message); }
+    finally { processing.current = false; setMode(undefined); }
   }
 
   const finished = entries.filter(entry => terminal.has(entry.status)).length;
   const ready = entries.filter(entry => entry.status === "ready").length;
   const examined = entries.filter(entry => entry.preview || terminal.has(entry.status)).length;
   const completed = catalog?.items.filter(item => item.state === "done") ?? [];
+  const resumable = completed.filter(item => item.treatment && ["aguardando", "falha_recuperavel"].includes(item.treatment.state));
   return <section className={styles.panel} aria-labelledby="pcdf-historical-heading" aria-busy={!!mode}>
     <div className={styles.sectionHead}><h2 id="pcdf-historical-heading">Histórico mensal PCDF</h2></div>
     <p>Selecione os CSVs originais de janeiro de 2021 a agosto de 2026. Valide a seleção antes de aprovar a importação.</p>
     {message && <p role="alert" className={styles.feedbackError}>{message}</p>}
     {!catalog && !message && <p role="status">Consultando competências no PostgreSQL…</p>}
     {catalog && <>
-      <p role="status">{catalog.items.length < historicalMonthCount
-        ? `${catalog.items.length} de ${historicalMonthCount} competências cadastradas. ${completed.length} com consolidação confirmada na fila histórica. A aprovação está bloqueada enquanto o inventário estiver incompleto.`
-        : <>{completed.length} de {historicalMonthCount} competências consolidadas.
-          {!catalog.canApprove && " A aprovação exige Administrador com autorização institucional ativa."}</>}</p>
-      {catalog.canApprove && <>
+      <p role="status">{catalog.items.length} de {historicalMonthCount} competências cadastradas.
+        {" "}{completed.length} consolidadas. {catalog.block && blockMessages[catalog.block]}</p>
+      {canValidate && <>
         <input ref={input} type="file" hidden accept=".csv,text/csv" multiple onChange={event => {
           select(Array.from(event.currentTarget.files ?? [])); event.currentTarget.value = "";
         }} />
@@ -167,11 +209,15 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
           <Button disabled={!!mode} onClick={() => input.current?.click()}>Selecionar CSVs mensais PCDF</Button>
           <Button variant="outline" disabled={!!mode || !entries.some(entry => entry.file &&
             ["waiting", "error", "interrupted"].includes(entry.status))} onClick={() => void processQueue("check")}>Validar seleção</Button>
-          <Button disabled={!!mode || !ready} onClick={() => void processQueue("import")}>Aprovar e importar ({ready})</Button>
+          <Button disabled={!!mode || !catalog.canApprove || !ready || entries.some(entry => entry.status === "interrupted" && entry.preview)}
+            onClick={() => void processQueue("import")}>Confirmar importação{ready > 1 && ` (${ready})`}</Button>
           {mode && <Button variant="outline" disabled={paused} onClick={() => {
             stop.current = true; setPaused(true);
           }}>Interromper após o arquivo atual</Button>}
+          {resumable.length > 0 && catalog.canApprove && <Button variant="outline" disabled={!!mode}
+            onClick={() => void resumeTreatment()}>Retomar tratamento ({resumable.length})</Button>}
           {!mode && entries.length > 0 && <Button variant="ghost" onClick={() => {
+            try { localStorage.removeItem(storageKey); sessionStorage.removeItem(storageKey); } catch { /* Optional checkpoint. */ }
             setEntries([]); setMessage("");
           }}>Cancelar seleção pendente</Button>}
         </div>
@@ -192,22 +238,24 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
                 {entry.preview?.errors.map(error => <p key={`${error.row}-${error.field}-${error.message}`}>Linha {error.row} · {error.field} · {error.message}</p>)}
                 {entry.status === "interrupted" && !entry.file && <p>Selecione o CSV novamente para retomar.</p>}
                 {(entry.result?.review ?? 0) > 0 && <p>{format(entry.result?.review)} associações em revisão de identidade.</p>}
+                {entry.result?.treatment && <p>{treatmentText(entry.result.treatment)}</p>}
                 {(entry.status === "validating" || entry.status === "importing")
                   ? <progress className={styles.historicalProgress} aria-label={`Processamento de ${entry.name}`} />
                   : entry.preview && <><p>Validação · 100%</p><progress className={styles.historicalProgress} aria-label={`Validação de ${entry.name}`}
                     max={entry.preview.records} value={entry.preview.accepted + entry.preview.rejected} /></>}
               </td>
               <td>{format((entry.result ?? entry.preview)?.records)} / {format(entry.preview?.accepted ?? entry.result?.records)} / {format(entry.preview?.rejected ?? (entry.result?.state === "done" ? 0 : null))}</td>
-              <td>{format(entry.result?.unique)}</td><td>{format(entry.result?.issues ?? entry.preview?.diagnostics)}</td>
+              <td>{format(entry.result?.unique)}</td><td>{format(entry.result?.treatment?.remaining ?? entry.result?.issues ?? entry.preview?.diagnostics)}</td>
             </tr>)}</tbody>
           </table>
         </div>
       </>}
       <details><summary>{catalog.items.length === historicalMonthCount ? `Consultar as ${historicalMonthCount} competências` : "Consultar competências cadastradas"}</summary>
         <ul>{catalog.items.map(item => <li key={item.month}>
-          {item.month} · {item.state === "done" ? `Consolidada · ${format(item.unique)} ocorrências · lote ${item.lot}`
+          {item.month} · {item.state === "done" ? `Consolidada · ${format(item.records)} linhas · ${format(item.unique)} ocorrências · ${format(item.links)} vínculos · lote ${item.lot}`
             : item.state === "staged" ? "Recebida em staging" : item.state === "conflict" ? "Requer revisão" : "Ainda sem importação"}
           {!item.complete && ` · cobertura parcial até ${item.through}`}
+          {item.treatment && ` · ${treatmentText(item.treatment)}`}
         </li>)}</ul>
       </details>
     </>}

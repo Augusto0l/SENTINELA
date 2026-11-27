@@ -26,7 +26,11 @@ export const analyticPointSchema = point.extend({
   territorialRaCode: code.nullable().optional(),
   publicationStatus: pointPublicationStatus.optional(),
 })
+// Published map points aggregated into 0.002° cells for the heat layer; weight = occurrences in the cell.
+const heatCell = point.extend({ weight: z.number().int().positive() })
 export const ANALYTICS_POINT_LIMIT = 10000
+// Heat cells are 0.002° (below one heat-grid step and far below the kernel blur), each weighted by its occurrences.
+export const ANALYTICS_HEAT_CELL_LIMIT = 40000
 export const persistentAnalyticsData = z.strictObject({
   total: countSchema, mapTotal: countSchema,
   byRa: z.array(bucket), byNature: z.array(bucket), timeline: z.array(bucket),
@@ -38,7 +42,8 @@ export const persistentAnalyticsData = z.strictObject({
   regions: z.array(z.strictObject({ code, name: z.string().min(1) })),
   natures: z.array(option), categories: z.array(option.extend({ id: z.string().min(1).max(240) })),
   points: z.array(analyticPointSchema).max(ANALYTICS_POINT_LIMIT),
-  heatReference: z.array(point).max(ANALYTICS_POINT_LIMIT),
+  heatReference: z.array(z.union([heatCell, point])).max(ANALYTICS_HEAT_CELL_LIMIT),
+  heat: z.array(heatCell).max(ANALYTICS_HEAT_CELL_LIMIT).optional(),
   pointsTruncated: z.boolean(), heatUnavailable: z.boolean(),
   eligiblePoints: countSchema.optional(),
   unverifiedPcdfPoints: countSchema.optional(),
@@ -46,6 +51,6 @@ export const persistentAnalyticsData = z.strictObject({
   value.byRa.reduce((n,b) => n+b.count,0) <= value.mapTotal &&
   (value.eligiblePoints === undefined || (value.eligiblePoints >= value.points.length &&
     (value.unverifiedPcdfPoints ?? 0) <= value.eligiblePoints)) &&
-  (!value.heatUnavailable || value.heatReference.length === 0))
+  (!value.heatUnavailable || (value.heatReference.length === 0 && !value.heat?.length)))
 export const persistentAnalyticsResponse = successSchema(persistentAnalyticsData)
 export type PersistentAnalyticsData = z.infer<typeof persistentAnalyticsData>

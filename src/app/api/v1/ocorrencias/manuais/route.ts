@@ -4,7 +4,7 @@ import { manualCatalogSchema, manualCatalogSearchSchema, manualOccurrenceSchema,
 import { hasPermission } from "@/lib/auth/policy"
 import { getLocalPrincipal } from "@/lib/auth/local-server"
 import { getOperationalPrincipal } from "@/lib/auth/operational-server"
-import { hostedOperationalMode, institutionalDatabaseMode } from "@/lib/db/pcdf-direct-mode"
+import { hostedManualCreationEnabled, hostedOperationalMode, institutionalDatabaseMode } from "@/lib/db/pcdf-direct-mode"
 import { apiError } from "@/lib/db/http"
 import { withOperationalDatabase } from "@/lib/db/local-occurrences"
 import { occurrenceManagementMode } from "@/lib/db/occurrence-management-mode"
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         coalesce(has_function_privilege(to_regprocedure('sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text)'), 'EXECUTE'), false) AS ready`,
         [term?.data ?? null])
       const hosted = hostedOperationalMode()
-      const actor = manualOperationalMode() && (!hosted || hosted.write) && manualActor(principal)
+      const actor = manualOperationalMode() && (!hosted || hostedManualCreationEnabled()) && manualActor(principal)
       const operational = actor ? await manualOperationalReady(client, actor) : false
       return { ...manualCatalogSchema.parse(row?.data), cadastroDisponivel: Boolean((occurrenceManagementMode() && row.ready) || operational) }
     })
@@ -54,11 +54,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // The operational database accepts only the institutional session; the synthetic cluster keeps local accounts.
   const operating = manualOperationalMode()
-  if ((institutionalDatabaseMode() && !operating) || hostedOperationalMode()?.write === false)
-    return apiError("FORBIDDEN", "Cadastro persistente exige autorização institucional no PostgreSQL.")
   const principal = operating ? await getOperationalPrincipal() : await getLocalPrincipal()
   if (!principal) return apiError("UNAUTHORIZED", "Sessão necessária.")
   if (!hasPermission(principal.role, "cadastrar")) return apiError("FORBIDDEN", "Cadastro não autorizado.")
+  if ((institutionalDatabaseMode() && !operating) || (hostedOperationalMode() && !hostedManualCreationEnabled()))
+    return apiError("SERVICE_UNAVAILABLE", "O cadastro manual está desativado neste ambiente.")
   const actor = operating ? manualActor(principal) : null
   if (operating && !actor) return apiError("FORBIDDEN", "O cadastro exige autoria institucional vinculada à sessão.")
   const mode = operating ?? occurrenceManagementMode()
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         : await client.query("SELECT sentinela_ocorrencias_manual.cadastrar_completo($1,$2,$3) AS data",
           [parsed.data, key.data, "localAccountId" in principal ? principal.localAccountId : undefined])
       return manualReceiptSchema.parse(row?.data)
-    }, !!actor)
+    }, !!actor, 8000, "manual-create")
     return success(receipt, 201)
   } catch (error) {
     const code = error && typeof error === "object" && "code" in error ? error.code : undefined

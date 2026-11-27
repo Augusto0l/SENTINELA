@@ -3,7 +3,7 @@ import { join, dirname, resolve, relative } from "node:path";
 import assert from "node:assert/strict";
 
 const root = resolve(import.meta.dirname, "..");
-const expected = ["login", "dashboard", "mapa-criminal", "ocorrencias", "ocorrencias/nova", "importar", "central-revisao", "usuarios", "configuracoes"];
+const expected = ["login", "dashboard", "mapa-criminal", "ocorrencias", "ocorrencias/nova", "importar", "usuarios", "configuracoes"];
 for (const route of expected) {
   const page = join(root, "src/app", route === "login" ? route : `(sistema)/${route}`, "page.tsx");
   assert.ok(existsSync(page), `Rota ausente: /${route}`);

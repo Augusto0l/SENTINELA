@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import type { ManualMapPoint } from "@/lib/db/manual-map";
+import { projectLonLat } from "@/components/map/raMapData";
 import MapaDF, { type MapMode, type MapOccurrence } from "@/components/map/MapaDF";
 import MapOccurrenceTooltip, { type MarkerHover } from "@/components/map/MapOccurrenceTooltip";
 import { spatialRaName } from "@/components/map/occurrencePresentation";
@@ -16,11 +18,12 @@ interface CrimeMapProps {
   initialRaCode?: string;
   initialFilters?: AnalyticSelection;
   persistent?: boolean;
+  focusedPoint?: ManualMapPoint | null;
 }
 
 type MapHistoryView = { filters: AnalyticSelection; mode: MapMode; showSatelliteOccurrences: boolean };
 
-export default function CrimeMap({ initialRaCode, initialFilters, persistent = false }: CrimeMapProps) {
+export default function CrimeMap({ initialRaCode, initialFilters, persistent = false, focusedPoint }: CrimeMapProps) {
   const router = useRouter();
   const viewport = useRef<HTMLDivElement>(null);
   const [historyView] = useState<MapHistoryView | undefined>(() => window.history.state?.sentinelaCrimeMap);
@@ -28,18 +31,27 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
     id: string; point: MapOccurrence; anchor: { x: number; y: number; width: number; height: number };
   } | null>(null);
   const [filters, setFilters] = useState<AnalyticSelection>(() => {
-    if (historyView) return historyView.filters;
-    const ra = initialRaCode ?? initialFilters?.ra ?? "";
+    if (historyView && !focusedPoint) return historyView.filters;
+    const ra = focusedPoint?.raCode ?? initialRaCode ?? initialFilters?.ra ?? "";
     const initial = { ...emptyDemoFilters(), ...initialFilters }
     return { ...initial, period: persistent && initial.period !== "custom" ? "all" : initial.period,
       ra: persistent || RA_LIST.some(item => item.codigo === ra) ? ra : "" };
   });
   const selectedRaCode = filters.ra || null;
-  const [mapMode, setMapMode] = useState<MapMode>(historyView?.mode ?? "heat");
+  const [mapMode, setMapMode] = useState<MapMode>(focusedPoint ? "points" : historyView?.mode ?? "heat");
   const [showSatelliteOccurrences, setShowSatelliteOccurrences] = useState(historyView?.showSatelliteOccurrences ?? false);
   const source = useAnalyticsSource(persistent, filters);
   const { mapRecords: mapOccurrences, mapSummary, summary, officialGeometry, officialRegions } = source;
   const raInfo = selectedRaCode ? source.regionOptions.find((ra) => ra.codigo === selectedRaCode) : null;
+  const focusedRaName = source.regionOptions.find(ra => ra.codigo === focusedPoint?.raCode)?.nomeDisplay ?? focusedPoint?.raCode;
+  const selectedPoint = useMemo<MapOccurrence | undefined>(() => focusedPoint && (!selectedRaCode || focusedPoint.raCode === selectedRaCode)
+    ? {
+      id: focusedPoint.id, occurrenceId: focusedPoint.id, raCode: focusedPoint.raCode,
+      raName: focusedRaName ?? focusedPoint.raCode,
+      latitude: focusedPoint.latitude, longitude: focusedPoint.longitude,
+      ...projectLonLat(focusedPoint.longitude, focusedPoint.latitude),
+      underReview: focusedPoint.status === "em_revisao", natureza: "", data: "", horario: "", local: "",
+    } : undefined, [focusedPoint, focusedRaName, selectedRaCode]);
   // With an RA selected, statistics count validated territorial links; map points count spatial location.
   const raPoints = persistent && selectedRaCode ? mapSummary.byRa[selectedRaCode] ?? 0 : null;
 
@@ -52,7 +64,7 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
 
   const handleOccurrenceOpen = useCallback((point: MapOccurrence) => {
     if (!point.occurrenceId) return;
-    const href = occurrenceHrefFromMap(point.occurrenceId, {
+    const href = point.underReview ? `/ocorrencias?manual=${point.occurrenceId}` : occurrenceHrefFromMap(point.occurrenceId, {
       latitude: point.latitude, longitude: point.longitude,
       raName: point.raCode ? point.raName : spatialRaName(officialGeometry, point, officialRegions),
     });
@@ -78,11 +90,13 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
       <Header title="Mapa Criminal" subtitle="Análise geográfica detalhada" />
 
       <div className={analyticsStyles.mapFilters}>
+        {mapMode === "points" && selectedPoint && <p role="status">{selectedPoint.underReview
+          ? "Ocorrência selecionada · Em revisão" : "Ocorrência selecionada"}</p>}
         <AnalyticFilters filters={filters} onChange={next => { setHover(null); setFilters(next); }} regions={source.regionOptions} catalog={source.catalogOptions} />
         {source.pending && <p role="status">Consultando indicadores…</p>}
         {source.error && <p role="alert">{source.error} <button type="button" onClick={source.retry}>Tentar novamente</button></p>}
         {!source.pending && !source.error && <>
-        {summary.total === 0 && mapOccurrences.length === 0 && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
+        {summary.total === 0 && mapOccurrences.length === 0 && !(mapMode === "points" && selectedPoint) && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
         <p data-testid="analytics-total" data-count={summary.total} className={analyticsStyles.mapTotal}>{raPoints === null
           ? `${summary.total.toLocaleString("pt-BR")} ocorrências únicas no recorte aplicado`
           : <>{summary.total.toLocaleString("pt-BR")} {summary.total === 1 ? "ocorrência única" : "ocorrências únicas"} com vínculo territorial validado na RA · <span data-testid="analytics-ra-points" data-count={raPoints}>{raPoints.toLocaleString("pt-BR")} {raPoints === 1 ? "ponto localizado" : "pontos localizados"} espacialmente na RA</span></>}</p>
@@ -174,15 +188,19 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
               mapMode={mapMode}
               mockOccurrences={mapOccurrences}
               heatReferenceOccurrences={source.heatReference}
+              heatOccurrences={source.heatRecords}
               officialRegions={source.officialRegions}
               heatUnavailable={source.heatUnavailable}
               countsUnavailable={source.pending}
+              focusedPoint={selectedPoint}
             />}
             {source.pending && source.officialRegions && <p className={analyticsStyles.mapNotice} role="status">Carregando ocorrências…</p>}
             {source.heatUnavailable && mapMode === "heat" && <p className={analyticsStyles.mapNotice} role="status">Calor indisponível: a base de referência excede o limite de pontos.</p>}
             {source.pointsTruncated && (mapMode === "points" || mapMode === "clusters" || (mapMode === "satellite" && showSatelliteOccurrences)) &&
-              <p className={analyticsStyles.mapNotice} role="status">Cobertura parcial. A camada recebeu {mapOccurrences.length.toLocaleString("pt-BR")} pontos no limite da consulta. Restrinja os filtros para ver todos os pontos do novo recorte.</p>}
-            {persistent && source.officialRegions && !source.pending && mapMode !== "satellite" && (mapMode !== "heat" || !source.heatUnavailable) && mapOccurrences.length === 0 &&
+              <p className={analyticsStyles.mapNotice} role="status">Cobertura parcial. A camada recebeu {mapOccurrences.length.toLocaleString("pt-BR")} pontos no limite da consulta. Restrinja os filtros para reduzir o recorte.</p>}
+            {persistent && source.officialRegions && !source.pending && mapMode !== "satellite" &&
+              (mapMode === "heat" ? !source.heatUnavailable && (source.heatRecords ?? mapOccurrences).length === 0 : mapOccurrences.length === 0) &&
+              !(mapMode === "points" && selectedPoint) &&
               <p className={analyticsStyles.mapNotice} role="status">Nenhum ponto elegível para exibição no recorte.</p>}
             {hover && <MapOccurrenceTooltip key={hover.id} {...hover} geometry={officialGeometry} regions={officialRegions} />}
           </div>

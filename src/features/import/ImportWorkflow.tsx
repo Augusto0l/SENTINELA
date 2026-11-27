@@ -15,6 +15,7 @@ import ImportHistory, { ImportEntryDetails, useImportHistory } from "./ImportHis
 import { Metrics, formatBytes, formatCount, formatMonth } from "./ImportUi";
 import { PcdfPreviewRecords } from "./PcdfRecords";
 import PcdfV2Preview from "./PcdfV2Preview";
+import PcdfHistoricalQueue from "./PcdfHistoricalQueue";
 import { useImportWorkflow, type Step } from "./useImportWorkflow";
 import styles from "./ImportWorkflow.module.css";
 
@@ -300,13 +301,13 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
     clearInput: () => {
       if (fileInput.current) fileInput.current.value = "";
     } });
-  const [area, setArea] = useState<"nova" | "historico">("nova");
+  const [area, setArea] = useState<"mensal" | "nova" | "historico">(hosted ? "mensal" : "nova");
   const [managementRevision, setManagementRevision] = useState(0);
   const [saved, setSaved] = useState("");
   const [dragging, setDragging] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const stepHeading = useRef<HTMLHeadingElement>(null);
-  const history = useImportHistory(persistent && available, combinedPcdf, w.historyRevision);
+  const history = useImportHistory(persistent && available, combinedPcdf, w.historyRevision + managementRevision);
   const { step, busy, error, file, pcdf, preview, analysis, table, receipt, result } = w;
   const completed = !!(receipt || result);
   const stageLabels = w.pcdfV2 ? pcdfV2Stages : stages;
@@ -344,11 +345,16 @@ export default function ImportWorkflow({ persistent = false, syntheticPcdf = fal
           </div>}
         </header>
         {persistent && <nav className={styles.switcher} aria-label="Área de importação">
+          {hosted && <button type="button" aria-controls="import-monthly" aria-pressed={area === "mensal"} onClick={() => switchArea("mensal")}>
+            <NavigationIcon name="records" size={17} />PCDF mensal</button>}
           <button type="button" aria-controls="import-new" aria-pressed={area === "nova"} onClick={() => switchArea("nova")}>
             <NavigationIcon name="plus" size={17} />Nova importação</button>
           <button type="button" aria-controls="import-history" aria-pressed={area === "historico"} disabled={!available} onClick={() => switchArea("historico")}>
             <NavigationIcon name="records" size={17} />Histórico</button>
         </nav>}
+        {hosted && <div id="import-monthly" hidden={area !== "mensal"}>
+          <PcdfHistoricalQueue onComplete={() => setManagementRevision(value => value + 1)} />
+        </div>}
         <div id="import-new" hidden={area !== "nova"}>
           {configurationError && !w.pcdfV2 && <p role="alert" className={styles.feedbackError}>{configurationError}</p>}
           <ol className={styles.stepper} aria-label="Etapas da importação">

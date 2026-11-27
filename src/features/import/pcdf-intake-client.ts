@@ -28,7 +28,9 @@ export async function callDirectPcdf<T>(schema: z.ZodType<T>, query = "", body?:
   if (response.status === 401) throw new PcdfHttpError(401, "Sessão expirada. Entre novamente.");
   if (response.status === 403) throw new PcdfHttpError(403, result?.error?.diagnostic === "autorizacao_institucional_ausente"
     ? "Gravação bloqueada: este Administrador não tem autorização institucional ativa no PostgreSQL. Solicite a liberação ao responsável pela manutenção. A prévia continua disponível."
-    : "Importação não autorizada para este perfil ou origem.");
+    : result?.error?.diagnostic === "importacao_desabilitada"
+      ? "A gravação de importações está desativada neste ambiente. A validação continua disponível."
+      : "Importação não autorizada para este perfil ou origem.");
   if (!response.ok) {
     const detail = result?.error?.diagnostic;
     const message = typeof result?.error?.message === "string" ? result.error.message : "Receptor PCDF local indisponível.";

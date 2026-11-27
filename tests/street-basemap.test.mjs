@@ -4,7 +4,7 @@ import "../scripts/contracts-runtime.mjs";
 
 const { MAP_VIEWBOX, projectLonLat, RA_BY_CODE } = await import("../src/components/map/raMapData.ts");
 const { streetTileLayout, MAX_STREET_SCALE, STREET_MAX_TILE_ZOOM } = await import("../src/components/map/streetTiles.ts");
-const { moveMapFrame, parseMapFrame } = await import("../src/components/map/streetViewport.ts");
+const { focusMapFrame, moveMapFrame, parseMapFrame } = await import("../src/components/map/streetViewport.ts");
 
 test("a base de ruas cobre o enquadramento inteiro em desktop e mobile com poucos tiles", () => {
   for (const [width, height, maxTiles] of [[1144, 614, 40], [366, 370, 20]]) {
@@ -110,4 +110,26 @@ test("a base acompanha o foco da RA e alinha referências à projeção dos over
     assert(Math.abs(reference.x - imageX) * scale < 1);
     assert(Math.abs(reference.y - imageY) * scale < 1);
   }
+});
+
+test("a ocorrencia selecionada centraliza perto da borda ao abrir, ampliar e redimensionar", () => {
+  const fit = parseMapFrame(RA_BY_CODE["RA-I"].viewBox);
+  const selected = { x: fit.x + fit.width * .99, y: fit.y + fit.height * .03 };
+  const center = frame => ({ x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 });
+  const assertCentered = frame => {
+    const p = center(frame);
+    assert(Math.hypot(p.x - selected.x, p.y - selected.y) < 1e-8);
+  };
+  const desktop = { width: 1144, height: 614 };
+  const mobile = { width: 366, height: 370 };
+  const desktopCenter = { x: 572, y: 307 };
+  const mobileCenter = { x: 183, y: 185 };
+  const initial = focusMapFrame(fit, desktop, selected);
+  assert(initial.width < fit.width);
+  assertCentered(initial);
+  const zoomed = moveMapFrame(initial, fit, desktop, desktopCenter, desktopCenter, 1.6, selected);
+  assert(zoomed.width < initial.width);
+  assertCentered(zoomed);
+  assertCentered(moveMapFrame(zoomed, fit, mobile, mobileCenter, mobileCenter, 1, selected));
+  assertCentered(focusMapFrame(fit, mobile, selected));
 });

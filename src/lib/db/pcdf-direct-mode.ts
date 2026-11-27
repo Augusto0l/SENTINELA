@@ -15,7 +15,8 @@ export function hostedImportMode(env = process.env) {
   try {
     const origin = new URL(env.SENTINELA_APP_ORIGIN ?? "");
     if (origin.protocol !== "https:" || origin.origin !== env.SENTINELA_APP_ORIGIN) return null;
-    return { origin: origin.origin, write: env.SENTINELA_SUPABASE_IMPORT_WRITE === "1" };
+    const historicalWrite = env.SENTINELA_SUPABASE_IMPORT_WRITE === "1";
+    return { origin: origin.origin, historicalWrite, write: historicalWrite && env.SENTINELA_SUPABASE_OPERATIONAL_WRITE === "1" };
   } catch { return null; }
 }
 
@@ -24,8 +25,17 @@ export function hostedOperationalMode(env = process.env) {
   return mode && { origin: mode.origin, write: env.SENTINELA_SUPABASE_OPERATIONAL_WRITE === "1" };
 }
 
+export function hostedManualCreationEnabled(env = process.env) {
+  return Boolean(hostedOperationalMode(env)
+    && (env.SENTINELA_SUPABASE_MANUAL_WRITE ?? env.SENTINELA_SUPABASE_OPERATIONAL_WRITE) === "1");
+}
+
 export function institutionalDatabaseMode(env = process.env) {
   return hostedOperationalMode(env) ?? integratedSupabaseMode(env);
+}
+
+export function institutionalUsersWriteEnabled(env = process.env) {
+  return Boolean(hostedOperationalMode(env) && env.SENTINELA_SUPABASE_USERS_WRITE === "1");
 }
 
 function supabaseLauncherSelected(env: NodeJS.ProcessEnv) {

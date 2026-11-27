@@ -62,8 +62,10 @@ function summaryOf(data: PersistentAnalyticsData | null, ra: string) {
   }
 }
 
-function drawPoints(points: PersistentAnalyticsData["points"], names: Record<string, string>): MapOccurrence[] {
-  return points.map(({ latitude, longitude, raCode, id, territorialRaCode, publicationStatus }, index) => ({
+type DrawablePoint = PersistentAnalyticsData["points"][number] & { weight?: number }
+function drawPoints(points: readonly DrawablePoint[], names: Record<string, string>): MapOccurrence[] {
+  return points.map(({ latitude, longitude, raCode, id, territorialRaCode, publicationStatus, weight }, index) => ({
+    ...(weight ? { weight } : {}),
     id: id ?? String(index), occurrenceId: id, raCode: raCode ?? "", raName: raCode ? (names[raCode] ?? raCode) : "RA espacial não informada",
     territorialRaName: territorialRaCode ? (names[territorialRaCode] ?? territorialRaCode) : undefined,
     publicationStatus,
@@ -100,6 +102,8 @@ export function useAnalyticsSource(persistent: boolean, filters: AnalyticSelecti
   const reference = useMemo(() => drawPoints(data?.heatReference ?? [], names), [data?.heatReference, names])
   const unverifiedPcdfPoints = useMemo(() => data?.unverifiedPcdfPoints ??
     points.filter(point => point.publicationStatus === "pcdf_crs_unverified").length, [data?.unverifiedPcdfPoints, points])
+  const heatCells = data?.heat
+  const heat = useMemo(() => heatCells ? drawPoints(heatCells, names) : undefined, [heatCells, names])
   const period = dashboard && data ? dashboardPeriod(data, filters) : null
   const timeline = period?.timeline ?? data?.timeline
   const month = timeline?.length === 1 ? timeline[0].key : undefined
@@ -119,6 +123,7 @@ export function useAnalyticsSource(persistent: boolean, filters: AnalyticSelecti
     eligiblePoints: demo?.mapRecords.length ?? data?.eligiblePoints ?? (data?.pointsTruncated ? null : points.length),
     unverifiedPcdfPoints,
     heatReference: persistent ? reference : MOCK_OCCURRENCES,
+    heatRecords: persistent ? heat : undefined,
     heatUnavailable: Boolean(data?.heatUnavailable), pointsTruncated: Boolean(data?.pointsTruncated),
     regionOptions: persistent
       ? officialRegions?.map(region => ({ codigo: region.code, nomeDisplay: region.displayName }))
