@@ -29,7 +29,7 @@ const stateNames = {
 } as const
 const issueStates = { aberta: "Aberta", em_analise: "Em análise", resolvida: "Resolvida", encerrada_sem_solucao: "Encerrada sem solução" }
 const issuePriorities = { alta: "alta", media: "média", baixa: "baixa" }
-const empty = { identificacao: "", ra: "", natureza: "", competencia: "", situacao: "", dataInicial: "", dataFinal: "" }
+const empty = { identificacao: "", ra: "", natureza: "", categoria: "", competencia: "", situacao: "", dataInicial: "", dataFinal: "" }
 const civilDate = (value: string | null) => value ? value.split("-").reverse().join("/") : "—"
 const count = (value: number | null | undefined) => value == null ? "—" : formatCount(value)
 const sortDefault = { ordenar: "data", direcao: "desc" } as const
@@ -200,6 +200,8 @@ export function ConsolidatedDetail({ id, area, onClose, mapPosition, fromMap = f
       <section className={styles.detailGroup}><h3>Naturezas vinculadas</h3>
         {record.naturezas.length ? <ul>{record.naturezas.map((item, index) =>
           <li key={index}>{item.nome}
+            {item.categoria !== undefined && (item.categoria ? ` · Categoria: ${item.categoria}`
+              : item.classificacao === "conflitante" ? " · Categoria: indeterminada (requer revisão)" : " · Categoria: não classificada")}
             {area === "manuais" && (item.crimeTentado === null ? " · Tentativa não informada" : item.crimeTentado ? " · Tentativa: sim" : " · Tentativa: não")}
           </li>)}</ul>
           : <p>Nenhuma natureza vinculada.</p>}
@@ -244,9 +246,9 @@ function Consultation({ area, active, summary, onRetry, cycle, summaryFailed, ma
   const change = (field: keyof typeof empty, value: string) => setDraft(current => ({ ...current, [field]: value }))
   function apply(event: FormEvent) {
     event.preventDefault()
-    const { ra, natureza, competencia, situacao, ...common } = draft
+    const { ra, natureza, categoria, competencia, situacao, ...common } = draft
     const filters = {
-      ...common, ...(imported ? { ra, natureza, competencia, situacao } : manual ? {} : { raId: ra, naturezaId: natureza }),
+      ...common, ...(imported ? { ra, natureza, competencia, situacao } : manual ? {} : { raId: ra, naturezaId: natureza, categoria }),
     }
     const input = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ""))
     const result = localOccurrencesQuery.safeParse({ ...input, view: area, pagina: 1, ordenar: query.ordenar, direcao: query.direcao })
@@ -289,7 +291,12 @@ function Consultation({ area, active, summary, onRetry, cycle, summaryFailed, ma
             <label>Natureza criminal<select value={draft.natureza} onChange={event => change("natureza", event.target.value)}>
               <option value="">Todas as naturezas</option>
               {options.natureza.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
-            </select></label></>}
+            </select></label>
+            {!imported && summary?.categoriasConsolidadas && <label>Categoria agrupada<select value={draft.categoria}
+              onChange={event => change("categoria", event.target.value)}>
+              <option value="">Todas as categorias</option>
+              {summary.categoriasConsolidadas.map(name => <option key={name} value={name}>{name}</option>)}
+            </select></label>}</>}
             {imported && <label>Competência<select value={draft.competencia} onChange={event => change("competencia", event.target.value)}>
               <option value="">Todas as competências</option>
               {summary?.competencias?.map(month => <option key={month} value={month}>{formatMonth(month)}</option>)}

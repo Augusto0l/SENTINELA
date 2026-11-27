@@ -1,0 +1,73 @@
+{
+  "versao": "ensaio-classificacao-2021-01",
+  "clone": "clone-dcc496506fea41feb8a063793ae89b79",
+  "porta": 55487,
+  "naoHomologado": true,
+  "antes": {
+    "associacoes": 6393,
+    "status": {
+      "pendente": 6393
+    },
+    "historico": 0,
+    "auditoria": 21,
+    "categorias": 0,
+    "mapeamentos": 0
+  },
+  "depois": {
+    "associacoes": 6393,
+    "status": {
+      "mapeada": 6247,
+      "pendente": 146
+    },
+    "historico": 12494,
+    "auditoria": 23,
+    "categorias": 40,
+    "mapeamentos": 67
+  },
+  "porCategoria": {
+    "Violência doméstica": 1690,
+    "Roubo a transeunte": 1507,
+    "Furto em veículo": 549,
+    "Furto em residência": 473,
+    "Uso e porte de drogas": 429,
+    "Furto de veículo": 345,
+    "Furto em comércio": 332,
+    "Tráfico de drogas": 224,
+    "Roubo de veículo": 199,
+    "Roubo em comércio": 94,
+    "Posse/porte de arma de fogo": 94,
+    "Estupro de vulnerável": 86,
+    "Tentativa de homicídio": 56,
+    "Roubo em transporte coletivo": 53,
+    "Roubo em residência": 43,
+    "Homicídio": 33,
+    "Estupro": 30,
+    "Tentativa de feminicídio": 5,
+    "Feminicídio": 3,
+    "Latrocínio": 2
+  },
+  "verificacoes": [
+    "estado inicial: 6.393 associações pendentes e RLS forçada em 19 tabelas",
+    "0001_catalogo_proposta.sql: segunda aplicação sem efeito (idempotente)",
+    "0002_reclassificacao_backend.sql: segunda aplicação sem efeito (idempotente)",
+    "0003_homologacao_ensaio.sql: segunda aplicação sem efeito (idempotente)",
+    "catálogo: 20 categorias pendentes + 20 de ensaio; 36 mapeamentos pendentes + 31 de ensaio",
+    "catálogo instalado sem alterar associações nem dados policiais",
+    "sentinela_local_admin não executa a reclassificação",
+    "sentinela_local_operator não executa a reclassificação",
+    "sentinela_local_analyst não executa a reclassificação",
+    "UPDATE direto em associação continua bloqueado mesmo para o executor técnico",
+    "a marca de transação sozinha não libera escrita (exige o papel dono)",
+    "aprovador Operador ou Administrador inativo é recusado; versão sem regras homologadas não reclassifica nada",
+    "execução com ROLLBACK: 6.247 calculadas e nenhum efeito",
+    "execução confirmada: 6.247 associações reclassificadas",
+    "6.247 mapeadas e 146 pendentes (145 semânticas + 1 manual)",
+    "histórico: 2 registros por associação (status e regra)",
+    "auditoria: 1 evento de reprocessamento",
+    "origem, staging, ocorrências, naturezas, pendências e tentativa preservadas; RLS forçada mantida",
+    "repetição: 0 reclassificadas, sem novo evento",
+    "cada associação mapeada usa a categoria da proposta para seu par (natureza, tentativa)",
+    "tentativa respeitada: homicídio 33/56 e feminicídio 3/5 (consumado/tentado)",
+    "PCDF v2: receptores não gravam classificação; novas associações entram pendentes e só mudam por reprocessamento explícito"
+  ]
+}

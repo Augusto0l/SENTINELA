@@ -1,0 +1,718 @@
+{
+  "versao": "sentinela-classificacao-v2",
+  "status": "proposta-sem-homologacao",
+  "fontes": {
+    "matriz": "pcdf-matriz-conjunta-2021-2026",
+    "sha256Triplas": "7037c4bd4b6699a6232469315e4cd9d413d022b2eb4ecb55a6bd7b04f8ea305b"
+  },
+  "observacoes": [
+    "Em 68 competências, cada par (natureza, tentativa) tem uma única categoria PCDF.",
+    "Somente homicídio e feminicídio têm crime_tentado = SIM; qualquer outro par tentado é desconhecido e fica pendente."
+  ],
+  "categorias": [
+    {
+      "codigoInterno": "SEN-CAT-01",
+      "nome": "Homicídio",
+      "rotuloRelatorio": "01_HOMICIDIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-02",
+      "nome": "Tentativa de homicídio",
+      "rotuloRelatorio": "01.1_TENTATIVA DE HOMICIDIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-03",
+      "nome": "Roubo a transeunte",
+      "rotuloRelatorio": "13_ROUBO A TRANSEUNTE",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-04",
+      "nome": "Roubo em comércio",
+      "rotuloRelatorio": "19_ROUBO EM COMÉRCIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-05",
+      "nome": "Roubo em residência",
+      "rotuloRelatorio": "20_ROUBO EM RESIDÊNCIA",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-06",
+      "nome": "Roubo de veículo",
+      "rotuloRelatorio": "18_ROUBO DE VEICULO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-07",
+      "nome": "Furto em veículo",
+      "rotuloRelatorio": "28_FURTO EM INTERIOR DE VEICULO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-08",
+      "nome": "Furto de veículo",
+      "rotuloRelatorio": "25_FURTO DE VEICULO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-09",
+      "nome": "Furto em comércio",
+      "rotuloRelatorio": "26_FURTO EM COMERCIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-10",
+      "nome": "Furto em residência",
+      "rotuloRelatorio": "27_FURTO EM RESIDENCIA",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-11",
+      "nome": "Estupro",
+      "rotuloRelatorio": "ESTUPRO (Natureza; outras modalidades exigem validação)",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-12",
+      "nome": "Violência doméstica",
+      "rotuloRelatorio": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-13",
+      "nome": "Roubo em transporte coletivo",
+      "rotuloRelatorio": "14_ROUBO EM COLETIVO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-14",
+      "nome": "Feminicídio",
+      "rotuloRelatorio": "123_FEMINICIDIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-15",
+      "nome": "Tentativa de feminicídio",
+      "rotuloRelatorio": "123.1_TENTATIVA DE FEMINICIDIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-16",
+      "nome": "Estupro de vulnerável",
+      "rotuloRelatorio": "ESTUPRO DE VULNERÁVEL",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-17",
+      "nome": "Latrocínio",
+      "rotuloRelatorio": "21_LATROCINIO",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-18",
+      "nome": "Tráfico de drogas",
+      "rotuloRelatorio": "89_TRAFICO DE DROGAS",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-19",
+      "nome": "Uso e porte de drogas",
+      "rotuloRelatorio": "88_USO E PORTE DE DROGAS",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-20",
+      "nome": "Posse/porte de arma de fogo",
+      "rotuloRelatorio": "87_PORTE/POSSE DE ARMA",
+      "origem": "contrato-secao-5.2",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-21",
+      "nome": "Associação para o tráfico de drogas",
+      "rotuloRelatorio": null,
+      "origem": "complementar-proposta",
+      "fundamento": "Lei 11.343/06, art. 35: crime autônomo, distinto do tráfico (art. 33).",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-22",
+      "nome": "Artefato explosivo ou incendiário",
+      "rotuloRelatorio": null,
+      "origem": "complementar-proposta",
+      "fundamento": "Lei 10.826/03, art. 16, §1º, III: artefato explosivo não é arma de fogo.",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-23",
+      "nome": "Roubo em propriedade rural",
+      "rotuloRelatorio": null,
+      "origem": "complementar-proposta",
+      "fundamento": "Chácara, sítio ou fazenda não equivale necessariamente a residência.",
+      "status": "pendente"
+    }
+  ],
+  "resumo": {
+    "direta": {
+      "regras": 30,
+      "associacoes": 349493
+    },
+    "documentada": {
+      "regras": 2,
+      "associacoes": 5827
+    },
+    "revisada": {
+      "regras": 7,
+      "associacoes": 12767
+    },
+    "complementar": {
+      "regras": 3,
+      "associacoes": 942
+    },
+    "ambigua": {
+      "regras": 1,
+      "associacoes": 631
+    }
+  },
+  "regras": [
+    {
+      "id": "PCDF-N-01",
+      "naturezaOriginal": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-21",
+      "nivel": "complementar",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 799,
+      "competencias": 68,
+      "justificativa": "Crime autônomo (art. 35); não é tráfico em sentido estrito."
+    },
+    {
+      "id": "PCDF-N-02",
+      "naturezaOriginal": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "crimeTentado": false,
+      "categoriaPcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "categoriaProposta": "SEN-CAT-12",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 12648,
+      "competencias": 68,
+      "justificativa": "Lei 11.340/06, art. 24-A: crime da própria Lei Maria da Penha, no contexto de violência doméstica."
+    },
+    {
+      "id": "PCDF-N-03",
+      "naturezaOriginal": "ESTUPRO",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-11",
+      "nivel": "documentada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1795,
+      "competencias": 68,
+      "justificativa": "Correspondência explícita no relatório PCDF."
+    },
+    {
+      "id": "PCDF-N-04",
+      "naturezaOriginal": "ESTUPRO COLETIVO",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-11",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 14,
+      "competencias": 11,
+      "justificativa": "Código Penal, art. 226, IV, a: causa de aumento do estupro."
+    },
+    {
+      "id": "PCDF-N-05",
+      "naturezaOriginal": "ESTUPRO COM RESULTADO MORTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-11",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1,
+      "competencias": 1,
+      "justificativa": "Código Penal, art. 213, §2º: forma qualificada do estupro."
+    },
+    {
+      "id": "PCDF-N-06",
+      "naturezaOriginal": "ESTUPRO CORRETIVO",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-11",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1,
+      "competencias": 1,
+      "justificativa": "Código Penal, art. 226, IV, b: causa de aumento do estupro."
+    },
+    {
+      "id": "PCDF-N-07",
+      "naturezaOriginal": "ESTUPRO DE VULNERÁVEL",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-16",
+      "nivel": "documentada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 4032,
+      "competencias": 68,
+      "justificativa": "Correspondência explícita no relatório PCDF."
+    },
+    {
+      "id": "PCDF-N-08",
+      "naturezaOriginal": "FEMINICIDIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "123_FEMINICIDIO",
+      "categoriaProposta": "SEN-CAT-14",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 141,
+      "competencias": 61,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-08",
+      "naturezaOriginal": "FEMINICIDIO",
+      "crimeTentado": true,
+      "categoriaPcdf": "123.1_TENTATIVA DE FEMINICIDIO",
+      "categoriaProposta": "SEN-CAT-15",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 540,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-09",
+      "naturezaOriginal": "FURTO DE MOTOCICLETA",
+      "crimeTentado": false,
+      "categoriaPcdf": "25_FURTO DE VEICULO",
+      "categoriaProposta": "SEN-CAT-08",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 6059,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-10",
+      "naturezaOriginal": "FURTO DE VEICULO",
+      "crimeTentado": false,
+      "categoriaPcdf": "25_FURTO DE VEICULO",
+      "categoriaProposta": "SEN-CAT-08",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 12667,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-11",
+      "naturezaOriginal": "FURTO EM COMERCIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "26_FURTO EM COMERCIO",
+      "categoriaProposta": "SEN-CAT-09",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 24918,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-12",
+      "naturezaOriginal": "FURTO EM INTERIOR DE VEICULO",
+      "crimeTentado": false,
+      "categoriaPcdf": "28_FURTO EM INTERIOR DE VEICULO",
+      "categoriaProposta": "SEN-CAT-07",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 37474,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-13",
+      "naturezaOriginal": "FURTO EM RESIDENCIA",
+      "crimeTentado": false,
+      "categoriaPcdf": "27_FURTO EM RESIDENCIA",
+      "categoriaProposta": "SEN-CAT-10",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 24102,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-14",
+      "naturezaOriginal": "HOMICIDIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "01_HOMICIDIO",
+      "categoriaProposta": "SEN-CAT-01",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1280,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-14",
+      "naturezaOriginal": "HOMICIDIO",
+      "crimeTentado": true,
+      "categoriaPcdf": "01.1_TENTATIVA DE HOMICIDIO",
+      "categoriaProposta": "SEN-CAT-02",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 2952,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-15",
+      "naturezaOriginal": "LATROCINIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "21_LATROCINIO",
+      "categoriaProposta": "SEN-CAT-17",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 85,
+      "competencias": 46,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-16",
+      "naturezaOriginal": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "crimeTentado": false,
+      "categoriaPcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "categoriaProposta": "SEN-CAT-12",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 116262,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-17",
+      "naturezaOriginal": "PORTE DE ARMA",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": null,
+      "nivel": "ambigua",
+      "statusRegra": "conflitante",
+      "associacoes2021_2026": 631,
+      "competencias": 68,
+      "justificativa": "Rótulo genérico: não distingue arma de fogo de arma branca ou outro objeto."
+    },
+    {
+      "id": "PCDF-N-18",
+      "naturezaOriginal": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "crimeTentado": false,
+      "categoriaPcdf": "88_USO E PORTE DE DROGAS",
+      "categoriaProposta": "SEN-CAT-19",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 19565,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-19",
+      "naturezaOriginal": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 2530,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-20",
+      "naturezaOriginal": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1299,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-21",
+      "naturezaOriginal": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1429,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-22",
+      "naturezaOriginal": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-22",
+      "nivel": "complementar",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 21,
+      "competencias": 17,
+      "justificativa": "Artefato explosivo ou incendiário não é arma de fogo."
+    },
+    {
+      "id": "PCDF-N-23",
+      "naturezaOriginal": "ROUBO A BAR",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 50,
+      "competencias": 34,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-24",
+      "naturezaOriginal": "ROUBO A CASA LOTERICA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 3,
+      "competencias": 3,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-25",
+      "naturezaOriginal": "ROUBO A DROGARIA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 335,
+      "competencias": 67,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-26",
+      "naturezaOriginal": "ROUBO A PANIFICADORA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 141,
+      "competencias": 51,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-27",
+      "naturezaOriginal": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 113,
+      "competencias": 55,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-28",
+      "naturezaOriginal": "ROUBO A TRAILLER",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 20,
+      "competencias": 18,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-29",
+      "naturezaOriginal": "ROUBO A TRANSEUNTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 64430,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-30",
+      "naturezaOriginal": "ROUBO DE VEICULO",
+      "crimeTentado": false,
+      "categoriaPcdf": "18_ROUBO DE VEICULO",
+      "categoriaProposta": "SEN-CAT-06",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 7117,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-31",
+      "naturezaOriginal": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "crimeTentado": false,
+      "categoriaPcdf": "20_ROUBO EM RESIDÊNCIA",
+      "categoriaProposta": "SEN-CAT-23",
+      "nivel": "complementar",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 122,
+      "competencias": 52,
+      "justificativa": "Imóvel rural; a PCDF agrupa em 20_ROUBO EM RESIDÊNCIA, mas o texto não garante residência."
+    },
+    {
+      "id": "PCDF-N-32",
+      "naturezaOriginal": "ROUBO EM COLETIVO",
+      "crimeTentado": false,
+      "categoriaPcdf": "14_ROUBO EM COLETIVO",
+      "categoriaProposta": "SEN-CAT-13",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 2059,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-33",
+      "naturezaOriginal": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1893,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-34",
+      "naturezaOriginal": "ROUBO EM PARADA DE ONIBUS",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 6233,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-35",
+      "naturezaOriginal": "ROUBO EM RESIDENCIA",
+      "crimeTentado": false,
+      "categoriaPcdf": "20_ROUBO EM RESIDÊNCIA",
+      "categoriaProposta": "SEN-CAT-05",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 1090,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-36",
+      "naturezaOriginal": "ROUBO NA PROXIMIDADES DE BANCO",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 51,
+      "competencias": 35,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-37",
+      "naturezaOriginal": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 11,
+      "competencias": 9,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-38",
+      "naturezaOriginal": "TRÁFICO DE DROGAS PREVALECENDO-SE DE FUNÇÃO PÚBLICA",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-18",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 3,
+      "competencias": 3,
+      "justificativa": "Lei 11.343/06, art. 40, II: causa de aumento do tráfico."
+    },
+    {
+      "id": "PCDF-N-39",
+      "naturezaOriginal": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-18",
+      "nivel": "direta",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 14644,
+      "competencias": 68,
+      "justificativa": "A natureza é o próprio crime nomeado pelo rótulo PCDF (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-40",
+      "naturezaOriginal": "TRÁFICO INTERNACIONAL DE SUBSTANCIA ENTORPECENTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-18",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 18,
+      "competencias": 14,
+      "justificativa": "Lei 11.343/06, art. 40, I: causa de aumento do tráfico."
+    },
+    {
+      "id": "PCDF-N-41",
+      "naturezaOriginal": "TRÁFICO PRIVILEGIADO",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-18",
+      "nivel": "revisada",
+      "statusRegra": "homologavel",
+      "associacoes2021_2026": 82,
+      "competencias": 31,
+      "justificativa": "Lei 11.343/06, art. 33, §4º: forma privilegiada do tráfico."
+    }
+  ]
+}

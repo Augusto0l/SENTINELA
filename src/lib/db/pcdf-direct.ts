@@ -22,6 +22,7 @@ import { PcdfV2Error } from "@/data/pcdfV2";
 import { preparePcdfCsvDelivery, preparePcdfV2Delivery } from "./pcdf-v2-delivery";
 import { operationalActor } from "./operational-import-review";
 import { pcdfTreatmentStatus, runPcdfTreatment } from "./pcdf-treatment";
+import { aplicarNaImportacao } from "./classificacao";
 
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" };
 const messages: Record<number, string> = {
@@ -245,15 +246,19 @@ async function intakeStandalone(client: Client, request: Request, previewOnly: b
     if (row?.data?.conflict === "proveniencia")
       throw new IntakeError(409, "proveniencia_ja_registrada", "Uma origem deste arquivo já pertence a outro lote e exige revisão.");
     const receipt = (historical ? historicalReceipt : directReceipt).parse(row?.data);
+    // Same transaction and verified session: the active homologated version classifies the new lot, or nothing changes.
+    const classificacao = receipt.lot ? await aplicarNaImportacao(client, receipt.lot) : undefined;
+    const classifiedReceipt = classificacao ? { ...receipt, classificacao } : receipt;
     await client.query("COMMIT");
     if (historical) {
       // A competência já está gravada: o tratamento roda em transações próprias e uma falha fica recuperável.
       await runPcdfTreatment(client, "importacao-automatica").catch(() => []);
       const treatment = (await pcdfTreatmentStatus(client).catch(() => new Map())).get(prepared.preview.month);
-      const data = historicalReceipt.parse({ ...receipt, ...(treatment && { treatment }) });
+      const data = historicalReceipt.parse({ ...classifiedReceipt, ...(treatment && { treatment }) });
       return Response.json({ success: true, data }, { headers, status: data.replay ? 200 : 201 });
     }
-    return Response.json({ success: true, data: receipt }, { headers, status: receipt.replay ? 200 : 201 });
+    return Response.json({ success: true, data: classifiedReceipt },
+      { headers, status: receipt.replay ? 200 : 201 });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     throw error;

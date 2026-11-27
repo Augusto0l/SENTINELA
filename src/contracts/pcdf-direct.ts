@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { classificacaoAplicacao } from "./classificacao.ts";
 
 export const directPcdfPath = "/api/v1/importacoes/pcdf/direta";
 export const localImportStartupMessage = "Inicie o SENTINELA com npm run dev:local e recarregue a página para conectar ao PostgreSQL local.";
@@ -39,7 +40,7 @@ export const directCsvPreview = directPreview.extend({
 
 export const directReceipt = z.strictObject({
   ...metadata, lot: z.uuid(), run: z.uuid(), records: count.min(1).max(directMaxRows),
-  issues: count, replay: z.boolean(),
+  issues: count, replay: z.boolean(), classificacao: classificacaoAplicacao.optional(),
 });
 
 export const historicalTreatmentState = z.enum([
@@ -77,7 +78,7 @@ export const historicalPreview = historicalMonth.extend({
   accepted: count, rejected: count, diagnostics: count,
   errors: directCsvPreview.shape.standalone.shape.errors,
 });
-export const historicalReceipt = historicalMonth.extend({ replay: z.boolean() });
+export const historicalReceipt = historicalMonth.extend({ replay: z.boolean(), classificacao: classificacaoAplicacao.optional() });
 
 export const directHistoryItem = z.strictObject({
   ...metadata, lot: z.uuid().nullable(), records: count.min(1).max(directMaxRows),
