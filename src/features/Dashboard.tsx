@@ -57,7 +57,7 @@ export default function Dashboard({ filters, data, message, recovery }: {
           <Filters applied={filters} data={data} pending={pending} onChange={changeFilters} />
         </div>
         {data && (view === 2 || filters.ra.length > 0) &&
-          <p className={styles.spatialNotice}>As RAs dos pontos publicados da PCDF têm atribuição espacial provisória, sem validação territorial oficial.</p>}
+          <p className={styles.spatialNotice}>Os pontos da PCDF usam as coordenadas GEO originais como WGS84 por decisão provisória: a referência espacial da fonte ainda não foi confirmada e as RAs não têm validação territorial oficial.</p>}
         {pending && <p role="status" className={styles.loading}>Atualizando indicadores…</p>}
         {message && <div className={styles.notice} role="status">
           <p>{message}</p>
