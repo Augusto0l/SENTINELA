@@ -11,7 +11,7 @@ import { Client } from "pg"
 import { freePort, httpValidationId, projectRoot } from "./http-validation-output.mjs"
 
 // The test starts a new cluster in a randomly named directory. All writes are local.
-export async function withHostedImportEnvironment(test, { operational = false, review = false } = {}) {
+export async function withHostedImportEnvironment(test, { operational = false, review = false, users = false, reverseUsers = false } = {}) {
   const ref = operational ? "sentinelafixture0000" : "sentinelafixture"
   const project = `https://${ref}.supabase.co`
   const fixtureHost = `db.${ref}.supabase.co`
@@ -34,6 +34,7 @@ export async function withHostedImportEnvironment(test, { operational = false, r
     NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1", SENTINELA_APP_ORIGIN: origin,
     SENTINELA_AUTH_PROVIDER: "supabase", SENTINELA_IMPORT_MODE: "supabase", SENTINELA_SUPABASE_IMPORT_WRITE: "1",
     SENTINELA_SUPABASE_OPERATIONAL_WRITE: operational ? "1" : "0",
+    SENTINELA_SUPABASE_USERS_WRITE: users ? "1" : "0",
     SENTINELA_USERS_AUTH_KEY: operational ? authAdminKey : "",
     NEXT_PUBLIC_SUPABASE_URL: project, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_browser_fixture",
     SENTINELA_LOCAL_DEMO: "0", SENTINELA_DATABASE_URL: "", SENTINELA_DATABASE_SSLROOTCERT: "",
@@ -117,6 +118,52 @@ export async function withHostedImportEnvironment(test, { operational = false, r
         runSqlAs("postgres", "database/supabase/migrations/0011_central_revisao_hospedada.sql")
         assert.deepEqual(await snapshot(), before)
       }
+      if (users) {
+        const usersCatalog = () => sql(`SELECT jsonb_build_array(
+          pg_get_functiondef('sentinela_pessoas.registros(uuid)'::regprocedure),
+          (SELECT jsonb_agg(to_jsonb(p) ORDER BY policyname) FROM pg_policies p
+            WHERE schemaname='sentinela' AND tablename='eventos_auditoria' AND policyname LIKE 'pessoas_%'),
+          has_function_privilege('sentinela_local_admin','sentinela_pessoas.criar(uuid,uuid,uuid,text,text,text,text)','EXECUTE'),
+          has_function_privilege('sentinela_local_admin','sentinela_pessoas.editar(uuid,uuid,uuid,text,text,text,text)','EXECUTE'),
+          has_function_privilege('sentinela_local_admin','sentinela_pessoas.excluir(uuid,uuid,uuid,text,text)','EXECUTE'),
+          has_function_privilege('service_role','sentinela_api.consultar_cadastro(text,jsonb)','EXECUTE'),
+          has_function_privilege('service_role','sentinela_api.bloquear_exclusao_usuario(uuid,uuid,uuid,uuid,text)','EXECUTE'),
+          has_schema_privilege('sentinela_pessoas_owner','sentinela_private','USAGE'),
+          has_column_privilege('sentinela_pessoas_owner','sentinela.usuarios','perfil','UPDATE')) AS data`)
+        const priorCatalog = reverseUsers ? await usersCatalog() : null
+        runSqlAs("postgres", "database/supabase/pendentes/0014_gestao_usuarios_institucionais.sql")
+        const after = await snapshot()
+        for (const row of after[2]) {
+          assert.equal(row.arquivado_em, null)
+          assert.equal(row.revisao_gestao, 0)
+          delete row.arquivado_em
+          delete row.revisao_gestao
+        }
+        assert.deepEqual(after, before)
+        assert.equal(await sql(`SELECT relrowsecurity AND relforcerowsecurity AS data
+          FROM pg_class WHERE oid='sentinela_pessoas.solicitacoes'::regclass`), true)
+        assert.equal(await sql(`SELECT count(*)::int AS data FROM pg_roles r
+          WHERE r.rolname IN ('anon','authenticated','service_role','sentinela_local_operator','sentinela_local_analyst')
+          AND (has_function_privilege(r.oid,'sentinela_pessoas.alterar_gestao(uuid,uuid,uuid,text,jsonb)','EXECUTE')
+             OR has_function_privilege(r.oid,'sentinela_pessoas.preparar_cadastro(uuid,uuid,uuid,jsonb)','EXECUTE')
+             OR has_table_privilege(r.oid,'sentinela_pessoas.solicitacoes','SELECT,INSERT,UPDATE,DELETE'))`), 0)
+        if (reverseUsers) {
+          runSqlAs("postgres", "database/supabase/pendentes/reverter_0014_gestao_usuarios_institucionais.sql")
+          assert.deepEqual(await snapshot(), before)
+          const restored = await usersCatalog()
+          // PostgreSQL keeps formatting in the body of a function definition.
+          restored[0] = restored[0].replace(/\s+/g, " ").trim()
+          priorCatalog[0] = priorCatalog[0].replace(/\s+/g, " ").trim()
+          assert.deepEqual(restored, priorCatalog)
+          assert.equal(await sql(`SELECT to_regclass('sentinela_pessoas.solicitacoes') IS NULL
+            AND to_regprocedure('sentinela_pessoas.preparar_cadastro(uuid,uuid,uuid,jsonb)') IS NULL
+            AND to_regprocedure('sentinela_pessoas.alterar_gestao(uuid,uuid,uuid,text,jsonb)') IS NULL
+            AND count(*)=2 AS data FROM sentinela.schema_migrations WHERE versao IN ('0014','0014-reversao')`), true)
+          console.log("OK aplicação e reversão 0014 confirmadas, catálogo e ACLs restaurados, três contas e auditoria preservadas")
+          return
+        }
+        await sql("CREATE UNIQUE INDEX fixture_auth_email_unique ON auth.users(lower(email))")
+      }
     }
     process.env.SENTINELA_SUPABASE_IMPORT_INSTALLATION = await sql("SELECT sentinela_ambiente.instalacao() AS data")
     for (const actor of actors) {
@@ -140,11 +187,10 @@ export async function withHostedImportEnvironment(test, { operational = false, r
         ? connect.call(this, pgPort, "127.0.0.1") : connect.apply(this, args)
     }
     const tokens = new Map()
-    let authDeletionFailure = false
+    let loseCreationResponse = false
+    const syntheticAccounts = [...actors]
     const sign = randomBytes(32)
     const json64 = value => Buffer.from(JSON.stringify(value)).toString("base64url")
-    const user = actor => ({ id: actor.authId, email: actor.email, aud: "authenticated", role: "authenticated",
-      app_metadata: {}, user_metadata: {}, created_at: "2026-01-01T00:00:00Z" })
     const authIdentity = id => sql(`SELECT jsonb_build_object('id',id,'email',email,'aud','authenticated','role','authenticated',
       'app_metadata',raw_app_meta_data,'user_metadata','{}'::jsonb,'created_at','2026-01-01T00:00:00Z') AS data FROM auth.users WHERE id=$1`, [id])
     globalThis.fetch = async (input, init) => {
@@ -156,9 +202,23 @@ export async function withHostedImportEnvironment(test, { operational = false, r
         const match = /^\/auth\/v1\/admin\/users(?:\/([0-9a-f-]{36}))?$/.exec(url.pathname)
         const id = match?.[1]
         if (match && !id && request.method === "POST") {
-          const { email, app_metadata } = await request.json()
+          const { email, app_metadata, password } = await request.json()
           const created = randomUUID()
-          await sql("INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES ($1,$2,$3)", [created, email, app_metadata])
+          const provision = new Client(dbConfig)
+          await provision.connect()
+          try {
+            await provision.query("BEGIN")
+            await provision.query("INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES ($1,$2,'{}')", [created, email])
+            await provision.query("UPDATE auth.users SET raw_app_meta_data=$2 WHERE id=$1", [created, app_metadata])
+            await provision.query("COMMIT")
+          } catch (error) {
+            return Response.json({ code: error.code === "23505" ? "email_exists" : "unexpected_failure" }, { status: 500 })
+          } finally { await provision.end() }
+          syntheticAccounts.push({ id: created, authId: created, email, password })
+          if (loseCreationResponse) {
+            loseCreationResponse = false
+            return Response.json({ code: "unexpected_failure" }, { status: 500 })
+          }
           return Response.json(await authIdentity(created))
         }
         if (id) {
@@ -169,14 +229,6 @@ export async function withHostedImportEnvironment(test, { operational = false, r
             const { app_metadata } = await request.json()
             await sql("UPDATE auth.users SET raw_app_meta_data=$2 WHERE id=$1", [id, app_metadata])
             return Response.json(await authIdentity(id))
-          }
-          if (request.method === "DELETE") {
-            if (authDeletionFailure) {
-              authDeletionFailure = false
-              return Response.json({ code: "unexpected_failure", msg: "Falha sintética" }, { status: 500 })
-            }
-            await sql("DELETE FROM auth.users WHERE id=$1", [id])
-            return Response.json(previous)
           }
         }
         if (url.pathname === "/rest/v1/rpc/consultar_cadastro" || url.pathname === "/rest/v1/rpc/bloquear_exclusao_usuario") {
@@ -200,21 +252,37 @@ export async function withHostedImportEnvironment(test, { operational = false, r
       }
       if (url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") {
         const { email, password } = await request.json()
-        const actor = actors.find(value => value.email === email && value.password === password)
+        const actor = syntheticAccounts.find(value => value.email === email && value.password === password)
         if (!actor) return Response.json({ msg: "invalid credentials", code: "invalid_credentials" }, { status: 400 })
+        const identity = await authIdentity(actor.authId)
+        if (!actor.session) {
+          actor.session = randomUUID()
+          await sql("INSERT INTO auth.sessions(id,user_id) VALUES ($1,$2)", [actor.session, actor.authId])
+        }
         const iat = Math.floor(Date.now() / 1000)
         const claims = { sub: actor.authId, session_id: actor.session, iat, exp: iat + 3600,
-          aud: "authenticated", role: "authenticated", app_metadata: {} }
+          aud: "authenticated", role: "authenticated", app_metadata: identity.app_metadata }
         const unsigned = json64({ alg: "HS256", typ: "JWT" }) + "." + json64(claims)
         const access_token = unsigned + "." + createHmac("sha256", sign).update(unsigned).digest("base64url")
         tokens.set(access_token, { actor, claims })
         return Response.json({ access_token, refresh_token: randomUUID(), token_type: "bearer",
-          expires_in: 3600, expires_at: claims.exp, user: user(actor) })
+          expires_in: 3600, expires_at: claims.exp, user: identity })
       }
       if (url.pathname === "/auth/v1/.well-known/jwks.json") return Response.json({ keys: [] })
       const session = tokens.get(request.headers.get("authorization")?.replace(/^Bearer /i, ""))
       if (!session) return Response.json({ msg: "invalid session", code: "session_not_found" }, { status: 401 })
-      if (url.pathname === "/auth/v1/user") return Response.json(user(session.actor))
+      if (url.pathname === "/auth/v1/user") {
+        if (request.method === "PUT") {
+          const { password } = await request.json()
+          session.actor.password = password
+        }
+        return Response.json(await authIdentity(session.actor.authId))
+      }
+      if (url.pathname === "/auth/v1/logout") {
+        await sql("DELETE FROM auth.sessions WHERE id=$1", [session.actor.session])
+        delete session.actor.session
+        return new Response(null, { status: 204 })
+      }
       if (url.pathname === "/rest/v1/rpc/meu_acesso") {
         const rpc = new Client(dbConfig)
         await rpc.connect()
@@ -255,7 +323,7 @@ export async function withHostedImportEnvironment(test, { operational = false, r
         await client.end()
       }
     }
-    await test({ origin, project, actors, sql, withActor, failNextAuthDeletion: () => { authDeletionFailure = true } })
+    await test({ origin, project, actors, sql, withActor, loseNextCreationResponse: () => { loseCreationResponse = true } })
   } finally {
     try {
       if (server?.listening) {
