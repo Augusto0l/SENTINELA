@@ -4,6 +4,8 @@ from datetime import date
 from decimal import Decimal
 from hashlib import sha256
 import io
+import json
+from pathlib import Path
 import re
 
 HEADERS = (
@@ -22,6 +24,9 @@ MAX_CELL = 16_384
 DECIMAL = re.compile(r"[+-]?\d{1,3}(?:\.\d{1,24})?", re.ASCII)
 XML_FIXTURE = b"<Workbook><!-- synthetic provenance fixture --></Workbook>"
 XML_SHA = sha256(XML_FIXTURE).hexdigest()
+PCDF_NATURES = frozenset(json.loads(
+    (Path(__file__).resolve().parents[3] / "docs/catalogos/pcdf-naturezas-xml-v1.json").read_text(encoding="utf-8")
+)["naturezas"])
 
 
 class InvalidFile(ValueError):
@@ -55,10 +60,11 @@ def inspect_row(raw, month):
     if not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]", time):
         issue("horario", "datas_horarios", "horario_ausente_ou_invalido")
         time = None
-    if not raw["natureza_original"].strip():
+    nature = raw["natureza_original"]
+    if not nature.strip():
         issue("natureza_original", "classificacao", "natureza_ausente", "alta", "bloqueia_consolidacao")
-    else:
-        issue("natureza_sentinela_codigo", "classificacao", "mapeamento_a_homologar")
+    elif nature not in PCDF_NATURES:
+        issue("natureza_original", "classificacao", "natureza_fora_do_catalogo", "alta", "bloqueia_consolidacao")
     issue("ra_codigo", "endereco_ra", "ra_a_homologar" if raw["ra_original"].strip() else "ra_ausente")
     if not raw["local"].strip():
         issue("local", "endereco_ra", "endereco_ausente")
@@ -76,7 +82,7 @@ def inspect_row(raw, month):
     return {
         "candidate": list(identity) if valid_identity else None,
         "data": day.isoformat() if day else None, "horario": time,
-        "coordenadas_candidatas": list(pair), "classificacao_status": "pendente", **flags,
+        "coordenadas_candidatas": list(pair), "classificacao_status": raw["classificacao_status"], **flags,
     }, issues
 
 

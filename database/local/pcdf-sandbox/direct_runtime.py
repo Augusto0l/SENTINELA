@@ -13,6 +13,7 @@ from pilot_environment import BASELINE, credential
 from pilot_recovery import scram
 
 PORT = 55484
+QUALIFICATION_PORT = 55488
 DATABASE = "sentinela_pcdf_local"
 ORIGIN = "http://127.0.0.1:3317"
 QUALIFICATION_ORIGIN = "http://127.0.0.1:3318"
@@ -67,7 +68,16 @@ def provision(cluster, admin, runner, commands, credentials):
         "CREATE EXTENSION postgis WITH SCHEMA extensions VERSION '3.6.2';"
     ), run=runner)
     control.psql(cluster, admin, file=BASELINE, run=runner)
-    control.psql(cluster, admin, file=MIGRATION, run=runner)
+    if PORT == QUALIFICATION_PORT:
+        control.require(cluster["pcdf_purpose"] == "sintetico", "Synthetic migration target required")
+        sql = MIGRATION.read_text(encoding="utf8")
+        guard = "inet_server_port() <> 55484"
+        control.require(sql.count(guard) == 1, "Unexpected PCDF migration port guard")
+        def synthetic_migration(exe, args, password=None):
+            return commands.call(exe, args, password=password, input=sql.replace(guard, f"inet_server_port() <> {PORT}"))
+        control.psql(cluster, admin, file="-", run=synthetic_migration)
+    else:
+        control.psql(cluster, admin, file=MIGRATION, run=runner)
 
     statements = "BEGIN;" + "".join(f"ALTER ROLE {role} PASSWORD '{scram(password)}';" for role, password in credentials.items())
     def configure(exe, args, password=None):
@@ -96,22 +106,28 @@ def app_environment(cluster, credentials, accounts=ACCOUNTS, origin=ORIGIN):
         "SENTINELA_PCDF_LOCAL_ID": cluster["uuid"],
         "SENTINELA_PCDF_LOCAL_SYSTEM_ID": cluster["system_id"],
         "SENTINELA_PCDF_LOCAL_START": str(cluster["start_epoch"]),
+        "SENTINELA_PCDF_SYNTHETIC": "1" if cluster.get("pcdf_purpose") == "sintetico" and cluster["port"] == QUALIFICATION_PORT else "0",
     })
-    env.update({"SENTINELA_PCDF_LOCAL_PASSWORD_" + role: credentials[role] for role in ROLES[:2]})
+    env.update({"SENTINELA_PCDF_LOCAL_PASSWORD_" + role: credentials[role] for role in ROLES})
+    if origin == "http://localhost:3000":
+        # Next development spans include request URLs, including occurrence search parameters.
+        env["NEXT_TRACE_SPAN_THRESHOLD_MS"] = "2147483647"
     return env
 
 
-def technical_check(cluster, admin, runner, credentials):
-    control.attest(cluster, admin, run=runner)
+def technical_check(cluster, admin, runner, credentials, *, process_check=control.os_process):
+    control.attest(cluster, admin, run=runner, process_check=process_check)
     for role, expected in zip(ROLES[:2], ("Administrador", "Operador")):
         control.require(profile_query(cluster, runner, credentials[role], role,
-            "SELECT sentinela_pcdf_local.preflight();") == expected, "Local profile or RLS preflight failed")
+            "BEGIN READ ONLY; SELECT sentinela_pcdf_local.preflight(); COMMIT;") == expected,
+            "Local profile or RLS preflight failed")
 
 
 def profile_query(cluster, runner, password, role, sql):
-    control.require(role in ROLES and cluster["database"] == DATABASE and cluster["port"] == PORT,
+    port = QUALIFICATION_PORT if cluster.get("pcdf_purpose") == "sintetico" else PORT
+    control.require(role in ROLES and cluster["database"] == DATABASE and cluster["port"] == port == control.PORT,
                     "Unexpected local profile endpoint")
-    return runner("psql", ["-X", "-w", "-qAt", "-h", "127.0.0.1", "-p", str(PORT),
+    return runner("psql", ["-X", "-w", "-qAt", "-h", "127.0.0.1", "-p", str(port),
                            "-U", role, "-d", DATABASE, "-v", "ON_ERROR_STOP=1", "-c", sql],
                   password=password)
 
@@ -131,6 +147,7 @@ def new_cluster(purpose, admin, runner):
 
 
 def main():
+    global PORT
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--provision", action="store_true", help="Create the empty operational PCDF database")
@@ -138,6 +155,8 @@ def main():
     mode.add_argument("--qualify", action="store_true", help="Use a separate synthetic-only PostgreSQL cluster")
     mode.add_argument("--qualify-main", action="store_true", help="Qualify the combined workflow on localhost:3000")
     args = parser.parse_args()
+    if args.qualify or args.qualify_main:
+        PORT = QUALIFICATION_PORT
     configure_controller()
     cluster = None
     commands = backup.Commands()

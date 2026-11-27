@@ -107,7 +107,7 @@ def qualify(cluster, admin, runner, credentials, integrated=False):
         control.psql(cluster, admin, sql=sql, run=runner)
         env = app_environment(cluster, credentials, origin="http://localhost:3000" if integrated else QUALIFICATION_ORIGIN)
         result = subprocess.run(["node", str(HERE / "qualify-direct.mjs")], cwd=control.REPO,
-            input=json.dumps({"root": str(root), "analyst": credentials[ROLES[2]]}),
+            input=json.dumps({"root": str(root), "analyst": credentials[ROLES[2]], "databasePort": cluster["port"]}),
             env=env, encoding="utf8", capture_output=True, timeout=420)
         report["http"] = (json.loads(result.stdout.splitlines()[-1]) if result.stdout.strip() else {})
         print(json.dumps(report["http"], ensure_ascii=True), flush=True)

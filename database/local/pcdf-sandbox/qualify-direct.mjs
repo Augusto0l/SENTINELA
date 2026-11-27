@@ -10,7 +10,8 @@ import { freePort, httpValidation } from "../../../scripts/http-validation-outpu
 
 const input = [];
 for await (const chunk of process.stdin) input.push(chunk);
-const { root, analyst } = JSON.parse(Buffer.concat(input).toString("utf8"));
+const { root, analyst, databasePort } = JSON.parse(Buffer.concat(input).toString("utf8"));
+assert.equal(databasePort, 55488, "A homologação só pode usar o PostgreSQL sintético.");
 const origin = process.env.SENTINELA_APP_ORIGIN;
 const port = Number(new URL(origin).port);
 const integrated = port === 3000;
@@ -86,7 +87,7 @@ async function data(response, status) {
 
 async function verifyDbPermissions() {
   for (const user of ["sentinela_local_admin", "sentinela_local_operator", "sentinela_local_analyst"]) {
-    const client = new Client({ host: "127.0.0.1", port: 55484, database: "sentinela_pcdf_local", user,
+    const client = new Client({ host: "127.0.0.1", port: databasePort, database: "sentinela_pcdf_local", user,
       password: user.endsWith("_analyst") ? analyst : process.env["SENTINELA_PCDF_LOCAL_PASSWORD_" + user],
       connectionTimeoutMillis: 3000 });
     try {
@@ -152,7 +153,8 @@ try {
   if (integrated) {
     await page.getByText("PostgreSQL conectado", { exact: true }).waitFor();
     await page.getByText("Importar Dados", { exact: true }).first().waitFor();
-    await page.getByText("Arraste um arquivo para cá").waitFor();
+    await page.getByRole("heading", { name: "Arraste um arquivo ou pacote mensal", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Selecionar pacote PCDF v2", exact: true }).waitFor();
     const picker = page.getByRole("button", { name: "Selecionar arquivo", exact: true });
     await picker.focus();
     await page.keyboard.press("Tab");
@@ -363,7 +365,7 @@ try {
     await page.getByRole("button", { name: "Nova importação", exact: true }).last().click();
     await page.getByLabel("Arquivo CSV ou XLSX").setInputFiles({ name: "pcdf_naturezas_2021-01.csv",
       mimeType: "text/csv", buffer: Buffer.from("campo;outro\n") });
-    await page.getByText(/Layout PCDF v1.0 incompatível/).waitFor();
+    await page.getByRole("alert").filter({ hasText: /Cabeçalho PCDF incompatível.*26 campos/ }).waitFor();
     assert.equal(await page.getByRole("button", { name: /^Etapa 4/ }).isDisabled(), true);
     await openHistory();
     await page.getByRole("row", { name: /sintetico-local.xlsx/ }).waitFor();
@@ -379,8 +381,12 @@ try {
     await page.route("**" + route, intercepted => intercepted.abort("failed"));
     await page.getByRole("button", { name: "Atualizar histórico", exact: true }).click();
     await page.getByText(/PCDF · Backend de importação indisponível/).waitFor();
-    await page.getByText("Conexão indisponível", { exact: true }).waitFor();
+    await page.getByText("PostgreSQL conectado · histórico parcial", { exact: true }).waitFor();
     await page.getByRole("row", { name: /sintetico-local.xlsx/ }).waitFor();
+    await page.route("**" + general, intercepted => intercepted.abort("failed"));
+    await page.getByRole("button", { name: "Atualizar histórico", exact: true }).click();
+    await page.getByText("Conexão indisponível", { exact: true }).waitFor();
+    await page.unroute("**" + general);
     await page.unroute("**" + route);
     await page.close();
     await lifecycle.finish();

@@ -183,8 +183,6 @@ def validate_row(row, source_hash, month, treatment):
         derived["horario"] = None
         diagnostics.append(issue("horario", "datas_horarios", "horario_original_divergente"))
 
-    if raw["classificacao_status"] != "pendente" or raw["natureza_sentinela_codigo"] or raw["versao_mapeamento"]:
-        diagnostics.append(issue("classificacao_status", "classificacao", "classificacao_nao_verificada"))
     if raw["ra_codigo"] or presence(raw["ra_original"]) == "desconhecido":
         diagnostics.append(issue("ra_original", "endereco_ra", "ra_nao_verificada"))
     coordinate_status = raw["coordenada_status"]

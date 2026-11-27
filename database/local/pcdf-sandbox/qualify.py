@@ -71,7 +71,7 @@ def main():
     commands = backup.Commands()
     run = backup.bootstrap_runner(commands, admin)
     cluster = control.prepare("Portuguese_Brazil.1252", run=run)
-    for name in ("install.sql", "consolidate.sql", "catalog-fixtures.sql"):
+    for name in ("install.sql", "consolidate-original-natures.sql", "original-nature-fixtures.sql"):
         cluster["artifacts"][str((HERE/name).relative_to(control.REPO))] = control.digest(HERE/name)
     control.save(cluster)
     evidence = Path(cluster["root"]) / "evidence"
@@ -105,7 +105,7 @@ def main():
         control.install(cluster, admin, run=run)
         control.attest(cluster, admin, run=run)
         control.psql(cluster, admin, file=HERE/"install.sql", run=run)
-        control.psql(cluster, admin, file=HERE/"consolidate.sql", run=run)
+        control.psql(cluster, admin, file=HERE/"consolidate-original-natures.sql", run=run)
         report["environment"] = read("""SELECT jsonb_build_object('postgres',current_setting('server_version'),
           'postgis',(SELECT extversion FROM pg_extension WHERE extname='postgis'),'database',current_database(),
           'port',inet_server_port(),'systemId',(SELECT system_identifier::text FROM pg_control_system()))""")
@@ -165,7 +165,8 @@ def main():
         assert all(row["status"] == "aberta" for row in review)
         filtered = read("""SET ROLE sentinela_pcdf_sbx_importer;
           SELECT coalesce(jsonb_agg(to_jsonb(q)),'[]') FROM sentinela_pcdf_lab.review('classificacao','alta',20) q""")
-        assert len(filtered) == 1 and filtered[0]["valor_original"] == ""
+        assert {item["motivo"] for item in filtered} == {"natureza_ausente", "natureza_fora_do_catalogo"}
+        assert any(item["valor_original"] == "" for item in filtered)
         native_refusal("SET ROLE sentinela_pcdf_sbx_importer; SELECT * FROM sentinela_pcdf_lab.review(NULL,NULL,101)")
         native_refusal("SET ROLE sentinela_pcdf_sbx_importer; UPDATE sentinela.pendencias_revisao SET status='resolvida'")
         native_refusal("SET ROLE sentinela_local_reader; SELECT campos_csv FROM sentinela.linhas_staging")
@@ -197,9 +198,9 @@ def main():
         report["databaseChecks"] = final
         stage("large_batch_lineage_audit_and_forced_rls")
 
-        control.psql(cluster, admin, file=HERE/"catalog-fixtures.sql", run=run)
-        promotion_batch = batch(fixture(range(30, 36), natureza_original="Natureza de ensaio A", natureza_padronizada_pcdf="Categoria de ensaio", overrides={
-            31: {"natureza_original": "Natureza de ensaio B"},
+        control.psql(cluster, admin, file=HERE/"original-nature-fixtures.sql", run=run)
+        promotion_batch = batch(fixture(range(30, 36), natureza_original="FURTO DE VEICULO", natureza_padronizada_pcdf="Categoria de ensaio", overrides={
+            31: {"natureza_original": "ESTUPRO"},
             33: {"natureza_original": "Natureza sem regra"},
             35: {"local": "Local que diverge da outra associação"},
         }), "2026-01")
@@ -207,7 +208,7 @@ def main():
 
         def approve(run_id):
             control.psql(cluster, admin, sql=f"""INSERT INTO sentinela_pcdf_lab.approved_groups
-              SELECT DISTINCT execucao_id,derivados_efetivos->'candidate','pcdf-sandbox-v1','Fixture approval'
+              SELECT DISTINCT execucao_id,derivados_efetivos->'candidate','Fixture approval'
               FROM sentinela.linhas_staging WHERE execucao_id='{run_id}'""", run=run)
 
         approve(promotion_run)
@@ -219,13 +220,13 @@ def main():
         assert summary == dict(run=promotion_run, rows=6, consolidated=2, pending=4,
                                occurrencesCreated=1, associationsCreated=2)
         assert read(command) == dict(summary, occurrencesCreated=0, associationsCreated=0)
-        assert read("""SELECT jsonb_build_array(count(DISTINCT o.id),count(a.id),count(DISTINCT m.categoria_id),
+        assert read("""SELECT jsonb_build_array(count(DISTINCT o.id),count(a.id),count(DISTINCT a.natureza_id),
+          bool_and(a.mapeamento_id IS NULL),
           bool_and(o.geometria IS NULL AND o.ra_id IS NULL AND o.latitude IS NULL AND o.longitude IS NULL))
           FROM sentinela.ocorrencias o JOIN sentinela.ocorrencia_naturezas a ON a.ocorrencia_id=o.id
-          JOIN sentinela.mapeamentos_natureza m ON m.id=a.mapeamento_id
-          JOIN sentinela.linhas_staging s ON s.linha_origem_id=a.linha_origem_id""") == [1, 2, 1, True]
+          JOIN sentinela.linhas_staging s ON s.linha_origem_id=a.linha_origem_id""") == [1, 2, 2, True, True]
         overlapping_run = transact(batch(fixture([36], numero_registro="000015",
-                                                 natureza_original="Natureza de ensaio A",
+                                                 natureza_original="FURTO DE VEICULO",
                                                  natureza_padronizada_pcdf="Categoria de ensaio"), "2026-01"))["run"]
         approve(overlapping_run)
         assert read(f"SET ROLE sentinela_pcdf_sbx_importer; SELECT sentinela_pcdf_lab.promote('{overlapping_run}')")["pending"] == 1
@@ -234,7 +235,7 @@ def main():
         stage("promotion_preserves_multiple_natures_idempotency_and_blocks_conflicts")
 
         def stage_identity(index, number, month, xml_sha=XML_SHA):
-            raw = fixture([index], month, numero_registro=number, natureza_original="Natureza de ensaio A",
+            raw = fixture([index], month, numero_registro=number, natureza_original="FURTO DE VEICULO",
                           natureza_padronizada_pcdf="Categoria de ensaio",
                           linha_origem_id=f"{xml_sha}:NATUREZAS:{index}")
             return transact(batch(raw, month), xml_sha=xml_sha)["run"]

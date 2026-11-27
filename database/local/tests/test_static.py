@@ -18,10 +18,33 @@ REPO = ROOT.parents[1]
 SPEC = json.loads((ROOT / 'security-spec.json').read_text(encoding='utf-8'))
 RA_V2_TEMPLATE = ROOT / 'ra-catalog-v2/install.sql'
 SANDBOX_GUARD = ROOT / 'sandbox/sql/guard.sql'
+OCCURRENCES_READ = ROOT / 'pcdf-sandbox/occurrences-read.sql'
+OCCURRENCES_READ_SHA256 = '6178d34b74d4df8a6349ebade18680166da2d3d4b1201d0d12961b0629571384'
+MANUAL_OCCURRENCES = ROOT / 'pcdf-sandbox/manual-occurrences.sql'
+MANUAL_OCCURRENCES_SHA256 = 'baa6f5f782c3c3949fa1b0e0d1260807c32bbdacf99c9b042503e074eebec972'
+MANUAL_CATALOG_CODES = ROOT / 'pcdf-sandbox/manual-catalog-codes.sql'
+MANUAL_CATALOG_CODES_SHA256 = '47fbe06a78bbeb0ab1bbeb87c0500c5280cf52aff4232d5a5ddbbcb02a5b2529'
+MANUAL_CATALOG_RELEASE = ROOT / 'pcdf-sandbox/manual-catalog-release.sql'
+MANUAL_CATALOG_RELEASE_SHA256 = 'ea34257bcd2971a43ebdb9adc6a9c2210577a1ff84a80df9c49e8d05deb2bc02'
+PCDF_V2_SYNTHETIC = ROOT / 'pcdf-sandbox/0001_pcdf_v2_synthetic.sql'
+MANAGEMENT_SYNTHETIC = ROOT / 'pcdf-sandbox/0002_occurrence_management_synthetic.sql'
+EDITING_SYNTHETIC = ROOT / 'pcdf-sandbox/0003_occurrence_editing_synthetic.sql'
+MANUAL_PERSISTENCE_SYNTHETIC = ROOT / 'pcdf-sandbox/0004_manual_occurrence_persistence_synthetic.sql'
+PURGE_SYNTHETIC = ROOT / 'pcdf-sandbox/0005_import_purge_synthetic.sql'
+OCCURRENCES_ANALYTICS = ROOT / 'pcdf-sandbox/occurrences-analytics.sql'
+LOCAL_ATTESTED_SQL = (OCCURRENCES_READ, MANUAL_OCCURRENCES, MANUAL_CATALOG_CODES, MANUAL_CATALOG_RELEASE,
+                      MANAGEMENT_SYNTHETIC, EDITING_SYNTHETIC, MANUAL_PERSISTENCE_SYNTHETIC,
+                      PURGE_SYNTHETIC, OCCURRENCES_ANALYTICS)
 # Pin the qualified local functions together with their guards, grants and includes.
 QUALIFIED_LOCAL_SQL = {
     ROOT / 'pcdf-sandbox/main-import-history.sql': '23f0fb153a9798a2dcd7c08cc8f8ab291beec3515aad7b3697b333be18f3cd62',
     ROOT / 'pcdf-sandbox/direct.sql': '14d5997478d022615429af680a60652038c3ed64e07b55f32423d9f9342dd122',
+    PCDF_V2_SYNTHETIC: '9955381c9dba155e051d8134f2a20f59f3be52a52f3d0d59c1af66e5086606d6',
+    MANAGEMENT_SYNTHETIC: 'b49fe72f694134d44a44b224605d8ed0c32f97e1ed729f6e00ed38990f650b4f',
+    EDITING_SYNTHETIC: '67803f18fca9faf1368cac4c8927c13dc7091edeb9072ec2ded894fc74cb1d09',
+    MANUAL_PERSISTENCE_SYNTHETIC: '0e2eb2d540764aa7d645f1f86266eaed09837b21fe6dbc81c48b6f52ad05882b',
+    PURGE_SYNTHETIC: '6f1b00b9f7b0ec0ad5b09973709c0eb4dde6f182b13f29a92497ba7152be633d',
+    OCCURRENCES_ANALYTICS: 'e23a85551ae277e6b70a79fb2efd88f817ef060c02a3b02dbcdda1e121711f23',
     ROOT / 'write-sandbox/005_general_import.sql': 'c7778aacd67c7f3017402d61a8e9e341334d6f1ce187ae518a8f0d962a539bde',
     ROOT / 'pcdf-sandbox/pilot-executor.sql': '8e483068d1bc014e293b10709f29bed04a5562d7af1aefa57b3bc2f75066a1b5',
     ROOT / 'pcdf-sandbox/receiver-service-fixture.sql': '6a5d7f7b0e431440c736522b7fcf06db9632ac2bbf7a0541124848053a06c2fb',
@@ -57,6 +80,10 @@ def expand(path):
     if path.is_relative_to(ROOT/'sandbox/sql'):
         text = re.sub(r":'sandbox_start'", "'1000'", text)
         text = re.sub(r":'sandbox_(uuid|systemid|data)'", "'static-parser-placeholder'", text)
+    if path in LOCAL_ATTESTED_SQL:
+        text = text.replace(":'expected_uuid'", "'00000000-0000-4000-8000-000000000000'")
+    if path == OCCURRENCES_ANALYTICS:
+        text = text.replace(":'expected_system'", "'0'")
     return text
 
 
@@ -208,7 +235,16 @@ class StaticSecurityTests(unittest.TestCase):
         for path in ROOT.rglob('*.sql'):
             text = expand(path)
             self.assertNotRegex(text.upper(), r'\bDISABLE\s+(?:TRIGGER|ROW LEVEL)|\bNO\s+FORCE\b|\bDROP\s+(?:SCHEMA|TABLE|TRIGGER|ROLE)')
-            if path in QUALIFIED_LOCAL_SQL:
+            if path == OCCURRENCES_READ:
+                # Pin the reviewed reader artifact, including the role and scope guards.
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), OCCURRENCES_READ_SHA256)
+            elif path == MANUAL_OCCURRENCES:
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), MANUAL_OCCURRENCES_SHA256)
+            elif path == MANUAL_CATALOG_CODES:
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), MANUAL_CATALOG_CODES_SHA256)
+            elif path == MANUAL_CATALOG_RELEASE:
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), MANUAL_CATALOG_RELEASE_SHA256)
+            elif path in QUALIFIED_LOCAL_SQL:
                 self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), QUALIFIED_LOCAL_SQL[path], str(path))
             else:
                 self.assertNotRegex(text.upper(), r'\bSECURITY\s+DEFINER\b')
@@ -217,7 +253,7 @@ class StaticSecurityTests(unittest.TestCase):
                 self.assertEqual(nodes[0]['stmt']['TransactionStmt']['kind'], 'TRANS_STMT_BEGIN')
                 self.assertEqual(nodes[-1]['stmt']['TransactionStmt']['kind'], 'TRANS_STMT_ROLLBACK')
                 self.assertFalse(any(n['stmt'].get('TransactionStmt',{}).get('kind')=='TRANS_STMT_COMMIT' for n in nodes))
-            elif path.name in ('0001_create_local_reader.sql','0001_read_only.sql','0001_suspend_reader.sql'):
+            elif path in LOCAL_ATTESTED_SQL or path == PCDF_V2_SYNTHETIC or path.name in ('0001_create_local_reader.sql','0001_read_only.sql','0001_suspend_reader.sql'):
                 self.assertEqual(nodes[0]['stmt']['TransactionStmt']['kind'], 'TRANS_STMT_BEGIN')
                 self.assertEqual(nodes[-1]['stmt']['TransactionStmt']['kind'], 'TRANS_STMT_COMMIT')
 
