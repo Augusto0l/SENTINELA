@@ -1,0 +1,64 @@
+{
+  "versions": [
+    "17.11",
+    "3.6.2",
+    "3.6.2"
+  ],
+  "synthetic": true,
+  "ledgers": [
+    [
+      "0001",
+      "0002",
+      "0003",
+      "0004",
+      "0005",
+      "0006",
+      "0007",
+      "0008"
+    ],
+    [
+      "0001",
+      "0002",
+      "0003",
+      "0004",
+      "0005",
+      "0006",
+      "0007",
+      "0008",
+      "0009",
+      "0010"
+    ]
+  ],
+  "migration_sha256": {
+    "0009_importador_papeis_ambiente.sql": "2526f4af732fe954f3db35ec4c0ed2d781d6e2b8a2c4d79283c07b49dfdd09da",
+    "0010_importador_objetos.sql": "a27df66e1d86714bae11cc1a17088deee2b327e5ea58df604279328507c84bfe"
+  },
+  "preserved_data_sha256": "00263470e601fdbc91a1ca5bbc3a3541e5382f254a5f1fd62f21fc90488bd037",
+  "restored_catalog_sha256": {
+    "0008": "2d5b93ffc7b9eeea3c5b8b900592857f6879910f13cb69ec9c8df4d4b57534fb",
+    "0010": "249aab6e8994b8e19979f2b3ad879b0aa08f4bf357119230a07894204d1ed532"
+  },
+  "auth_accounts": 3,
+  "institutional_links": 3,
+  "audit_events": 1,
+  "restored_geometry_matches": true,
+  "new_database_oid_refused": true,
+  "archives": {
+    "0008.dump": {
+      "bytes": 160600,
+      "sha256": "e5f64cd420d036fcac2ac4e17fe13d3dbdabdba683975bb0f13d41b6c3090966"
+    },
+    "0008.roles.sql": {
+      "bytes": 1034,
+      "sha256": "30547d35122bbf9e7c759c025cadd06d0df9d7ef6c45bba631e45567fdd232b8"
+    },
+    "0010.dump": {
+      "bytes": 566363,
+      "sha256": "4f31bc986fe7410b09ea6820b3bfd676cd8f3c9ba38a28fb13b87b60b75f947c"
+    },
+    "0010.roles.sql": {
+      "bytes": 5746,
+      "sha256": "1dc3bd7e05cc7617d2c048cfae794f0024726f1acd4ef8e9aa5e471f7df6516f"
+    }
+  }
+}

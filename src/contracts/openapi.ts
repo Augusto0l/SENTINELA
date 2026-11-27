@@ -4,13 +4,18 @@ import {
   ERROR_STATUS,
   contractError,
   idSchema,
+  successSchema,
 } from "@/contracts/common"
 import { contractModels } from "@/contracts/examples"
 import { persistentIdSchema } from "@/contracts/persistent-occurrences"
+import { localOccurrenceList, localOccurrenceResponse, localOccurrencesPath, localOccurrencesQuery } from "@/contracts/local-occurrences"
+import { manualCatalogResponse, manualCatalogSearchSchema, manualOccurrenceSchema, manualOccurrencesPath, manualReceiptResponse } from "@/contracts/manual-occurrences"
+import { importedReviewDraft, importManagementAvailability, lotPurgeAssessment, lotPurgeHistory, managedLotDetail, managedLots, managedOccurrence, managementPath, managementRead, managementReceipt, managementWrite, purgeAuthorizationReceipt } from "@/contracts/occurrence-management"
 import { natureCatalogQuerySchema } from "@/contracts/persistent-catalogs"
 import { persistentAnalyticsData, persistentAnalyticsQuery, PERSISTENT_ANALYTICS_PATH } from "@/contracts/persistent-analytics"
-import { pcdfDecision, pcdfImportPath, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion, pcdfResponse,
-  pcdfReviewPage, pcdfReviewPageQuery, pcdfReviewPath, pcdfUpload } from "@/contracts/pcdf-workspace"
+import { directHash, directPcdfPath, historicalPreview, historicalReceipt, historicalStatus } from "@/contracts/pcdf-direct"
+import { hostedReviewQuery, pcdfDecision, pcdfImportPath, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion, pcdfResponse,
+  pcdfReviewPage, pcdfReviewPath, pcdfUpload } from "@/contracts/pcdf-workspace"
 
 export const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 function jsonSchema(schema: z.ZodType) {
@@ -19,19 +24,21 @@ function jsonSchema(schema: z.ZodType) {
   return value
 }
 function pcdfOperation(operationId: string, summary: string, schema: z.ZodType, statuses: number[],
-  errorStatuses: number[]) {
+  errorStatuses: number[], hostedSchema?: z.ZodType) {
   const failure = z.strictObject({ success: z.literal(false), error: z.strictObject({
     status: z.number(), message: z.string(), diagnostic: z.string().regex(/^[a-z0-9_]{1,100}$/).optional(),
   }) })
   const json = (model: z.ZodType) => ({ "application/json": { schema: jsonSchema(model) } })
   return {
-    operationId, summary, "x-implementation-status": "implemented-isolated-sandbox",
+    operationId, summary, "x-implementation-status": hostedSchema ? "implemented-local-and-hosted" : "implemented-isolated-sandbox",
     "x-persistent-implementation": { scope: "homologacao-persistente-sintetica" },
     description: "Cluster local atestado, loopback e sessão sintética com permissão por operação. Mutações exigem Origin exata.",
-    security: [{ localSession: [] }],
+    security: hostedSchema ? [{ localSession: [] }, { supabaseSession: [] }] : [{ localSession: [] }],
     responses: {
       ...Object.fromEntries(statuses.map(status => [status, { description: "Operação concluída no cluster atestado.",
-        content: json(pcdfResponse(schema, true)) }])),
+        content: json(hostedSchema ? z.union([pcdfResponse(schema, true),
+          z.strictObject({ success: z.literal(true), scope: z.literal("importacao-supabase"), data: hostedSchema })])
+          : pcdfResponse(schema, true)) }])),
       ...Object.fromEntries(errorStatuses.map(status => [status, { description: "Operação recusada ou indisponível.",
         content: json(failure) }])),
     },
@@ -39,6 +46,11 @@ function pcdfOperation(operationId: string, summary: string, schema: z.ZodType, 
 }
 const pcdfId = { name: "id", in: "path", required: true, schema: jsonSchema(persistentIdSchema) }
 const pcdfCommonErrors = [400, 401, 403, 503]
+const historicalMode = { name: "modalidade", in: "query", required: true, schema: { const: "historico" } }
+const historicalJson = (schema: z.ZodType) => ({ "application/json": { schema: jsonSchema(successSchema(schema)) } })
+const historicalErrors = Object.fromEntries([400, 401, 403, 409, 413, 415, 422, 503].map(status => [status, {
+  description: "Solicitação recusada. Consulte a mensagem e o diagnóstico quando disponível.",
+}]))
 function media(name: string) {
   return {
     "application/json": {
@@ -239,6 +251,29 @@ export function buildOpenApi() {
     "x-cross-field-validation":
       "Datas ordenadas, pares de ordenação, contagens e estados são verificados nos schemas Zod; JSON Schema não expressa todas essas relações.",
     paths: {
+      [directPcdfPath]: {
+        get: {
+          operationId: "readPcdfHistoricalImport", summary: "Consultar a fila mensal PCDF no PostgreSQL",
+          description: "Modalidade histórica para Administrador e Operador. Retorna o inventário, a situação de cada competência e a capacidade de aprovação.",
+          "x-implementation-status": "implemented-local-development", security: [{ localSession: [] }],
+          parameters: [historicalMode],
+          responses: { "200": { description: "Inventário e recibos mensais. No modo hospedado, um inventário parcial retorna canApprove igual a false.", content: historicalJson(historicalStatus) }, ...historicalErrors },
+        },
+        post: {
+          operationId: "approvePcdfHistoricalImport", summary: "Validar ou aprovar um CSV mensal PCDF da fila",
+          description: "O Administrador autorizado envia um CSV v2 por requisição. A confirmação exige o SHA-256 validado e recebe e consolida a competência em uma transação.",
+          "x-implementation-status": "implemented-local-development", security: [{ localSession: [] }],
+          parameters: [historicalMode, { name: "versao", in: "query", required: true, schema: { const: "2.0" } },
+            { name: "etapa", in: "query", required: true, schema: { enum: ["validar", "confirmar"] } }],
+          requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["csv"],
+            properties: { csv: { type: "string", format: "binary" }, sha256: jsonSchema(directHash) } } } } },
+          responses: {
+            "200": { description: "Validação ou recibo de importação anterior.", content: historicalJson(z.union([historicalPreview, historicalReceipt])) },
+            "201": { description: "Competência consolidada.", content: historicalJson(historicalReceipt) },
+            ...historicalErrors,
+          },
+        },
+      },
       [PERSISTENT_ANALYTICS_PATH]: { get: {
         operationId: "readPersistentAnalytics",
         summary: "Consultar agregados e projeções espaciais PostgreSQL",
@@ -269,6 +304,77 @@ export function buildOpenApi() {
       "/api/v1/ocorrencias/{id}/inativacao": {
         post: plannedWrite("inactivate"),
       },
+      [localOccurrencesPath]: { get: {
+        operationId: "readLocalOccurrenceWorkspace",
+        summary: "Consultar registros PCDF recebidos, cadastros manuais e ocorrências consolidadas",
+        description: "Somente leitura PostgreSQL em loopback com sessão local. Administrador e Operador acessam staging. Os três perfis podem consultar cadastros manuais em revisão e ocorrências consolidadas. A lista usa 25 itens por página e ID como desempate.",
+        "x-implementation-status": "implemented-local-development",
+        "x-query-schema": jsonSchema(localOccurrencesQuery),
+        security: [{ localSession: [] }],
+        parameters: [{ name: "view", in: "query", required: true,
+          schema: { type: "string", enum: ["resumo", "importados", "consolidadas", "manuais", "detalhe"] } }],
+        responses: { "200": { description: "Resultado no escopo selecionado.",
+          content: { "application/json": { schema: jsonSchema(localOccurrenceResponse) } } },
+          ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND", "INTERNAL_ERROR", "SERVICE_UNAVAILABLE"]) },
+      } },
+      [managementPath]: {
+        get: {
+          operationId: "readOccurrenceManagement",
+          summary: "Consultar lotes, proveniência e impacto de operações de gestão",
+          description: "A disponibilidade indica o destino atestado, o perfil e a autorização. No banco operacional com gestão liberada, a prévia inclui a revisão e a aprovação específica. Fora da liberação, a prévia operacional é informativa.",
+          "x-implementation-status": "implemented-local-development",
+          security: [{ localSession: [] }],
+          "x-query-schema": jsonSchema(managementRead),
+          parameters: [{ name: "view", in: "query", required: true, schema: {
+            type: "string", enum: ["arquivos", "arquivo", "importados", "manuais", "consolidadas", "previa_exclusao",
+              "exclusoes", "registros_lote", "rascunho_importado", "disponibilidade"],
+          } }],
+          responses: { "200": { description: "Dados do ambiente e escopo autorizados.",
+            content: { "application/json": { schema: jsonSchema(successSchema(z.union([
+              importManagementAvailability, managedLots, managedLotDetail, managedOccurrence, lotPurgeAssessment,
+              lotPurgeHistory, importedReviewDraft, localOccurrenceList,
+            ]))) } } },
+            ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND", "SERVICE_UNAVAILABLE"]) },
+        },
+        post: {
+          operationId: "writeOccurrenceManagement",
+          summary: "Registrar alteração auditada, autorizar ou excluir uma importação",
+          description: "Exige PostgreSQL atestado e vínculo institucional no destino operacional. A exceção de janeiro de 2021 exige sessão Supabase no destino operacional, UUID e revisão qualificados, verificação do backup e confirmação EXCLUIR. A exclusão consome a autorização vigente e registra um comprovante.",
+          "x-implementation-status": "implemented-local-development",
+          security: [{ localSession: [] }],
+          requestBody: { required: true, content: { "application/json": { schema: jsonSchema(managementWrite) } } },
+          responses: { "200": { description: "Operação confirmada pelo PostgreSQL.",
+            content: { "application/json": { schema: jsonSchema(successSchema(z.union([managementReceipt, purgeAuthorizationReceipt]))) } } },
+            ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND", "CONFLICT", "VALIDATION_ERROR",
+              "PAYLOAD_TOO_LARGE", "UNSUPPORTED_MEDIA_TYPE", "SERVICE_UNAVAILABLE"]) },
+        },
+      },
+      [manualOccurrencesPath]: {
+        get: {
+          operationId: "listManualOccurrenceCatalog",
+          summary: "Consultar os catálogos persistentes habilitados para cadastro manual",
+          "x-implementation-status": "implemented-local-development",
+          security: [{ localSession: [] }],
+          parameters: [{ name: "q", in: "query", required: false, schema: jsonSchema(manualCatalogSearchSchema),
+            description: "Busca por código, nome ou descrição, sem distinção de caixa e acentos." }],
+          responses: { "200": { description: "Catálogos do cadastro local e disponibilidade da função de gravação sintética para o perfil.",
+            content: { "application/json": { schema: jsonSchema(manualCatalogResponse) } } },
+            ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "SERVICE_UNAVAILABLE"]) },
+        },
+        post: {
+          operationId: "createLocalManualOccurrence",
+          summary: "Registrar ocorrência manual em revisão",
+          description: "Somente Administrador e Operador autenticados no ambiente sintético atestado com a migration 0004. Exige CEP, ponto confirmado e consistente com a RA persistente, natureza com tentativa explícita, descrição, meio e as duas quantidades. A idempotência usa login, conta e chave. Responde após o commit.",
+          "x-implementation-status": "implemented-isolated-sandbox",
+          security: [{ localSession: [] }],
+          parameters: [{ name: "Idempotency-Key", in: "header", required: true, schema: { type: "string", format: "uuid" } }],
+          requestBody: { required: true, content: { "application/json": { schema: jsonSchema(manualOccurrenceSchema) } } },
+          responses: { "201": { description: "Ocorrência gravada em revisão.",
+            content: { "application/json": { schema: jsonSchema(manualReceiptResponse) } } },
+            ...errorRefs(["BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "CONFLICT", "PAYLOAD_TOO_LARGE",
+              "UNSUPPORTED_MEDIA_TYPE", "VALIDATION_ERROR", "SERVICE_UNAVAILABLE"]) },
+        },
+      },
       [pcdfImportPath]: {
         get: pcdfOperation("listSyntheticPcdfLots", "Consultar lotes PCDF sintéticos", z.array(pcdfLot), [200], pcdfCommonErrors),
         post: {
@@ -286,16 +392,17 @@ export function buildOpenApi() {
         parameters: [pcdfId],
       } },
       [pcdfReviewPath]: { get: {
-        ...pcdfOperation("listSyntheticPcdfReview", "Consultar pendências PCDF sintéticas", z.union([z.array(pcdfIssue),pcdfReviewPage]),
-          [200], pcdfCommonErrors),
-        description: "Consulta em cluster local atestado. Na homologação persistente com a migration 0006, informe pagina para receber items e hasMore e habilitar q, ordem e limite. A consulta legada retorna uma lista.",
-        parameters: Object.entries(pcdfReviewPageQuery.shape).map(([name, schema]) => ({
+        ...pcdfOperation("listSyntheticPcdfReview", "Consultar pendências de revisão", z.union([z.array(pcdfIssue),pcdfReviewPage]),
+          [200], pcdfCommonErrors, pcdfReviewPage),
+        description: "No modo Supabase, informe pagina para consultar a fila global com filtros e contadores. Origem e situação em análise estão disponíveis nesse modo. A consulta local legada retorna uma lista.",
+        parameters: Object.entries(hostedReviewQuery.shape).map(([name, schema]) => ({
           name, in: "query", required: false, schema: jsonSchema(schema),
         })),
       } },
       [pcdfReviewPath + "/{id}"]: { patch: {
         ...pcdfOperation("decideSyntheticPcdfReview", "Registrar decisão administrativa versionada", pcdfIssue,
-          [200], [...pcdfCommonErrors, 404, 409, 413, 415, 422]),
+          [200], [...pcdfCommonErrors, 404, 409, 413, 415, 422], pcdfIssue),
+        description: "Decisão exclusiva de Administrador, com versão esperada, justificativa e Origin exata. No modo Supabase, exige a liberação de escrita operacional e sessão ativa.",
         parameters: [pcdfId],
         requestBody: { required: true, content: { "application/json": { schema: jsonSchema(pcdfDecision) } } },
       } },
@@ -410,6 +517,8 @@ export function buildOpenApi() {
       responses,
       securitySchemes: {
         localSession: { type: "apiKey", in: "cookie", name: "sentinela-local-session", description: "Somente desenvolvimento local; não disponível em produção." },
+        supabaseSession: { type: "apiKey", in: "cookie", name: "sb-<project-ref>-auth-token",
+          description: "Sessão SSR Supabase com o nome derivado da referência do projeto e vínculo institucional ativo." },
         bearerAuth: {
           type: "http",
           scheme: "bearer",

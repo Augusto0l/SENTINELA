@@ -66,7 +66,7 @@ test("idempotency header is UUID and baseline protections remain intact",async()
   for(const name of ["bloquear_correcao_sem_backend","bloquear_autoria_manual_sem_auth","exigir_historico_correcao","exigir_revisor_administrador"])assert(baseline.includes(name))
 })
 
-test("static route inventory allows only the explicitly gated isolated write handlers under api/v1",async()=>{
+test("static route inventory allows only explicitly gated write handlers under api/v1",async()=>{
   const routes=[]
   async function visit(dir) {
     for(const entry of await readdir(dir,{withFileTypes:true})) {
@@ -79,10 +79,13 @@ test("static route inventory allows only the explicitly gated isolated write han
   assert(routes.length>0)
   const expected = new Map([
     ["ocorrencias/route.ts", "POST"], ["ocorrencias/[id]/route.ts", "PATCH"], ["ocorrencias/[id]/inativacao/route.ts", "POST"],
+    ["ocorrencias/manuais/route.ts", "POST"],
+    ["ocorrencias/gestao/route.ts", "POST"],
     ["importacoes/pcdf/route.ts", "POST"], ["importacoes/pcdf/[id]/consolidacao/route.ts", "POST"],
     ["importacoes/pcdf/direta/route.ts", "POST"],
     ["importacoes/geral/route.ts", "POST"], ["importacoes/geral/revisao/[id]/route.ts", "PATCH"],
     ["central-revisao/[id]/route.ts", "PATCH"],
+    ["usuarios/route.ts", ["POST", "PATCH", "DELETE"]],
   ])
   const writeOnly = new Set(["ocorrencias/[id]/inativacao/route.ts",
     "importacoes/pcdf/[id]/consolidacao/route.ts", "central-revisao/[id]/route.ts", "importacoes/geral/revisao/[id]/route.ts"])
@@ -104,12 +107,44 @@ test("static route inventory allows only the explicitly gated isolated write han
     }
     const relative = decodeURIComponent(file.pathname).split("/api/v1/")[1]
     const method = expected.get(relative)
-    assert.deepEqual(names.filter(name=>["POST","PUT","PATCH","DELETE"].includes(name)),method ? [method] : [])
+    assert.deepEqual(names.filter(name=>["POST","PUT","PATCH","DELETE"].includes(name)),
+      Array.isArray(method) ? method : method ? [method] : [],
+      `Unexpected write methods in ${relative}`)
     if (relative === "importacoes/pcdf/direta/route.ts") assert.match(source, /export const POST = directPcdf/)
+    else if (relative === "ocorrencias/manuais/route.ts") {
+      assert.match(source, /hasPermission\(principal\.role, "cadastrar"\)/)
+      assert.match(source, /request\.headers\.get\("origin"\) !== mode\.origin/)
+      assert.match(source, /withOperationalDatabase\(principal, false,/)
+      assert.match(source, /hostedOperationalMode\(\)\?\.write === false/)
+    }
+    else if (relative === "ocorrencias/gestao/route.ts") {
+      assert.match(source, /occurrenceManagementMode\(\)/)
+      assert.match(source, /request\.headers\.get\("origin"\) !== mode\.origin/)
+      assert.match(source, /hasPermission\(principal\.role, "administrar"\)/)
+      assert.match(source, /withLocalOccurrenceDatabase\(principal, false,/)
+    }
+    else if (relative === "usuarios/route.ts") {
+      assert.match(source, /const mode = institutionalDatabaseMode\(\)/)
+      assert.match(source, /request\.headers\.get\("host"\) !== new URL\(mode\.origin\)\.host/)
+      assert.match(source, /request\.method !== "GET" && request\.headers\.get\("origin"\) !== mode\.origin/)
+      assert.match(source, /principal\.role !== "Administrador" \|\| principal\.source !== "supabase"/)
+      assert.match(source, /request\.method !== "GET" && hostedOperationalMode\(\)\?\.write === false/)
+      assert.equal((source.match(/await authorize\(request\)/g) ?? []).length, 4)
+      assert.match(source, /institutionalEdit\.safeParse\(body\.data\)/)
+      assert.match(source, /await institutionalUsers\(principal, edit\.data\)/)
+    }
+    else if (relative === "central-revisao/[id]/route.ts") {
+      assert.match(source, /if \(hostedOperationalMode\(\)\) return hostedReview\(request, id\)/)
+      assert.match(source, /return pcdfWorkspace\(request, "decide", id\)/)
+      const hosted = await readFile(new URL("../src/lib/db/hosted-review.ts", import.meta.url), "utf8")
+      assert.match(hosted, /!mode\.write \|\| request\.headers\.get\("origin"\) !== mode\.origin/)
+      assert.match(hosted, /hasPermission\(principal\.role, write \? "corrigir" : "consultar_central"\)/)
+      assert.match(hosted, /withHostedOperationalDatabase\(principal, false,/)
+    }
     else if (generalOperations.has(relative)) assert(source.includes(`return pcdfWorkspace(request, "${generalOperations.get(relative)}"`))
     else if (method) assert.match(source, relative.startsWith("ocorrencias/")
       ? /return isolatedOccurrenceMutation\(request\)/ : /return pcdfWorkspace\(request, "(upload|promote|decide)"/)
-    assert.equal(names.includes("GET"), !writeOnly.has(relative))
+    assert.equal(names.includes("GET"), !writeOnly.has(relative), `Unexpected GET registration in ${relative}`)
     expected.delete(relative)
   }
   assert.equal(expected.size,0)

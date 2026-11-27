@@ -52,10 +52,14 @@ export async function validateApiContracts() {
     new Set(operations.map((operation) => operation.operationId)).size,
     operations.length,
   )
-  const local = ["getPersistentOccurrence", "listPersistentOccurrences", "listPersistentRegions", "listPersistentNatures", "readPersistentAnalytics"]
-  const isolated = ["listSyntheticPcdfLots", "uploadSyntheticPcdf", "promoteSyntheticPcdf", "listSyntheticPcdfReview", "decideSyntheticPcdfReview"]
+  const local = ["getPersistentOccurrence", "listPersistentOccurrences", "listPersistentRegions", "listPersistentNatures",
+    "readPersistentAnalytics", "readLocalOccurrenceWorkspace", "listManualOccurrenceCatalog", "readOccurrenceManagement", "writeOccurrenceManagement",
+    "readPcdfHistoricalImport", "approvePcdfHistoricalImport"]
+  const isolated = ["listSyntheticPcdfLots", "uploadSyntheticPcdf", "promoteSyntheticPcdf", "createLocalManualOccurrence"]
+  const hosted = ["listSyntheticPcdfReview", "decideSyntheticPcdfReview"]
   for (const operation of operations) {
     const expected = local.includes(operation.operationId) ? "implemented-local-development"
+      : hosted.includes(operation.operationId) ? "implemented-local-and-hosted"
       : isolated.includes(operation.operationId) ? "implemented-isolated-sandbox" : "planned"
     assert.equal(operation["x-implementation-status"], expected)
   }

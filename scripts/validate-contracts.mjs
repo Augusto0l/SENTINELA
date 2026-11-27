@@ -52,5 +52,14 @@ for (const row of matrix.linhas) {
   assert.ok(row.justificativa.trim());
 }
 console.log("Matriz PCDF: 2 relações documentadas, 39 pendentes e nenhuma regra de carga aprovada.");
+const candidates = JSON.parse(readFileSync(new URL("../docs/catalogos/naturezas-manuais-candidatas-v1.json", import.meta.url), "utf8"));
+assert.deepEqual(candidates.fonte, pcdf.source);
+assert.deepEqual(candidates.registros.map(item => [item.idInterno, item.descricaoOriginal]),
+  matrix.linhas.map(item => [item.id, item.natureza]));
+assert.ok(candidates.registros.every(item => item.situacao === "pendente" && item.usoManual === false
+  && item.codigoOriginal === null && typeof item.observadoEmJaneiro2021 === "boolean"));
+assert.equal(candidates.registros.filter(item => item.observadoEmJaneiro2021).length, 34);
+assert.equal(candidates.registros.filter(item => item.referenciaAnaliticaDocumentada).length, 2);
+console.log("Cadastro manual: 41 candidatas preservadas, 34 observadas no lote de janeiro e zero homologadas.");
 const { validateApiContracts } = await import("./validate-api-contracts.mjs");
 console.log("Contratos e OpenAPI válidos:", await validateApiContracts());

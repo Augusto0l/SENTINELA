@@ -12,7 +12,7 @@ identidade individual ou acesso persistente para publicação.
 Na raiz do repositório, use Node 22 e pnpm 10.34.3, conforme `.mise.toml`.
 O arquivo `.env.local` e a configuração privada de contas ficam fora do Git.
 Para rodar o protótipo local, configure o provedor conforme o
-[guia de autenticação](autenticacao-local.md) e use `pnpm dev`.
+[guia de autenticação](autenticacao-local.md) e use `pnpm dev:next`.
 O launcher limita a autenticação local e a prévia opt-in ao IPv4 loopback.
 
 ```powershell
