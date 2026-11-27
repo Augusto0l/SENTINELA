@@ -1,0 +1,9 @@
+PASS serviços reais: 73081140, 2 referência(s) aproximada(s)
+PASS serviços reais: 70790075, 1 referência(s) aproximada(s)
+PASS serviços reais: 70390100, 4 referência(s) aproximada(s)
+PASS geocodificação real por endereço
+PASS navegador: 73081140, opção clicável, centralização, zoom 16, coordenadas e arraste
+PASS navegador: 70790-075, opção clicável, centralização, zoom 16, coordenadas e arraste
+PASS navegador: 70390100, opção clicável, centralização, zoom 16, coordenadas e arraste
+PASS CEP incompleto/inexistente, respostas vazias, falha e ajuste durante busca preservam coordenadas
+PASS navegador: busca por endereço preservada; nenhum erro JavaScript

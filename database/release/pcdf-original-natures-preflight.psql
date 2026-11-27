@@ -1,0 +1,64 @@
+-- Read-only inventory. Pass lote (UUID) and naturezas (exact catalog JSON array).
+\set ON_ERROR_STOP on
+BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
+WITH staged AS MATERIALIZED (
+ SELECT s.id,s.linha_origem_id,s.estado,s.ocorrencia_id,s.associacao_id,s.campos_csv,
+  nullif(s.campos_csv->>'ocorrencia_chave','') AS candidata
+ FROM sentinela.linhas_staging s
+ JOIN sentinela.lotes_importacao l ON l.id=s.lote_id
+ WHERE l.id=:'lote'::uuid
+), scope AS MATERIALIZED (SELECT DISTINCT linha_origem_id FROM staged),
+issues AS MATERIALIZED (
+ SELECT p.id,p.linha_origem_id,p.tipo,p.campo,p.regra,p.status,p.efeito,
+  ((p.campo='classificacao_status' AND p.regra IN ('classificacao_pendente','classificacao_nao_verificada'))
+   OR (p.campo='natureza_sentinela_codigo' AND p.regra IN ('mapeamento_a_homologar','classificacao_pendente'))
+   OR (p.campo='natureza_padronizada_pcdf' AND p.regra IN ('rotulo_criminal_pendente','categoria_fora_do_catalogo'))) AS obsoleta
+ FROM sentinela.pendencias_revisao p JOIN scope s USING(linha_origem_id)
+), defects AS MATERIALIZED (
+ SELECT linha_origem_id,count(*) AS total
+ FROM issues WHERE NOT obsoleta AND status IN ('aberta','em_analise') GROUP BY linha_origem_id
+), catalog AS MATERIALIZED (
+ SELECT value COLLATE "C" AS descricao FROM jsonb_array_elements_text(:'naturezas'::jsonb)
+)
+SELECT jsonb_build_object(
+ 'lote',:'lote','staging',(SELECT count(*) FROM staged),
+ 'origens',(SELECT count(*) FROM scope),
+ 'candidatasDistintas',(SELECT count(DISTINCT candidata) FROM staged),
+ 'originaisDistintos',(SELECT count(DISTINCT o.natureza_original COLLATE "C") FROM scope s JOIN sentinela.linhas_origem o ON o.id=s.linha_origem_id),
+ 'originaisForaDoCatalogo',(SELECT count(*) FROM scope s JOIN sentinela.linhas_origem o ON o.id=s.linha_origem_id
+   WHERE NOT EXISTS (SELECT FROM catalog c WHERE c.descricao=o.natureza_original COLLATE "C")),
+ 'naturezaCsvDivergente',(SELECT count(*) FROM staged s JOIN sentinela.linhas_origem o ON o.id=s.linha_origem_id
+   WHERE (s.campos_csv->>'natureza_original') COLLATE "C" IS DISTINCT FROM o.natureza_original COLLATE "C"),
+ 'compartilhadas',(SELECT count(DISTINCT s.linha_origem_id) FROM scope s JOIN sentinela.linhas_staging t USING(linha_origem_id)
+    WHERE t.lote_id<>:'lote'::uuid),
+ 'estadoStaging',(SELECT jsonb_object_agg(estado,total) FROM (SELECT estado,count(*) total FROM staged GROUP BY estado) a),
+ 'vinculosStaging',(SELECT count(*) FROM staged WHERE ocorrencia_id IS NOT NULL OR associacao_id IS NOT NULL),
+ 'pendencias', (SELECT count(*) FROM issues),
+ 'obsoletas', (SELECT count(*) FROM issues WHERE obsoleta AND status IN ('aberta','em_analise')),
+ 'sha256EscopoReprocessamento',(SELECT encode(sha256(convert_to(string_agg(id::text,',' ORDER BY id),'UTF8')),'hex')
+   FROM issues WHERE tipo='classificacao' AND campo='classificacao_status' AND regra='classificacao_pendente'
+     AND status='aberta' AND efeito='bloqueia_consolidacao'),
+ 'obsoletasForaDoLote',(SELECT count(*) FROM sentinela.pendencias_revisao p WHERE NOT EXISTS(SELECT FROM scope s WHERE s.linha_origem_id=p.linha_origem_id)
+    AND ((p.campo='classificacao_status' AND p.regra IN ('classificacao_pendente','classificacao_nao_verificada'))
+      OR (p.campo='natureza_sentinela_codigo' AND p.regra IN ('mapeamento_a_homologar','classificacao_pendente'))
+      OR (p.campo='natureza_padronizada_pcdf' AND p.regra IN ('rotulo_criminal_pendente','categoria_fora_do_catalogo')))),
+ 'restantesAbertas', (SELECT count(*) FROM issues WHERE NOT obsoleta AND status IN ('aberta','em_analise')),
+ 'linhasSemPendenciaAbertaApos',(SELECT count(*) FROM staged s WHERE NOT EXISTS(SELECT FROM defects d WHERE d.linha_origem_id=s.linha_origem_id)),
+ 'candidatasSemPendenciaAbertaApos',(SELECT count(*) FROM (
+   SELECT s.candidata FROM staged s LEFT JOIN defects d USING(linha_origem_id)
+   WHERE s.candidata IS NOT NULL GROUP BY s.candidata HAVING count(d.total)=0) a),
+ 'porRegra',(SELECT coalesce(jsonb_agg(to_jsonb(q) ORDER BY tipo,campo,regra,status,efeito),'[]') FROM (
+   SELECT tipo,campo,regra,status,efeito,obsoleta,count(*) total FROM issues GROUP BY tipo,campo,regra,status,efeito,obsoleta) q),
+ 'naturezasTabela',(SELECT count(*) FROM sentinela.naturezas_criminais),
+ 'canonicas',(SELECT count(*) FROM sentinela.naturezas_criminais n JOIN catalog c ON c.descricao=n.descricao_original COLLATE "C"
+   WHERE n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL),
+ 'categoriasLegadas',(SELECT count(*) FROM sentinela.categorias_criminais),
+ 'mapeamentosLegados',(SELECT count(*) FROM sentinela.mapeamentos_natureza),
+ 'consolidadas',(SELECT count(*) FROM sentinela.ocorrencias WHERE ativo AND consolidacao_status='consolidada'),
+ 'associacoesConsolidadas',(SELECT count(*) FROM sentinela.ocorrencia_naturezas),
+ 'auditoria',(SELECT count(*) FROM sentinela.eventos_auditoria),
+ 'manual',EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='sentinela_ocorrencias_manual' AND p.proname='catalogo'),
+ 'rlsForcada',(SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='sentinela' AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity));
+COMMIT;

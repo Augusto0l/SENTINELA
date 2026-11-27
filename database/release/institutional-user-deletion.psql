@@ -1,0 +1,89 @@
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL search_path=pg_catalog;
+SET LOCAL lock_timeout='5s';
+SELECT set_config('sentinela.users_uuid',:'sandbox_uuid',true),
+       set_config('sentinela.users_system',:'sandbox_systemid',true) \gset
+DO $$
+BEGIN
+ IF inet_server_addr() IS DISTINCT FROM inet '127.0.0.1' OR inet_server_port() IS DISTINCT FROM 55484
+ OR current_database()<>'sentinela_pcdf_local' OR pg_is_in_recovery()
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.users_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.users_system')
+ OR to_regprocedure('sentinela_pessoas.criar(uuid,uuid,uuid,text,text,text,text)') IS NULL
+ OR (SELECT count(*) FROM pg_class WHERE oid IN ('sentinela.usuarios'::regclass,
+   'sentinela.eventos_auditoria'::regclass,'sentinela_pessoas.contatos'::regclass)
+   AND relrowsecurity AND relforcerowsecurity)<>3
+ THEN RAISE EXCEPTION 'Destino institucional divergente'; END IF;
+END $$;
+
+CREATE TABLE sentinela_pessoas.exclusoes (
+ usuario uuid PRIMARY KEY REFERENCES sentinela.usuarios(id),
+ email_confirmacao text,
+ concluida_em timestamptz,
+ CHECK ((email_confirmacao IS NULL) = (concluida_em IS NOT NULL))
+);
+ALTER TABLE sentinela_pessoas.exclusoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_pessoas.exclusoes FORCE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE ON sentinela_pessoas.exclusoes TO sentinela_pessoas_owner;
+CREATE POLICY pessoas_exclusao_estado ON sentinela_pessoas.exclusoes TO sentinela_pessoas_owner
+ USING (session_user='sentinela_local_admin') WITH CHECK (session_user='sentinela_local_admin');
+GRANT UPDATE (ativo) ON sentinela.usuarios TO sentinela_pessoas_owner;
+CREATE POLICY pessoas_exclusao_auditoria ON sentinela.eventos_auditoria FOR INSERT TO sentinela_pessoas_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND acao='usuarios.excluir_institucional'
+   AND ator_tipo='servico' AND servico='sentinela-usuarios');
+
+CREATE OR REPLACE FUNCTION sentinela_pessoas.listar(actor uuid, identidade uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
+BEGIN
+ PERFORM sentinela_pessoas.autorizar(actor,identidade);
+ RETURN (SELECT coalesce(jsonb_agg(r || jsonb_build_object('deletionPending',e.usuario IS NOT NULL)),'[]'::jsonb)
+   FROM sentinela_pessoas.registros(NULL) r
+   LEFT JOIN sentinela_pessoas.exclusoes e ON e.usuario=(r->>'id')::uuid
+   WHERE e.concluida_em IS NULL);
+END $$;
+
+CREATE FUNCTION sentinela_pessoas.excluir(actor uuid, identidade uuid, alvo uuid, email text, etapa text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE u record; e sentinela_pessoas.exclusoes%ROWTYPE; resultado text;
+BEGIN
+ PERFORM pg_advisory_xact_lock(743204,22);
+ PERFORM sentinela_pessoas.autorizar(actor,identidade);
+ SELECT id,auth_user_id,nome_exibicao,perfil,ativo INTO u FROM sentinela.usuarios WHERE id=alvo;
+ IF NOT FOUND OR u.auth_user_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado' USING ERRCODE='P0002'; END IF;
+ IF u.ativo AND u.perfil='Administrador' AND NOT EXISTS (
+   SELECT FROM sentinela.usuarios other WHERE other.id<>alvo AND other.ativo AND other.perfil='Administrador' AND other.auth_user_id IS NOT NULL
+ ) THEN RAISE EXCEPTION 'Último Administrador ativo' USING ERRCODE='23514'; END IF;
+ IF alvo=actor OR u.auth_user_id=identidade THEN RAISE EXCEPTION 'Autoexclusão proibida' USING ERRCODE='42501'; END IF;
+ SELECT * INTO e FROM sentinela_pessoas.exclusoes WHERE usuario=alvo;
+ IF e.concluida_em IS NOT NULL THEN
+   RETURN jsonb_build_object('complete',true);
+ END IF;
+ IF etapa='consultar' THEN
+   RETURN jsonb_build_object('complete',false,'authId',u.auth_user_id,'name',u.nome_exibicao,'perfil',u.perfil,
+     'email',e.email_confirmacao);
+ END IF;
+ IF NOT coalesce(length(email)<=254 AND email=lower(email) AND email ~ '^[^[:space:]@]+@[^[:space:]@]+$',false)
+    OR (e.usuario IS NOT NULL AND email IS DISTINCT FROM e.email_confirmacao)
+ THEN RAISE EXCEPTION 'Confirmação de e-mail inválida' USING ERRCODE='22023'; END IF;
+ IF etapa='iniciar' THEN
+   IF e.usuario IS NOT NULL THEN RETURN jsonb_build_object('complete',false); END IF;
+   INSERT INTO sentinela_pessoas.exclusoes(usuario,email_confirmacao) VALUES(alvo,email);
+   resultado := 'pendente';
+ ELSIF e.usuario IS NOT NULL AND etapa='concluir' THEN
+   UPDATE sentinela.usuarios SET ativo=false,nome_exibicao='Usuário excluído' WHERE id=alvo;
+   UPDATE sentinela_pessoas.contatos SET email=NULL,orgao=NULL WHERE usuario=alvo;
+   UPDATE sentinela_pessoas.exclusoes SET email_confirmacao=NULL,concluida_em=clock_timestamp() WHERE usuario=alvo;
+   resultado := 'concluida';
+ ELSIF e.usuario IS NOT NULL AND etapa='falha' THEN
+   resultado := 'falha_parcial';
+ ELSE RAISE EXCEPTION 'Etapa de exclusão inválida' USING ERRCODE='22023'; END IF;
+ INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa)
+ VALUES ('servico','sentinela-usuarios','usuarios.excluir_institucional',
+   jsonb_build_object('actor',actor,'alvo',alvo,'resultado',resultado),'Exclusão administrativa de usuário');
+ RETURN jsonb_build_object('complete',resultado='concluida');
+END $$;
+ALTER FUNCTION sentinela_pessoas.excluir(uuid,uuid,uuid,text,text) OWNER TO sentinela_pessoas_owner;
+REVOKE ALL ON FUNCTION sentinela_pessoas.excluir(uuid,uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_pessoas.excluir(uuid,uuid,uuid,text,text) TO sentinela_local_admin;
+COMMIT;

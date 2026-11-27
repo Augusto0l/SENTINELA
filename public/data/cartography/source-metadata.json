@@ -1,0 +1,1960 @@
+{
+ "currentVersion": 10.71,
+ "id": 1,
+ "name": "Regiões Administrativas",
+ "type": "Feature Layer",
+ "parentLayer": null,
+ "defaultVisibility": false,
+ "minScale": 0,
+ "maxScale": 0,
+ "geometryType": "esriGeometryPolygon",
+ "description": "",
+ "copyrightText": "",
+ "editFieldsInfo": null,
+ "ownershipBasedAccessControlForFeatures": null,
+ "syncCanReturnChanges": false,
+ "relationships": [],
+ "isDataVersioned": false,
+ "isDataArchived": false,
+ "isCoGoEnabled": false,
+ "supportsRollbackOnFailureParameter": true,
+ "archivingInfo": {
+  "supportsQueryWithHistoricMoment": false,
+  "startArchivingMoment": -1
+ },
+ "supportsStatistics": true,
+ "supportsAdvancedQueries": true,
+ "supportsValidateSQL": true,
+ "supportsCoordinatesQuantization": true,
+ "supportsCalculate": true,
+ "advancedQueryCapabilities": {
+  "supportsPagination": true,
+  "supportsTrueCurve": true,
+  "supportsQueryWithDistance": true,
+  "supportsReturningQueryExtent": true,
+  "supportsStatistics": true,
+  "supportsHavingClause": true,
+  "supportsOrderBy": true,
+  "supportsDistinct": true,
+  "supportsCountDistinct": true,
+  "supportsQueryWithResultType": true,
+  "supportsReturningGeometryCentroid": true,
+  "supportsSqlExpression": true
+ },
+ "extent": {
+  "xmin": 148001,
+  "ymin": 8222802,
+  "xmax": 252839,
+  "ymax": 8284705,
+  "spatialReference": {
+   "wkid": 31983,
+   "latestWkid": 31983
+  }
+ },
+ "sourceSpatialReference": {
+  "wkid": 31983,
+  "latestWkid": 31983
+ },
+ "drawingInfo": {
+  "renderer": {
+   "type": "uniqueValue",
+   "field1": "ra_nome",
+   "field2": null,
+   "field3": null,
+   "defaultSymbol": null,
+   "defaultLabel": null,
+   "uniqueValueInfos": [
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       129,
+       140,
+       53,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "26 DE SETEMBRO",
+     "label": "26 DE SETEMBRO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       48,
+       156,
+       59,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "AGUA QUENTE",
+     "label": "AGUA QUENTE",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       176,
+       46,
+       148,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "ARAPOANGA",
+     "label": "ARAPOANGA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       54,
+       135,
+       120,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "ARNIQUEIRA",
+     "label": "ARNIQUEIRA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       176,
+       107,
+       39,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "BRAZLÂNDIA",
+     "label": "BRAZLÂNDIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       60,
+       163,
+       34,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "CANDANGOLÂNDIA",
+     "label": "CANDANGOLÂNDIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       48,
+       39,
+       171,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "CEILÂNDIA",
+     "label": "CEILÂNDIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       158,
+       76,
+       94,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "CRUZEIRO",
+     "label": "CRUZEIRO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       171,
+       112,
+       73,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "FERCAL",
+     "label": "FERCAL",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       153,
+       69,
+       119,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "GAMA",
+     "label": "GAMA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       166,
+       134,
+       61,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "GUARÁ",
+     "label": "GUARÁ",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       39,
+       174,
+       176,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "ITAPOÃ",
+     "label": "ITAPOÃ",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       176,
+       171,
+       39,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "JARDIM BOTÂNICO",
+     "label": "JARDIM BOTÂNICO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       128,
+       31,
+       108,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "LAGO NORTE",
+     "label": "LAGO NORTE",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       60,
+       146,
+       166,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "LAGO SUL",
+     "label": "LAGO SUL",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       76,
+       105,
+       168,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "NÚCLEO BANDEIRANTE",
+     "label": "NÚCLEO BANDEIRANTE",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       42,
+       133,
+       53,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "PARANOÁ",
+     "label": "PARANOÁ",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       84,
+       78,
+       166,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "PARK WAY",
+     "label": "PARK WAY",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       126,
+       138,
+       47,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "PLANALTINA",
+     "label": "PLANALTINA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       107,
+       163,
+       64,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "PLANO PILOTO",
+     "label": "PLANO PILOTO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       255,
+       255,
+       115,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "PONTE ALTA",
+     "label": "PONTE ALTA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       128,
+       69,
+       28,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "RECANTO DAS EMAS",
+     "label": "RECANTO DAS EMAS",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       176,
+       86,
+       171,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "RIACHO FUNDO",
+     "label": "RIACHO FUNDO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       138,
+       40,
+       46,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "RIACHO FUNDO II",
+     "label": "RIACHO FUNDO II",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       80,
+       128,
+       59,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SAMAMBAIA",
+     "label": "SAMAMBAIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       35,
+       60,
+       148,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SANTA MARIA",
+     "label": "SANTA MARIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       176,
+       37,
+       174,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SCIA",
+     "label": "SCIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       61,
+       133,
+       86,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SIA",
+     "label": "SIA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       105,
+       29,
+       130,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SOBRADINHO",
+     "label": "SOBRADINHO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       135,
+       78,
+       66,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SOBRADINHO II",
+     "label": "SOBRADINHO II",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       132,
+       49,
+       176,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SOL NASCENTE E POR DO SOL",
+     "label": "SOL NASCENTE E POR DO SOL",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       58,
+       34,
+       128,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SUDOESTE/OCTOGONAL",
+     "label": "SUDOESTE/OCTOGONAL",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       176,
+       68,
+       39,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "SÃO SEBASTIÃO",
+     "label": "SÃO SEBASTIÃO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       163,
+       38,
+       86,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "TAGUATINGA",
+     "label": "TAGUATINGA",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       110,
+       64,
+       145,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "VARJÃO",
+     "label": "VARJÃO",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       54,
+       73,
+       135,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "VICENTE PIRES",
+     "label": "VICENTE PIRES",
+     "description": ""
+    },
+    {
+     "symbol": {
+      "type": "esriSFS",
+      "style": "esriSFSSolid",
+      "color": [
+       40,
+       156,
+       113,
+       255
+      ],
+      "outline": {
+       "type": "esriSLS",
+       "style": "esriSLSSolid",
+       "color": [
+        110,
+        110,
+        110,
+        255
+       ],
+       "width": 0.4
+      }
+     },
+     "value": "ÁGUAS CLARAS",
+     "label": "ÁGUAS CLARAS",
+     "description": ""
+    }
+   ],
+   "fieldDelimiter": ","
+  },
+  "transparency": 0,
+  "labelingInfo": [
+   {
+    "labelPlacement": "esriServerPolygonPlacementAlwaysHorizontal",
+    "where": null,
+    "labelExpression": "[ra_nome]",
+    "useCodedValues": true,
+    "symbol": {
+     "type": "esriTS",
+     "color": [
+      0,
+      0,
+      0,
+      255
+     ],
+     "backgroundColor": null,
+     "borderLineColor": null,
+     "borderLineSize": null,
+     "verticalAlignment": "bottom",
+     "horizontalAlignment": "left",
+     "rightToLeft": false,
+     "angle": 0,
+     "xoffset": 0,
+     "yoffset": 0,
+     "kerning": true,
+     "haloColor": null,
+     "haloSize": null,
+     "font": {
+      "family": "Arial",
+      "size": 8,
+      "style": "normal",
+      "weight": "bold",
+      "decoration": "none"
+     }
+    },
+    "minScale": 0,
+    "maxScale": 0
+   }
+  ]
+ },
+ "hasM": false,
+ "hasZ": false,
+ "allowGeometryUpdates": true,
+ "allowTrueCurvesUpdates": false,
+ "onlyAllowTrueCurveUpdatesByTrueCurveClients": false,
+ "hasAttachments": false,
+ "supportsApplyEditsWithGlobalIds": false,
+ "htmlPopupType": "esriServerHTMLPopupTypeAsHTMLText",
+ "objectIdField": "objectid",
+ "globalIdField": "",
+ "displayField": "ra_codigo",
+ "typeIdField": "ra_nome",
+ "subtypeField": "",
+ "fields": [
+  {
+   "name": "objectid",
+   "type": "esriFieldTypeOID",
+   "alias": "objectid",
+   "domain": null,
+   "editable": false,
+   "nullable": false,
+   "defaultValue": null,
+   "modelName": "objectid"
+  },
+  {
+   "name": "ra_cira",
+   "type": "esriFieldTypeSmallInteger",
+   "alias": "ra_cira",
+   "domain": null,
+   "editable": true,
+   "nullable": true,
+   "defaultValue": null,
+   "modelName": "ra_cira"
+  },
+  {
+   "name": "ra_codigo",
+   "type": "esriFieldTypeString",
+   "alias": "Codigo",
+   "domain": null,
+   "editable": true,
+   "nullable": true,
+   "length": 15,
+   "defaultValue": null,
+   "modelName": "ra_codigo"
+  },
+  {
+   "name": "ra_nome",
+   "type": "esriFieldTypeString",
+   "alias": "Nome",
+   "domain": null,
+   "editable": true,
+   "nullable": true,
+   "length": 50,
+   "defaultValue": null,
+   "modelName": "ra_nome"
+  },
+  {
+   "name": "ra_path",
+   "type": "esriFieldTypeString",
+   "alias": "Link",
+   "domain": null,
+   "editable": true,
+   "nullable": true,
+   "length": 250,
+   "defaultValue": null,
+   "modelName": "ra_path"
+  },
+  {
+   "name": "ra_areakm2",
+   "type": "esriFieldTypeDouble",
+   "alias": "ra_areakm2",
+   "domain": null,
+   "editable": true,
+   "nullable": true,
+   "defaultValue": null,
+   "modelName": "ra_areakm2"
+  }
+ ],
+ "geometryField": {
+  "name": "shape",
+  "type": "esriFieldTypeGeometry",
+  "alias": "shape",
+  "domain": null,
+  "editable": true,
+  "nullable": true,
+  "defaultValue": null,
+  "modelName": "shape"
+ },
+ "indexes": [
+  {
+   "name": "idx_regioes_administrativas_ra_cira",
+   "fields": "ra_cira",
+   "isAscending": true,
+   "isUnique": false,
+   "description": ""
+  }
+ ],
+ "dateFieldsTimeReference": {
+  "timeZone": "UTC",
+  "respectsDaylightSaving": false
+ },
+ "types": [
+  {
+   "id": "26 DE SETEMBRO",
+   "name": "26 DE SETEMBRO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "26 DE SETEMBRO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "26 DE SETEMBRO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "AGUA QUENTE",
+   "name": "AGUA QUENTE",
+   "domains": {},
+   "templates": [
+    {
+     "name": "AGUA QUENTE",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "AGUA QUENTE"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "ARAPOANGA",
+   "name": "ARAPOANGA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "ARAPOANGA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "ARAPOANGA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "ARNIQUEIRA",
+   "name": "ARNIQUEIRA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "ARNIQUEIRA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "ARNIQUEIRA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "BRAZLÂNDIA",
+   "name": "BRAZLÂNDIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "BRAZLÂNDIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "BRAZLÂNDIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "CANDANGOLÂNDIA",
+   "name": "CANDANGOLÂNDIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "CANDANGOLÂNDIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "CANDANGOLÂNDIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "CEILÂNDIA",
+   "name": "CEILÂNDIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "CEILÂNDIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "CEILÂNDIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "CRUZEIRO",
+   "name": "CRUZEIRO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "CRUZEIRO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "CRUZEIRO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "FERCAL",
+   "name": "FERCAL",
+   "domains": {},
+   "templates": [
+    {
+     "name": "FERCAL",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "FERCAL"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "GAMA",
+   "name": "GAMA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "GAMA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "GAMA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "GUARÁ",
+   "name": "GUARÁ",
+   "domains": {},
+   "templates": [
+    {
+     "name": "GUARÁ",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "GUARÁ"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "ITAPOÃ",
+   "name": "ITAPOÃ",
+   "domains": {},
+   "templates": [
+    {
+     "name": "ITAPOÃ",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "ITAPOÃ"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "JARDIM BOTÂNICO",
+   "name": "JARDIM BOTÂNICO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "JARDIM BOTÂNICO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "JARDIM BOTÂNICO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "LAGO NORTE",
+   "name": "LAGO NORTE",
+   "domains": {},
+   "templates": [
+    {
+     "name": "LAGO NORTE",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "LAGO NORTE"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "LAGO SUL",
+   "name": "LAGO SUL",
+   "domains": {},
+   "templates": [
+    {
+     "name": "LAGO SUL",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "LAGO SUL"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "NÚCLEO BANDEIRANTE",
+   "name": "NÚCLEO BANDEIRANTE",
+   "domains": {},
+   "templates": [
+    {
+     "name": "NÚCLEO BANDEIRANTE",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "NÚCLEO BANDEIRANTE"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "PARANOÁ",
+   "name": "PARANOÁ",
+   "domains": {},
+   "templates": [
+    {
+     "name": "PARANOÁ",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "PARANOÁ"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "PARK WAY",
+   "name": "PARK WAY",
+   "domains": {},
+   "templates": [
+    {
+     "name": "PARK WAY",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "PARK WAY"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "PLANALTINA",
+   "name": "PLANALTINA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "PLANALTINA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "PLANALTINA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "PLANO PILOTO",
+   "name": "PLANO PILOTO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "PLANO PILOTO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "PLANO PILOTO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "PONTE ALTA",
+   "name": "PONTE ALTA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "PONTE ALTA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "PONTE ALTA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "RECANTO DAS EMAS",
+   "name": "RECANTO DAS EMAS",
+   "domains": {},
+   "templates": [
+    {
+     "name": "RECANTO DAS EMAS",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "RECANTO DAS EMAS"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "RIACHO FUNDO",
+   "name": "RIACHO FUNDO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "RIACHO FUNDO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "RIACHO FUNDO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "RIACHO FUNDO II",
+   "name": "RIACHO FUNDO II",
+   "domains": {},
+   "templates": [
+    {
+     "name": "RIACHO FUNDO II",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "RIACHO FUNDO II"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SAMAMBAIA",
+   "name": "SAMAMBAIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SAMAMBAIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SAMAMBAIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SANTA MARIA",
+   "name": "SANTA MARIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SANTA MARIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SANTA MARIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SCIA",
+   "name": "SCIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SCIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SCIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SIA",
+   "name": "SIA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SIA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SIA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SOBRADINHO",
+   "name": "SOBRADINHO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SOBRADINHO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SOBRADINHO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SOBRADINHO II",
+   "name": "SOBRADINHO II",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SOBRADINHO II",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SOBRADINHO II"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SOL NASCENTE E POR DO SOL",
+   "name": "SOL NASCENTE E POR DO SOL",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SOL NASCENTE E POR DO SOL",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SOL NASCENTE E POR DO SOL"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SUDOESTE/OCTOGONAL",
+   "name": "SUDOESTE/OCTOGONAL",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SUDOESTE/OCTOGONAL",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SUDOESTE/OCTOGONAL"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "SÃO SEBASTIÃO",
+   "name": "SÃO SEBASTIÃO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "SÃO SEBASTIÃO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "SÃO SEBASTIÃO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "TAGUATINGA",
+   "name": "TAGUATINGA",
+   "domains": {},
+   "templates": [
+    {
+     "name": "TAGUATINGA",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "TAGUATINGA"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "VARJÃO",
+   "name": "VARJÃO",
+   "domains": {},
+   "templates": [
+    {
+     "name": "VARJÃO",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "VARJÃO"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "VICENTE PIRES",
+   "name": "VICENTE PIRES",
+   "domains": {},
+   "templates": [
+    {
+     "name": "VICENTE PIRES",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "VICENTE PIRES"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  },
+  {
+   "id": "ÁGUAS CLARAS",
+   "name": "ÁGUAS CLARAS",
+   "domains": {},
+   "templates": [
+    {
+     "name": "ÁGUAS CLARAS",
+     "description": "",
+     "prototype": {
+      "attributes": {
+       "ra_path": null,
+       "ra_areakm2": null,
+       "ra_cira": null,
+       "ra_codigo": null,
+       "ra_nome": "ÁGUAS CLARAS"
+      }
+     },
+     "drawingTool": "esriFeatureEditToolPolygon"
+    }
+   ]
+  }
+ ],
+ "templates": [],
+ "maxRecordCount": 1000,
+ "supportedQueryFormats": "JSON, geoJSON",
+ "capabilities": "Query,Extract",
+ "useStandardizedQueries": true,
+ "standardMaxRecordCount": 4000,
+ "tileMaxRecordCount": 4000,
+ "maxRecordCountFactor": 1
+}

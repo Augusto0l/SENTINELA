@@ -1,0 +1,38 @@
+{
+  "versions": ["17.11", "3.6.2", "3.6.2"],
+  "synthetic": true,
+  "ledgers": [
+    ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"],
+    ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011"]
+  ],
+  "migration_sha256": {
+    "0009_importador_papeis_ambiente.sql": "2526f4af732fe954f3db35ec4c0ed2d781d6e2b8a2c4d79283c07b49dfdd09da",
+    "0010_importador_objetos.sql": "a27df66e1d86714bae11cc1a17088deee2b327e5ea58df604279328507c84bfe",
+    "0011_central_revisao_hospedada.sql": "86adff9252824f66ba5d711d1735ec5fba645ab0430b635dc099266f4cd74cd4"
+  },
+  "preserved_data_sha256": "6e464964b6d6fd010057a2d5e1d7d9ac9ef5ec867bbf0d53afe1ffcb6a7a4ea7",
+  "restored_catalog_sha256": {
+    "0008": "6da7487633916aca2714f72f8ff0dc5c674eb46a6c1d2f6a973efb4f5c23507d",
+    "0011": "79dba4ea5bf9518108cec2465a9be5c531cdee7339f7d48d93600764c62a2766"
+  },
+  "auth_accounts": 3,
+  "institutional_links": 3,
+  "audit_events": 1,
+  "restored_geometry_matches": true,
+  "new_database_oid_refused": true,
+  "restored_valid_gist_indexes": 2,
+  "restored_review_decision_acl": {
+    "anon": false,
+    "service_role": false,
+    "authenticated": false,
+    "sentinela_local_admin": true,
+    "sentinela_local_analyst": false,
+    "sentinela_local_operator": false
+  },
+  "archives": {
+    "0008.dump": {"bytes": 160599, "sha256": "ef47380be088c4adaf71c6a6a3b5a00c20c9498dbdbc58bb53f1a11559179957"},
+    "0008.roles.sql": {"bytes": 1034, "sha256": "6ce25edd1715b16120c1c8e805328ffd8c5d78d5dc85e0565c85b1db53e0df58"},
+    "0011.dump": {"bytes": 595821, "sha256": "67082e20448217da3f062e88613c2bd65c5cc80e8e389e0d24463bb2a4d92fd3"},
+    "0011.roles.sql": {"bytes": 6094, "sha256": "7bcef39ec00cb19a1dc817c28d3b8aa01282609ddf0477316730a83ea0979079"}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-21T00:54:52.170Z",
+  "browser": "155.0.8059.85",
+  "base": "http://localhost:3000",
+  "checks": [
+    "Analista: ações ocultas e acesso direto bloqueado nas três rotas.",
+    "Cadastro nos temas claro/escuro em 390, 768 e 1366 pixels, sem rolagem horizontal da página; capturas locais geradas.",
+    "Operador: validação, geocodificação inválida/válida, clique/arraste e criação em memória aprovados.",
+    "Edição, detalhes atualizados, cancelamento, motivo obrigatório e inativação aprovados.",
+    "Recarregar descarta o cenário; Administrador acessa gestão de usuários."
+  ],
+  "errors": []
+}

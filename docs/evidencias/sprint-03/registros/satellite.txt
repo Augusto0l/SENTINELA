@@ -1,0 +1,9 @@
+PASS escuro /dashboard: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.88 px
+PASS escuro /mapa-criminal: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.13 px
+PASS claro /dashboard: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.88 px
+PASS claro /mapa-criminal: 4 modos, 37 RAs, quantitativos, tooltip, zoom, arraste, restauração; alinhamento 2.13 px
+PASS Filtros de natureza, horário, período, RA e vazio; quantitativos iguais ao Calor; seleção por teclado
+PASS Clique na RA do Dashboard navega corretamente; escolhas de modo independentes
+PASS Dashboard e Mapa Criminal em desktop, tablet e celulares (1440, 820, 390 e 320 px)
+PASS Erros 403/429/503, offline, nova tentativa e falha do GeoJSON com retorno aos modos existentes
+PASS Falha de carregamento do componente isolada pelo boundary, com retorno ao Calor

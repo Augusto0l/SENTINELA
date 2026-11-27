@@ -1,0 +1,204 @@
+\set ON_ERROR_STOP on
+BEGIN READ WRITE;
+SET LOCAL lock_timeout = '4s';
+SET LOCAL statement_timeout = '30s';
+SELECT set_config('sentinela.csv_cluster', :'cluster_uuid', true),
+       set_config('sentinela.csv_system', :'system_id', true),
+       set_config('sentinela.csv_port', :'port', true)
+\gset
+
+DO $target$
+BEGIN
+ IF current_database() <> 'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM '127.0.0.1'::inet
+   OR current_setting('sentinela.csv_port') NOT IN ('55484','55487')
+   OR inet_server_port()::text IS DISTINCT FROM current_setting('sentinela.csv_port')
+   OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.csv_cluster')
+   OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.csv_system')
+   OR pg_is_in_recovery()
+   OR to_regprocedure('sentinela_gestao_autorizacao.exigir(uuid,text)') IS NULL
+   OR to_regprocedure('sentinela_exclusao.autorizar_jan2021(uuid,uuid,text,text,text)') IS NULL
+   OR NOT EXISTS (SELECT FROM sentinela_gestao_autorizacao.release r
+     WHERE r.aberta AND r.porta=inet_server_port() AND r.cluster_uuid::text=current_setting('sentinela.csv_cluster')
+       AND r.system_id=current_setting('sentinela.csv_system'))
+   OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace AND relkind='r'
+       AND relrowsecurity AND relforcerowsecurity) <> 19
+   OR NOT EXISTS (SELECT FROM pg_roles WHERE rolname='sentinela_pcdf_owner'
+       AND NOT (rolcanlogin OR rolsuper OR rolbypassrls))
+ THEN RAISE EXCEPTION 'Destino ou controles de importacao divergentes'; END IF;
+END $target$;
+
+ALTER TABLE sentinela.extracoes_origem DROP CONSTRAINT extracao_xml_ou_csv;
+ALTER TABLE sentinela.extracoes_origem ADD CONSTRAINT extracao_xml_ou_csv CHECK (
+ CASE WHEN metodologia='pcdf-csv-avulso-v2' THEN
+   nome_xml IS NULL AND sha256_xml IS NULL AND fonte='PCDF'
+   AND referencia_arquivo ~ '^csv:sha256:[0-9a-f]{64}$'
+   AND (manifesto->>'proveniencia') IS NOT DISTINCT FROM 'declarada_no_csv'
+ ELSE
+   (nome_xml IS NOT NULL AND sha256_xml IS NOT NULL)
+   OR (nome_xml IS NULL AND sha256_xml IS NULL AND fonte='PCDF' AND metodologia='pcdf-csv-local-v1'
+     AND referencia_arquivo ~ '^csv:sha256:[0-9a-f]{64}$')
+ END);
+
+GRANT USAGE ON SCHEMA sentinela_gestao_autorizacao TO sentinela_pcdf_owner;
+GRANT EXECUTE ON FUNCTION sentinela_gestao_autorizacao.exigir(uuid,text) TO sentinela_pcdf_owner;
+
+ALTER POLICY pcdf_local_extractions ON sentinela.extracoes_origem USING (
+ fonte='PCDF' AND metodologia IN ('pcdf-csv-local-v1','pcdf-csv-avulso-v2'));
+ALTER POLICY pcdf_local_lots_read ON sentinela.lotes_importacao USING (
+ versao_contrato IN ('1.0','2.0') AND EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id));
+ALTER POLICY pcdf_local_runs_read ON sentinela.execucoes_importacao USING (
+ versao_importador IN ('pcdf-local-v1','pcdf-csv-avulso-v2')
+ AND EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.id=lote_id));
+ALTER POLICY pcdf_local_origins ON sentinela.linhas_origem USING (
+ (versao_identificador,aba_origem) IN (('pcdf-linha-v1','NATUREZAS'),('pcdf-linha-declarada-csv-v2','CSV'))
+ AND EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id));
+CREATE POLICY pcdf_csv_lot_insert ON sentinela.lotes_importacao FOR INSERT TO sentinela_pcdf_owner WITH CHECK (
+ session_user='sentinela_local_admin' AND versao_contrato='2.0' AND versao_tratamento='pcdf-csv-avulso-v2'
+ AND EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id AND x.metodologia='pcdf-csv-avulso-v2'));
+CREATE POLICY pcdf_csv_run_insert ON sentinela.execucoes_importacao FOR INSERT TO sentinela_pcdf_owner WITH CHECK (
+ session_user='sentinela_local_admin' AND versao_importador='pcdf-csv-avulso-v2'
+ AND versao_validacao='pcdf-csv-avulso-v2' AND status='concluida' AND tentativa=1 AND linhas_aptas=0
+ AND ocorrencias_criadas=0 AND associacoes_criadas=0
+ AND EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.id=lote_id AND l.versao_contrato='2.0'
+     AND l.extracao_id=execucoes_importacao.extracao_id AND l.solicitado_por=execucoes_importacao.solicitado_por));
+
+ALTER POLICY ocorrencias_read_extracoes ON sentinela.extracoes_origem USING (
+ session_user IN ('sentinela_local_admin','sentinela_local_operator') AND fonte='PCDF'
+ AND metodologia IN ('pcdf-csv-local-v1','pcdf-csv-avulso-v2'));
+ALTER POLICY ocorrencias_read_lotes ON sentinela.lotes_importacao USING (
+ versao_contrato IN ('1.0','2.0') AND EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id));
+ALTER POLICY ocorrencias_read_execucoes ON sentinela.execucoes_importacao USING (
+ status='concluida' AND versao_importador IN ('pcdf-local-v1','pcdf-csv-avulso-v2')
+ AND EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.id=lote_id));
+ALTER POLICY ocorrencias_read_origem ON sentinela.linhas_origem USING (
+ versao_identificador IN ('pcdf-linha-v1','pcdf-linha-declarada-csv-v2')
+ AND EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id));
+ALTER POLICY ocorrencias_read_pendencias ON sentinela.pendencias_revisao USING (
+ versao_regra IN ('pcdf-local-v1','pcdf-csv-avulso-v2')
+ AND EXISTS (SELECT FROM sentinela.linhas_origem o WHERE o.id=pendencias_revisao.linha_origem_id));
+ALTER POLICY gestao_lote ON sentinela.lotes_importacao USING (
+ EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=lotes_importacao.extracao_id
+   AND (x.fonte,lotes_importacao.versao_contrato) IN (('PCDF','1.0'),('PCDF','2.0'),('IMPORTACAO-GERAL-LOCAL','geral-v1'))));
+
+-- Preserve installed definitions and privileges. Extend only the two contract-specific branches.
+DO $compatibility$
+DECLARE
+ purge text := pg_get_functiondef('sentinela_exclusao.plano(uuid)'::regprocedure);
+ detail text := pg_get_functiondef('sentinela_pcdf_local.detail(uuid,integer)'::regprocedure);
+ purge_marker text := $marker$('PCDF','1.0'),('IMPORTACAO-GERAL-LOCAL','geral-v1')$marker$;
+ detail_marker text := '  RETURN (SELECT jsonb_build_object(';
+BEGIN
+ IF cardinality(string_to_array(purge,purge_marker))<>2 OR cardinality(string_to_array(detail,detail_marker))<>2
+   OR position('lote_protegido' in purge)=0 THEN RAISE EXCEPTION 'Gestao instalada divergente'; END IF;
+ EXECUTE replace(purge,purge_marker,$value$('PCDF','1.0'),('PCDF','2.0'),('IMPORTACAO-GERAL-LOCAL','geral-v1')$value$);
+ EXECUTE replace(detail,detail_marker,$detail$
+  IF EXISTS (SELECT FROM sentinela.execucoes_importacao e WHERE e.id=run_id
+      AND e.versao_importador='pcdf-csv-avulso-v2') THEN
+    fields := ARRAY(SELECT name FROM unnest(fields) WITH ORDINALITY AS f(name, position)
+      WHERE name NOT IN ('data_inicio_fato_original','natureza_sentinela_codigo','versao_mapeamento',
+        'ra_codigo','latitude','longitude','aba_origem','versao_tratamento') ORDER BY position);
+  END IF;
+  RETURN (SELECT jsonb_build_object($detail$);
+
+END $compatibility$;
+
+CREATE FUNCTION sentinela_pcdf_local.receive_csv(p_request uuid,p_usuario uuid,p_conta text,p_batch jsonb,p_csv bytea)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE
+ version constant text := 'pcdf-csv-avulso-v2';
+ file_hash text := encode(sha256(p_csv),'hex');
+ month_start date;
+ records bigint := jsonb_array_length(p_batch->'rows');
+ candidates bigint;
+ extraction uuid;
+ lot uuid;
+ run uuid;
+ issues bigint;
+ inserted bigint;
+ receipt jsonb;
+ meta jsonb;
+BEGIN
+ PERFORM sentinela_gestao_autorizacao.exigir(p_usuario,p_conta);
+ PERFORM pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+ IF p_request IS NULL OR p_batch->>'month' IS NULL OR p_batch->>'month' !~ '^[0-9]{4}-(0[1-9]|1[0-2])$'
+   OR p_batch->>'name' IS DISTINCT FROM 'pcdf_naturezas_'||(p_batch->>'month')||'.csv'
+   OR file_hash IS NULL OR file_hash IS DISTINCT FROM p_batch->>'sha256'
+   OR octet_length(p_csv) NOT BETWEEN 1 AND 16777216
+   OR records IS NULL OR records NOT BETWEEN 1 AND 10000 OR to_jsonb(records) IS DISTINCT FROM p_batch->'records'
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+ month_start := ((p_batch->>'month')||'-01')::date;
+ SELECT l.id,e.id,e.pendencias_detectadas INTO lot,run,issues
+ FROM sentinela.lotes_importacao l JOIN sentinela.execucoes_importacao e ON e.lote_id=l.id
+ WHERE l.sha256_arquivo=file_hash AND l.versao_contrato='2.0' AND l.competencia=month_start
+   AND e.versao_importador=version AND e.status='concluida';
+ IF NOT FOUND THEN
+   IF EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.competencia=month_start) THEN
+     RETURN jsonb_build_object('conflict','competencia');
+   END IF;
+   SELECT count(DISTINCT NULLIF(r.raw->>'ocorrencia_chave','')),sum(jsonb_array_length(r.diagnostics))
+   INTO candidates,issues FROM jsonb_to_recordset(p_batch->'rows') r(raw jsonb,diagnostics jsonb);
+   IF to_jsonb(candidates) IS DISTINCT FROM p_batch->'candidates' OR issues IS NULL THEN
+     RAISE EXCEPTION USING ERRCODE='22023';
+   END IF;
+   INSERT INTO sentinela.extracoes_origem(fonte,tamanho_bytes,referencia_arquivo,metodologia,manifesto)
+   VALUES ('PCDF',octet_length(p_csv),'csv:sha256:'||file_hash,version,
+     jsonb_build_object('proveniencia','declarada_no_csv','utf8',true,'delimitador',';','colunas',26,
+       'validacao',version,'inventario','pcdf-inventario-v1','catalogo_ra','ra-review-2026-11-13-v1',
+       'candidatas',candidates,'consolidadas',0)) RETURNING id INTO extraction;
+   INSERT INTO sentinela.lotes_importacao(extracao_id,nome_arquivo,sha256_arquivo,tamanho_bytes,referencia_arquivo,
+     versao_contrato,versao_tratamento,competencia,linhas_esperadas,solicitado_por)
+   VALUES (extraction,p_batch->>'name',file_hash,octet_length(p_csv),'csv:sha256:'||file_hash,
+     '2.0',version,month_start,records,p_usuario) RETURNING id INTO lot;
+   INSERT INTO sentinela.linhas_origem(extracao_id,linha_origem_id,aba_origem,linha_xml,versao_identificador,
+     ano_registro,unidade_registro,numero_registro,ano_fato,natureza_original,natureza_padronizada_pcdf,
+     crime_tentado,cidade_endereco_original,ra_original,area_endereco_original,quadra_endereco_original,
+     latitude_geo_original,longitude_geo_original,latitude_utm_original,longitude_utm_original,flagrante,unidade_apuracao)
+   SELECT extraction,o.linha_origem_id,'CSV',o.linha_xml,'pcdf-linha-declarada-csv-v2',
+     o.ano_registro,o.unidade_registro,o.numero_registro,o.ano_fato,o.natureza_original,o.natureza_padronizada_pcdf,
+     o.crime_tentado,o.cidade_endereco_original,o.ra_original,o.area_endereco_original,o.quadra_endereco_original,
+     o.latitude_geo_original,o.longitude_geo_original,o.latitude_utm_original,o.longitude_utm_original,o.flagrante,o.unidade_apuracao
+   FROM jsonb_to_recordset(p_batch->'rows') r(raw jsonb)
+   CROSS JOIN LATERAL jsonb_populate_record(NULL::sentinela.linhas_origem,r.raw) o;
+   GET DIAGNOSTICS inserted=ROW_COUNT;
+   IF inserted<>records THEN RAISE EXCEPTION USING ERRCODE='23514'; END IF;
+   INSERT INTO sentinela.execucoes_importacao(lote_id,extracao_id,tentativa,solicitado_por,versao_importador,
+     versao_validacao,status,linhas_lidas,linhas_processadas,linhas_bloqueadas,pendencias_detectadas,
+     checkpoint_registro_csv,checkpoint_detalhes,finalizado_em)
+   VALUES (lot,extraction,1,p_usuario,version,version,'concluida',records,records,records,issues,records,
+     jsonb_build_object('candidatas',candidates,'consolidadas',0),clock_timestamp()) RETURNING id INTO run;
+   INSERT INTO sentinela.linhas_staging(execucao_id,lote_id,extracao_id,linha_origem_id,registro_csv,campos_csv,
+     derivados_efetivos,diagnosticos,estado)
+   SELECT run,lot,extraction,o.id,r.ordinal,r.raw,
+     jsonb_build_object('data',r.raw->>'data','horario',nullif(r.raw->>'horario',''),'recepcao','nova_origem'),
+     r.diagnostics,'bloqueada'
+   FROM jsonb_to_recordset(p_batch->'rows') r(ordinal bigint,raw jsonb,diagnostics jsonb)
+   JOIN sentinela.linhas_origem o ON o.extracao_id=extraction AND o.linha_origem_id=r.raw->>'linha_origem_id'
+   WHERE r.raw->>'fonte'='PCDF' AND (r.raw->>'data')::date>=month_start
+     AND (r.raw->>'data')::date<month_start+interval '1 month';
+   GET DIAGNOSTICS inserted=ROW_COUNT;
+   IF inserted<>records THEN RAISE EXCEPTION USING ERRCODE='23514'; END IF;
+   INSERT INTO sentinela.pendencias_revisao(linha_origem_id,campo,regra,versao_regra,valor_original,motivo,
+     tipo,prioridade,efeito,dimensao_afetada)
+   SELECT s.linha_origem_id,d.field,d.rule,version,s.campos_csv->d.field,d.rule,d.kind,d.priority,
+     d.effect,CASE WHEN d.effect='bloqueia_dimensao' THEN d.kind END
+   FROM sentinela.linhas_staging s
+   CROSS JOIN LATERAL jsonb_to_recordset(s.diagnosticos) d(field text,rule text,kind text,priority text,effect text)
+   WHERE s.execucao_id=run;
+   GET DIAGNOSTICS inserted=ROW_COUNT;
+   IF inserted<>issues THEN RAISE EXCEPTION USING ERRCODE='23514'; END IF;
+ END IF;
+ meta := jsonb_build_object('name',p_batch->>'name','month',p_batch->>'month','sha256',file_hash,
+   'bytes',octet_length(p_csv),'manifestSha',NULL,'records',records);
+ receipt := meta||jsonb_build_object('lot',lot,'run',run,'issues',issues,'replay',extraction IS NULL);
+ INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,execucao_id,depois,justificativa,request_id)
+ VALUES ('servico','pcdf-local','tentativa_pcdf',run,meta||jsonb_build_object(
+   'role','Administrador','actor',p_usuario,'contract','2.0'),'Recepcao de CSV avulso PCDF v2',p_request::text),
+ ('servico','pcdf-local',CASE WHEN extraction IS NULL THEN 'reenvio_pcdf' ELSE 'staging_pcdf' END,run,
+   receipt||jsonb_build_object('actor',p_usuario,'proveniencia','declarada_no_csv'),
+   'Confirmacao institucional do CSV avulso',p_request::text);
+ RETURN receipt;
+END $$;
+ALTER FUNCTION sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea) OWNER TO sentinela_pcdf_owner;
+REVOKE ALL ON FUNCTION sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea) TO sentinela_local_admin;
+COMMIT;

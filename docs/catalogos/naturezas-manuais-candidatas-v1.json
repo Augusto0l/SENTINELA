@@ -1,0 +1,472 @@
+{
+  "versao": "sentinela-candidatos-cadastro-manual-v1",
+  "situacao": "inventario-pendente-de-homologacao-institucional",
+  "fonte": {
+    "file": "relatorios/dados/resumo_recebimento_pcdf.md",
+    "section": "Naturezas criminais",
+    "reportSha256": "4f59f8449b53a7612f79beb3e908d869015a2dec08799e5b6bdb09585fab972f"
+  },
+  "referencias": [
+    "pcdf-inventario-v1.json",
+    "pcdf-correspondencias-v1.json"
+  ],
+  "registros": [
+    {
+      "idInterno": "PCDF-N-01",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-02",
+      "codigoOriginal": null,
+      "descricaoOriginal": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-03",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ESTUPRO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": {
+        "rotuloPcdf": "05_ESTUPRO",
+        "categoriaSentinela": "Estupro"
+      }
+    },
+    {
+      "idInterno": "PCDF-N-04",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ESTUPRO COLETIVO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-05",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ESTUPRO COM RESULTADO MORTE",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-06",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ESTUPRO CORRETIVO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-07",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ESTUPRO DE VULNERÁVEL",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": {
+        "rotuloPcdf": "05_ESTUPRO",
+        "categoriaSentinela": "Estupro de vulnerável"
+      }
+    },
+    {
+      "idInterno": "PCDF-N-08",
+      "codigoOriginal": null,
+      "descricaoOriginal": "FEMINICIDIO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-09",
+      "codigoOriginal": null,
+      "descricaoOriginal": "FURTO DE MOTOCICLETA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-10",
+      "codigoOriginal": null,
+      "descricaoOriginal": "FURTO DE VEICULO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-11",
+      "codigoOriginal": null,
+      "descricaoOriginal": "FURTO EM COMERCIO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-12",
+      "codigoOriginal": null,
+      "descricaoOriginal": "FURTO EM INTERIOR DE VEICULO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-13",
+      "codigoOriginal": null,
+      "descricaoOriginal": "FURTO EM RESIDENCIA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-14",
+      "codigoOriginal": null,
+      "descricaoOriginal": "HOMICIDIO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-15",
+      "codigoOriginal": null,
+      "descricaoOriginal": "LATROCINIO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-16",
+      "codigoOriginal": null,
+      "descricaoOriginal": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-17",
+      "codigoOriginal": null,
+      "descricaoOriginal": "PORTE DE ARMA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-18",
+      "codigoOriginal": null,
+      "descricaoOriginal": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-19",
+      "codigoOriginal": null,
+      "descricaoOriginal": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-20",
+      "codigoOriginal": null,
+      "descricaoOriginal": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-21",
+      "codigoOriginal": null,
+      "descricaoOriginal": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-22",
+      "codigoOriginal": null,
+      "descricaoOriginal": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-23",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A BAR",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-24",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A CASA LOTERICA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-25",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A DROGARIA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-26",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A PANIFICADORA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-27",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-28",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A TRAILLER",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-29",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO A TRANSEUNTE",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-30",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO DE VEICULO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-31",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-32",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO EM COLETIVO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-33",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-34",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO EM PARADA DE ONIBUS",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-35",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO EM RESIDENCIA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-36",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO NA PROXIMIDADES DE BANCO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-37",
+      "codigoOriginal": null,
+      "descricaoOriginal": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-38",
+      "codigoOriginal": null,
+      "descricaoOriginal": "TRÁFICO DE DROGAS PREVALECENDO-SE DE FUNÇÃO PÚBLICA",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-39",
+      "codigoOriginal": null,
+      "descricaoOriginal": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": true,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-40",
+      "codigoOriginal": null,
+      "descricaoOriginal": "TRÁFICO INTERNACIONAL DE SUBSTANCIA ENTORPECENTE",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    },
+    {
+      "idInterno": "PCDF-N-41",
+      "codigoOriginal": null,
+      "descricaoOriginal": "TRÁFICO PRIVILEGIADO",
+      "versaoInstitucional": null,
+      "vigencia": null,
+      "situacao": "pendente",
+      "usoManual": false,
+      "observadoEmJaneiro2021": false,
+      "referenciaAnaliticaDocumentada": null
+    }
+  ]
+}

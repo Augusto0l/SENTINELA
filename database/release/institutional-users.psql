@@ -1,0 +1,111 @@
+\set ON_ERROR_STOP on
+BEGIN READ WRITE;
+SET LOCAL lock_timeout='5s';
+SELECT set_config('sentinela.users_uuid',:'cluster_uuid',true),
+       set_config('sentinela.users_system',:'system_id',true),
+       set_config('sentinela.users_port',:'port',true) \gset
+DO $guard$
+BEGIN
+ IF inet_server_addr() IS DISTINCT FROM '127.0.0.1'::inet OR inet_server_port() NOT IN (55484,55487)
+ OR inet_server_port()::text IS DISTINCT FROM current_setting('sentinela.users_port')
+ OR current_database()<>'sentinela_pcdf_local' OR pg_is_in_recovery()
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.users_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.users_system')
+ OR (SELECT count(*) FROM pg_class WHERE oid IN ('sentinela.usuarios'::regclass,'sentinela.eventos_auditoria'::regclass)
+   AND relrowsecurity AND relforcerowsecurity)<>2
+ THEN RAISE EXCEPTION 'Destino institucional divergente'; END IF;
+END $guard$;
+
+CREATE ROLE sentinela_pessoas_owner NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
+CREATE SCHEMA sentinela_pessoas;
+REVOKE ALL ON SCHEMA sentinela_pessoas FROM PUBLIC;
+GRANT USAGE ON SCHEMA sentinela_pessoas TO sentinela_pessoas_owner,sentinela_local_admin;
+GRANT USAGE ON SCHEMA sentinela TO sentinela_pessoas_owner;
+CREATE TABLE sentinela_pessoas.contatos (
+ usuario uuid PRIMARY KEY REFERENCES sentinela.usuarios(id),
+ email text CHECK (email IS NULL OR (length(email)<=254 AND email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$')),
+ orgao text CHECK (orgao IS NULL OR (orgao=btrim(orgao) AND length(orgao) BETWEEN 1 AND 160))
+);
+ALTER TABLE sentinela_pessoas.contatos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_pessoas.contatos FORCE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE ON sentinela_pessoas.contatos TO sentinela_pessoas_owner;
+CREATE POLICY pessoas_contatos ON sentinela_pessoas.contatos TO sentinela_pessoas_owner
+ USING (session_user='sentinela_local_admin') WITH CHECK (session_user='sentinela_local_admin');
+GRANT SELECT (id,auth_user_id,nome_exibicao,perfil,ativo,criado_em),UPDATE (nome_exibicao)
+ ON sentinela.usuarios TO sentinela_pessoas_owner;
+GRANT SELECT ON sentinela.perfil_permissoes TO sentinela_pessoas_owner;
+CREATE POLICY pessoas_permissoes ON sentinela.perfil_permissoes FOR SELECT TO sentinela_pessoas_owner
+ USING (session_user='sentinela_local_admin' AND acao='administrar');
+CREATE POLICY pessoas_listagem ON sentinela.usuarios FOR SELECT TO sentinela_pessoas_owner
+ USING (session_user='sentinela_local_admin' AND auth_user_id IS NOT NULL);
+CREATE POLICY pessoas_edicao ON sentinela.usuarios FOR UPDATE TO sentinela_pessoas_owner
+ USING (session_user='sentinela_local_admin' AND auth_user_id IS NOT NULL)
+ WITH CHECK (session_user='sentinela_local_admin' AND auth_user_id IS NOT NULL);
+GRANT SELECT (acao,registrado_em,depois),INSERT ON sentinela.eventos_auditoria TO sentinela_pessoas_owner;
+CREATE POLICY pessoas_auditoria_leitura ON sentinela.eventos_auditoria FOR SELECT TO sentinela_pessoas_owner
+ USING (session_user='sentinela_local_admin' AND acao='usuarios.editar_institucional');
+CREATE POLICY pessoas_auditoria_escrita ON sentinela.eventos_auditoria FOR INSERT TO sentinela_pessoas_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND acao='usuarios.editar_institucional'
+   AND ator_tipo='servico' AND servico='sentinela-usuarios');
+
+CREATE FUNCTION sentinela_pessoas.autorizar(actor uuid, identidade uuid) RETURNS void
+LANGUAGE plpgsql STABLE SET search_path=pg_catalog AS $fn$
+BEGIN
+ IF session_user<>'sentinela_local_admin' OR NOT EXISTS (
+   SELECT FROM sentinela.usuarios u JOIN sentinela.perfil_permissoes p ON p.perfil=u.perfil
+   WHERE u.id=actor AND u.auth_user_id=identidade AND u.ativo AND u.perfil='Administrador' AND p.acao='administrar')
+ THEN RAISE EXCEPTION 'Acesso institucional não autorizado' USING ERRCODE='42501'; END IF;
+END $fn$;
+
+CREATE FUNCTION sentinela_pessoas.registros(alvo uuid) RETURNS SETOF jsonb
+LANGUAGE sql STABLE SET search_path=pg_catalog AS $fn$
+ SELECT jsonb_build_object('id',u.id,'name',u.nome_exibicao,'email',c.email,'orgao',c.orgao,
+   'perfil',u.perfil,'ativo',u.ativo,'cadastro',u.criado_em,
+   'version',encode(sha256(convert_to(jsonb_build_array(u.nome_exibicao,c.email,c.orgao)::text,'UTF8')),'hex'),
+   'activity',coalesce((SELECT jsonb_agg(a.registrado_em ORDER BY a.registrado_em DESC) FROM (
+     SELECT registrado_em FROM sentinela.eventos_auditoria
+     WHERE acao='usuarios.editar_institucional' AND depois->>'alvo'=u.id::text ORDER BY registrado_em DESC LIMIT 5
+   ) a),'[]'::jsonb))
+ FROM sentinela.usuarios u LEFT JOIN sentinela_pessoas.contatos c ON c.usuario=u.id
+ WHERE alvo IS NULL OR u.id=alvo ORDER BY u.nome_exibicao,u.id
+$fn$;
+
+CREATE FUNCTION sentinela_pessoas.listar(actor uuid, identidade uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+BEGIN
+ PERFORM sentinela_pessoas.autorizar(actor,identidade);
+ RETURN (SELECT coalesce(jsonb_agg(r),'[]'::jsonb) FROM sentinela_pessoas.registros(NULL) r);
+END $fn$;
+
+CREATE FUNCTION sentinela_pessoas.editar(actor uuid, identidade uuid, alvo uuid, versao text, nome text, contato text, unidade text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+DECLARE anterior jsonb; posterior jsonb;
+BEGIN
+ PERFORM pg_advisory_xact_lock(743204,22);
+ PERFORM sentinela_pessoas.autorizar(actor,identidade);
+ IF nome IS NULL OR length(btrim(nome)) NOT BETWEEN 1 AND 160 THEN
+   RAISE EXCEPTION 'Nome inválido' USING ERRCODE='22023'; END IF;
+ PERFORM FROM sentinela.usuarios WHERE id=alvo AND auth_user_id IS NOT NULL FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Usuário não encontrado' USING ERRCODE='P0002'; END IF;
+ SELECT r INTO anterior FROM sentinela_pessoas.registros(alvo) r;
+ IF anterior->>'version' IS DISTINCT FROM versao THEN RAISE EXCEPTION 'Cadastro alterado' USING ERRCODE='40001'; END IF;
+ IF jsonb_build_array(anterior->'name',anterior->'email',anterior->'orgao')=
+    jsonb_build_array(btrim(nome),contato,unidade) THEN RETURN anterior; END IF;
+ UPDATE sentinela.usuarios SET nome_exibicao=btrim(nome) WHERE id=alvo;
+ INSERT INTO sentinela_pessoas.contatos(usuario,email,orgao) VALUES (alvo,contato,unidade)
+   ON CONFLICT(usuario) DO UPDATE SET email=excluded.email,orgao=excluded.orgao;
+ SELECT r INTO posterior FROM sentinela_pessoas.registros(alvo) r;
+ INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,antes,depois,justificativa)
+ VALUES ('servico','sentinela-usuarios','usuarios.editar_institucional',
+    anterior-'activity'-'version',(posterior-'activity'-'version')||jsonb_build_object('actor',actor,'alvo',alvo),
+    'Edição do cadastro institucional pela administração local');
+ RETURN (SELECT r FROM sentinela_pessoas.registros(alvo) r);
+END $fn$;
+
+ALTER FUNCTION sentinela_pessoas.listar(uuid,uuid) OWNER TO sentinela_pessoas_owner;
+ALTER FUNCTION sentinela_pessoas.editar(uuid,uuid,uuid,text,text,text,text) OWNER TO sentinela_pessoas_owner;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA sentinela_pessoas FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_pessoas.autorizar(uuid,uuid),sentinela_pessoas.registros(uuid) TO sentinela_pessoas_owner;
+GRANT EXECUTE ON FUNCTION sentinela_pessoas.listar(uuid,uuid),
+ sentinela_pessoas.editar(uuid,uuid,uuid,text,text,text,text) TO sentinela_local_admin;
+COMMIT;

@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import Header from "../components/Header";
-import { useDemoToast } from "../components/DemoProvider";
+import Header from "@/components/Header";
+import { useDemoToast } from "@/components/DemoProvider";
+import { validateImportFiles } from "@/data/importFile";
+import ImportWorkflow from "@/features/import/ImportWorkflow";
+
+export default function ImportarDados() { return <ImportWorkflow />; }
 
 // ─── colour tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -178,22 +182,31 @@ const cell: React.CSSProperties = {
 };
 
 // ─── main page ────────────────────────────────────────────────────────────────
-export default function ImportarDados() {
+export function LegacyImportarDados() {
   const notify = useDemoToast();
   const [dragging, setDragging]   = useState(false);
-  const [fileName, setFileName]   = useState("ocorrencias_df_2026.xlsx");
+  const [fileName, setFileName]   = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
   const [mappings, setMappings]   = useState(() =>
     Object.fromEntries(MAPPING_ROWS.map((r) => [r.planilha, r.sistema]))
   );
   const [previewPage, setPreviewPage] = useState(1);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const selectFiles = useCallback((files: File[]) => {
+    const error = validateImportFiles(files);
+    setFileError(error);
+    setFileName(error ? "" : files[0].name);
+    setPreviewPage(1);
+    if (fileRef.current) fileRef.current.value = "";
+    if (!error) notify("Extensão e tamanho aceitos. O conteúdo não foi lido, enviado ou importado.");
+  }, [notify]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f) { setFileName(f.name); notify("Arquivo selecionado somente como exemplo. Seu conteúdo não foi lido nem enviado."); }
-  }, [notify]);
+    selectFiles(Array.from(e.dataTransfer.files));
+  }, [selectFiles]);
 
   const selStyle: React.CSSProperties = {
     background: T.surface2, border: `1px solid ${T.border2}`,
@@ -215,7 +228,7 @@ export default function ImportarDados() {
             Importar dados
           </h1>
           <p style={{ fontSize: 13, color: T.dim, margin: "4px 0 0" }}>
-            Adicione novas ocorrências ao sistema por meio de arquivos estruturados.
+            Demonstração de seleção de arquivos. Nenhum conteúdo é enviado ou gravado no servidor.
           </p>
         </div>
 
@@ -240,11 +253,12 @@ export default function ImportarDados() {
                 transition: "border-color .15s, background .15s",
                 cursor: "pointer",
               }}
-              role="button" tabIndex={0} aria-label="Selecionar arquivo demonstrativo" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current?.click(); } }}
+              role="button" tabIndex={0} aria-label="Selecionar arquivo demonstrativo" aria-describedby="import-file-status" onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); fileRef.current?.click(); } }}
               onClick={() => fileRef.current?.click()}
             >
               <input ref={fileRef} type="file" accept=".csv,.xlsx" style={{ display: "none" }}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFileName(f.name); notify("Arquivo selecionado somente como exemplo. Seu conteúdo não foi lido nem enviado."); } }} />
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => { if (e.target.files?.length) selectFiles(Array.from(e.target.files)); }} />
 
               {/* upload icon */}
               <div style={{
@@ -295,6 +309,10 @@ export default function ImportarDados() {
               </button>
             </div>
 
+            <p id="import-file-status" role="status" aria-live="polite" style={{ color: fileError ? T.amber : T.muted, fontSize: 13, overflowWrap: "anywhere" }}>
+              {fileError ?? (fileName ? `Selecionado: ${fileName}. Somente extensão e tamanho verificados; conteúdo não processado.` : "Nenhum arquivo selecionado.")}
+            </p>
+
             {/* Preview table */}
             <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
               <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${T.border}` }}>
@@ -323,7 +341,7 @@ export default function ImportarDados() {
                   </thead>
                   <tbody>
                     {PREVIEW_ROWS.map((r, i) => (
-                      <tr key={i} style={{ background: i % 2 !== 0 ? "rgba(255,255,255,0.015)" : "transparent" }}>
+                      <tr key={i} style={{ background: i % 2 !== 0 ? "var(--theme-table-stripe, rgba(255,255,255,0.015))" : "transparent" }}>
                         <td style={cell}>{r.data}</td>
                         <td style={cell}>{r.horario}</td>
                         <td style={{ ...cell, color: T.text, fontWeight: 500 }}>{r.natureza}</td>
@@ -359,7 +377,7 @@ export default function ImportarDados() {
 
             {/* Action buttons */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 2 }}>
-              <button onClick={() => { setFileName("ocorrencias_df_2026.xlsx"); setPreviewPage(1); notify("Seleção demonstrativa cancelada."); }} style={{
+              <button onClick={() => { setFileName(""); setFileError(null); if (fileRef.current) fileRef.current.value = ""; setPreviewPage(1); notify("Seleção demonstrativa cancelada."); }} style={{
                 background: "transparent", border: `1px solid ${T.border2}`,
                 borderRadius: 8, color: T.muted, fontSize: 13, fontWeight: 500,
                 padding: "10px 24px", cursor: "pointer",
@@ -371,7 +389,7 @@ export default function ImportarDados() {
                 Cancelar
               </button>
 
-              <button onClick={() => notify("Simulação: nenhum arquivo foi validado ou importado. Processamento previsto em etapa posterior.")} style={{
+              <button disabled={!fileName} onClick={() => notify("Simulação: nenhum conteúdo foi validado ou importado. Processamento previsto em etapa posterior.")} style={{
                 display: "flex", alignItems: "center", gap: 8,
                 background: T.blue, border: "none", borderRadius: 8,
                 color: "#fff", fontSize: 13, fontWeight: 700,

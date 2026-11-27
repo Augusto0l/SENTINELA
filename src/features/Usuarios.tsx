@@ -5,13 +5,16 @@ import { createPortal } from "react-dom";
 import Header from "../components/Header";
 import Dialog from "../components/ui/dialog";
 import { useDemoToast } from "../components/DemoProvider";
+import NavigationIcon from "@/components/NavigationIcon";
+import { institutionalCreate, institutionalDeletionTarget, institutionalUser, type InstitutionalUser } from "@/contracts/institutional-users";
+import { ROLES, hasPermission, type Permission } from "@/lib/auth/policy";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type Perfil = "Administrador" | "Analista" | "Operador";
 type Status = "Ativo" | "Inativo";
 
 interface User {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   orgao: string;
@@ -19,6 +22,17 @@ interface User {
   status: Status;
   ultimoAcesso: string;
   cadastro: string;
+  version?: string;
+  deletionPending?: boolean;
+  activity?: { time: string; desc: string }[];
+}
+
+const civilDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
+const civilTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
+function fromRecord(row: InstitutionalUser): User {
+  return { ...row, email: row.email ?? "", orgao: row.orgao ?? "", status: row.ativo ? "Ativo" : "Inativo",
+    ultimoAcesso: "—", cadastro: civilDate.format(new Date(row.cadastro)),
+    activity: row.activity.map(time => ({ time: civilTime.format(new Date(time)), desc: "Cadastro institucional atualizado" })) };
 }
 
 // ─── mock data ────────────────────────────────────────────────────────────────
@@ -62,6 +76,12 @@ const PERMS_BY_PROFILE: Record<Perfil, string[]> = {
     "Importar dados",
     "Exportar dados",
   ],
+};
+const institutionalPermissions: Partial<Record<string, Permission>> = {
+  "Visualizar Dashboard": "analisar", "Visualizar Mapa Criminal": "analisar",
+  "Consultar ocorrências": "analisar", "Cadastrar ocorrência": "cadastrar",
+  "Editar ocorrência": "editar", "Importar dados": "importar",
+  "Gerenciar usuários": "administrar", "Configurações administrativas": "administrar",
 };
 
 // ─── recent activity per user ─────────────────────────────────────────────────
@@ -206,12 +226,14 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 // ─── Action menu ──────────────────────────────────────────────────────────────
 function ActionMenu({
-  user, onView, onNewProfile, onToggleStatus, onClose, anchor, position,
+  user, onView, onEdit, onNewProfile, onToggleStatus, onDelete, onClose, anchor, position,
 }: {
   user: User;
   onView: () => void;
+  onEdit: () => void;
   onNewProfile: () => void;
   onToggleStatus: () => void;
+  onDelete?: () => void;
   onClose: () => void;
   anchor: HTMLButtonElement;
   position: { left: number; top: number };
@@ -230,14 +252,15 @@ function ActionMenu({
 
   const items = [
     { label: "Visualizar usuário",         icon: "👁", action: onView },
-    { label: "Editar usuário",             icon: "✏", action: onView },
-    { label: "Alterar perfil e permissões",icon: "🔑", action: onNewProfile },
+    { label: "Editar usuário",             icon: "✏", action: onEdit },
+    ...(!user.version ? [{ label: "Alterar perfil e permissões", icon: "🔑", action: onNewProfile }] : []),
     { label: "Visualizar atividades",      icon: "📋", action: onView },
-    { label: user.status === "Ativo" ? "Desativar usuário" : "Ativar usuário",
+    ...(!user.version ? [{ label: user.status === "Ativo" ? "Desativar usuário" : "Ativar usuário",
       icon: user.status === "Ativo" ? "⊘" : "✓",
       action: onToggleStatus,
       danger: user.status === "Ativo",
-    },
+    }] : []),
+    ...(onDelete ? [{ label: "Excluir usuário", icon: <NavigationIcon name="trash" size={16} />, action: onDelete, danger: true }] : []),
   ];
 
   return createPortal(
@@ -261,7 +284,7 @@ function ActionMenu({
           onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(37,99,235,0.08)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
         >
-          <span style={{ fontSize: 13, width: 16, textAlign: "center" }}>{item.icon}</span>
+          <span aria-hidden="true" style={{ fontSize: 13, width: 16, textAlign: "center" }}>{item.icon}</span>
           {item.label}
         </button>
       ))}
@@ -269,12 +292,85 @@ function ActionMenu({
   );
 }
 
+function DeleteUserModal({ user, onClose, onDeleted }: { user: User; onClose: () => void; onDeleted: () => void }) {
+  const [target, setTarget] = useState<ReturnType<typeof institutionalDeletionTarget.parse>>();
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inFlight = useRef(false);
+  const matches = Boolean(target && email.trim().toLowerCase() === target.email);
+  useEffect(() => {
+    const cancellation = new AbortController();
+    async function preview() {
+      try {
+        const response = await fetch(`/api/v1/usuarios?exclusao=${encodeURIComponent(user.id)}`, {
+          signal: cancellation.signal, cache: "no-store",
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(result?.error ?? "Não foi possível validar a conta.");
+        setTarget(institutionalDeletionTarget.parse(result?.data));
+      } catch (failure) {
+        if (!cancellation.signal.aborted) setError(failure instanceof Error ? failure.message : "Não foi possível validar a conta.");
+      }
+    }
+    void preview();
+    return () => cancellation.abort();
+  }, [user.id]);
+
+  async function remove() {
+    if (!matches || inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/v1/usuarios", { method: "DELETE", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, email }) });
+      if (response.status !== 204) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error ?? "Não foi possível concluir a exclusão. Tente novamente.");
+      }
+      onDeleted();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Não foi possível concluir a exclusão.");
+    } finally { inFlight.current = false; setSaving(false); }
+  }
+
+  return <Dialog title="Excluir usuário" onClose={() => { if (!inFlight.current) onClose(); }}>
+    <form onSubmit={event => { event.preventDefault(); void remove(); }} style={{ display: "grid", gap: 14, overflowWrap: "anywhere" }}>
+      <h2 style={{ fontWeight: 700 }}>Excluir usuário</h2>
+      <div>
+        <strong>{target?.name ?? user.name}</strong>
+        <p>{target?.email ?? user.email}</p>
+        <PerfilBadge p={target?.perfil ?? user.perfil} />
+      </div>
+      <p>A exclusão da conta é permanente. Os registros históricos serão preservados.</p>
+      {!target && !error && <p role="status">Verificando a conta institucional…</p>}
+      {target && <div>
+        <label htmlFor="delete-user-email">Digite o e-mail de acesso para confirmar</label>
+        <input id="delete-user-email" type="email" autoComplete="off" maxLength={254} required disabled={saving}
+          value={email} onChange={event => setEmail(event.target.value)} placeholder={target.email}
+          style={{ ...inputStyle, outline: undefined, marginTop: 6 }} />
+      </div>}
+      {error && <p role="alert" style={{ color: "var(--theme-f87171)" }}>{error}</p>}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 }}>
+        <button type="button" disabled={saving} onClick={onClose} style={{ padding: "8px 12px" }}>Cancelar</button>
+        <button type="submit" disabled={!matches || saving} style={{
+          padding: "8px 12px", borderRadius: 7, background: "#ad2424", color: "#fff", opacity: !matches || saving ? .55 : 1,
+        }}>{saving ? "Excluindo…" : "Excluir usuário"}</button>
+      </div>
+    </form>
+  </Dialog>;
+}
+
 // ─── Detail drawer ────────────────────────────────────────────────────────────
 function DetailDrawer({ user, onClose, onChangeProfile }: {
   user: User; onClose: () => void; onChangeProfile: () => void;
 }) {
-  const perms = PERMS_BY_PROFILE[user.perfil];
-  const activity = ACTIVITY[user.id] ?? [];
+  const perms = user.version ? ALL_PERMS.filter(label => {
+    const permission = institutionalPermissions[label];
+    return permission && hasPermission(user.perfil, permission);
+  }) : PERMS_BY_PROFILE[user.perfil];
+  const activity = user.activity ?? (typeof user.id === "number" ? ACTIVITY[user.id] : undefined) ?? [];
 
   return (
     <Dialog title="Detalhes do usuário" onClose={onClose} drawer>
@@ -330,7 +426,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
               marginBottom: 10,
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Permissões</div>
-              <button
+              {!user.version && <button
                 onClick={onChangeProfile}
                 style={{
                   background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 6,
@@ -338,7 +434,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
                 }}
               >
                 Alterar perfil
-              </button>
+              </button>}
             </div>
             <div style={{
               background: "var(--theme-0d1728)", border: "1px solid var(--theme-1a3050)",
@@ -403,77 +499,108 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
 }
 
 // ─── New user modal ────────────────────────────────────────────────────────────
-function NewUserModal({ onClose, onSave }: {
+function NewUserModal({ onClose, onSave, editing }: {
   onClose: () => void;
-  onSave: (u: Omit<User, "id" | "ultimoAcesso" | "cadastro">) => void;
+  onSave: (u: Pick<User, "name" | "email" | "orgao" | "perfil"> & { password: string }) => Promise<void>;
+  editing?: User;
 }) {
-  const [nome, setNome]     = useState("");
-  const [email, setEmail]   = useState("");
-  const [orgao, setOrgao]   = useState("");
-  const [perfil, setPerfil] = useState<Perfil>("Analista");
-
+  const [nome, setNome]     = useState(editing?.name ?? "");
+  const [email, setEmail]   = useState(editing?.email ?? "");
+  const [orgao, setOrgao]   = useState(editing?.orgao ?? "");
+  const [perfil, setPerfil] = useState<Perfil | "">(editing?.perfil ?? "");
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState("");
 
-  function handleSave() {
-    if (!nome.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Informe nome e e-mail demonstrativos válidos."); return; }
-    onSave({ name: nome, email, orgao, perfil, status: "Ativo" });
-    onClose();
+  async function handleSave() {
+    if (inFlight.current) return;
+    if (!perfil || !nome.trim() || ((email.trim() || !editing) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))) {
+      setError(editing ? "Informe um nome e confira o e-mail de contato." : "Informe o nome completo, o e-mail Gmail e o perfil.");
+      return;
+    }
+    const value = { name: nome, email, orgao, perfil, password };
+    if (!editing && !institutionalCreate.safeParse(value).success) {
+      setError("Confira o endereço Gmail e os requisitos da senha inicial."); return;
+    }
+    inFlight.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(value);
+      setPassword("");
+      onClose();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Não foi possível salvar o cadastro.");
+    } finally { inFlight.current = false; setSaving(false); }
   }
 
   return (
-    <Dialog title="Novo usuário demonstrativo" onClose={onClose}>
+    <Dialog title={editing ? "Editar usuário" : "Novo usuário"} onClose={saving ? () => {} : onClose}>
+      <form onSubmit={event => { event.preventDefault(); void handleSave(); }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Novo usuário</div>
-          <button aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{editing ? "Editar usuário" : "Novo usuário"}</div>
+          <button type="button" disabled={saving} aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 20px" }}>
-          O usuário fictício aparecerá nesta tela até sair. Nenhum acesso real será concedido.
+          {editing ? "O e-mail de contato pertence ao cadastro local. Perfil, status e login são consultados sem edição nesta tela."
+            : "Use uma senha inicial individual. O usuário deverá alterá-la no primeiro acesso."}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <FieldLabel>Nome completo</FieldLabel>
-            <input aria-label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
+            <input aria-label="Nome completo" required disabled={saving} maxLength={160} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
-            <FieldLabel>E-mail</FieldLabel>
-            <input type="email" aria-label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@sentinela.gov.br" style={inputStyle}
+            <FieldLabel>{editing ? "E-mail de contato" : "E-mail Gmail"}</FieldLabel>
+            <input type="email" aria-label={editing ? "E-mail de contato" : "E-mail Gmail"} required={!editing} disabled={saving}
+              maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={editing ? "email@sentinela.gov.br" : "nome@gmail.com"} style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
             <FieldLabel>Órgão / Unidade</FieldLabel>
-            <input aria-label="Órgão ou unidade" value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
+            <input aria-label="Órgão ou unidade" disabled={saving} maxLength={160} value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
             <FieldLabel>Perfil</FieldLabel>
-            <select aria-label="Perfil" value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}
+            <select required disabled={saving || Boolean(editing)} aria-label="Perfil" value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil | "")}
               style={{ ...selectStyle, width: "100%" }}>
-              <option style={{ background: "var(--theme-0d1728)" }}>Administrador</option>
-              <option style={{ background: "var(--theme-0d1728)" }}>Analista</option>
-              <option style={{ background: "var(--theme-0d1728)" }}>Operador</option>
+              {!editing && <option value="">Selecione o perfil</option>}
+              {ROLES.map(role => <option key={role} style={{ background: "var(--theme-0d1728)" }}>{role}</option>)}
             </select>
           </div>
+          {!editing && <div>
+            <FieldLabel>Senha inicial individual</FieldLabel>
+            <input type="password" aria-label="Senha inicial individual" aria-describedby="institutional-password-hint"
+              required disabled={saving} minLength={16} maxLength={72} autoComplete="new-password" value={password}
+              onChange={event => setPassword(event.target.value)} style={inputStyle}
+              onFocus={event => { event.currentTarget.style.borderColor = "#2563eb"; }}
+              onBlur={event => { event.currentTarget.style.borderColor = "var(--theme-1e3a5f)"; }} />
+            <small id="institutional-password-hint">Mínimo de 16 caracteres, com letras maiúsculas, minúsculas, número e símbolo.</small>
+          </div>}
         </div>
 
         {error && <p role="alert" style={{ color: "var(--theme-fca5a5)", marginTop: 12 }}>{error}</p>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
-          <button aria-label="Fechar diálogo" onClick={onClose} style={{
+          <button type="button" disabled={saving} onClick={onClose} style={{
             background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 7,
             color: "var(--color-text-muted)", fontSize: 13, padding: "9px 20px", cursor: "pointer",
           }}>Cancelar</button>
-          <button onClick={handleSave} style={{
+          <button type="submit" disabled={saving} style={{
             background: "#2563eb", border: "none", borderRadius: 7,
             color: "#fff", fontSize: 13, fontWeight: 700,
             padding: "9px 20px", cursor: "pointer",
             boxShadow: "0 2px 10px rgba(37,99,235,0.35)",
-          }}>Criar usuário</button>
+          }}>{saving ? "Salvando…" : editing ? "Salvar alterações" : "Criar usuário"}</button>
         </div>
+      </form>
     </Dialog>
   );
 }
@@ -554,7 +681,7 @@ function ChangeProfileModal({ user, onClose, onSave }: {
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          <span style={{ fontSize: 11, color: "#92400e" }}>
+          <span style={{ fontSize: 11, color: "var(--theme-f59e0b)" }}>
             As alterações afetam apenas a prévia demonstrativa. Não existe controle de acesso real nesta sprint.
           </span>
         </div>
@@ -576,17 +703,23 @@ function ChangeProfileModal({ user, onClose, onSave }: {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function Usuarios() {
+export default function Usuarios({ institutional = false, records, unavailable = false, canCreate = false, administratorId }: {
+  institutional?: boolean; records?: InstitutionalUser[]; unavailable?: boolean; canCreate?: boolean; administratorId?: string;
+} = {}) {
   const notify = useDemoToast();
-  const [users, setUsers]             = useState<User[]>(INITIAL_USERS);
+  const [users, setUsers]             = useState<User[]>(() => institutional ? (records ?? []).map(fromRecord) : INITIAL_USERS);
   const [search, setSearch]           = useState("");
   const [filterPerfil, setFilterPerfil] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [openMenu, setOpenMenu]       = useState<number | null>(null);
+  const [openMenu, setOpenMenu]       = useState<User["id"] | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLButtonElement | null>(null);
   const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
   const [detailUser, setDetailUser]   = useState<User | null>(null);
   const [showNewUser, setShowNewUser] = useState(false);
+  const [editUser, setEditUser]       = useState<User | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [saved, setSaved] = useState("");
   const [changeProfileFor, setChangeProfileFor] = useState<User | null>(null);
 
   const filtered = users.filter((u) => {
@@ -604,7 +737,7 @@ export default function Usuarios() {
   const admins  = users.filter((u) => u.perfil === "Administrador").length;
   const inativos = users.filter((u) => u.status === "Inativo").length;
 
-  function handleToggleStatus(id: number) {
+  function handleToggleStatus(id: User["id"]) {
     notify("Status alterado somente nesta demonstração; nenhuma conta real foi modificada.");
     setUsers((prev) => prev.map((u) =>
       u.id === id ? { ...u, status: u.status === "Ativo" ? "Inativo" : "Ativo" } : u
@@ -614,27 +747,42 @@ export default function Usuarios() {
     }
   }
 
-  function handleNewUser(data: Omit<User, "id" | "ultimoAcesso" | "cadastro">) {
-    notify("Usuário fictício adicionado nesta tela; nenhuma conta foi criada.");
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, "0");
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const yyyy = now.getFullYear();
-    setUsers((prev) => [
-      ...prev,
-      { ...data, id: Date.now(), ultimoAcesso: "—", cadastro: `${dd}/${mm}/${yyyy}` },
-    ]);
+  async function handleNewUser(data: Parameters<typeof institutionalCreate.parse>[0]) {
+    setSaved("");
+    const response = await fetch("/api/v1/usuarios", { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(institutionalCreate.parse(data)) });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(result?.error ?? "Não foi possível concluir o cadastro.");
+    const user = fromRecord(institutionalUser.parse(result?.data));
+    setUsers(previous => [...previous.filter(item => item.id !== user.id), user].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+    setSaved("Usuário cadastrado. A troca de senha é obrigatória no primeiro acesso.");
   }
 
-  function handleChangeProfile(userId: number, newPerfil: Perfil) {
+  function handleChangeProfile(userId: User["id"], newPerfil: Perfil) {
     notify("Perfil alterado em memória; permissões reais não foram modificadas.");
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, perfil: newPerfil } : u));
     if (detailUser?.id === userId) setDetailUser((d) => d ? { ...d, perfil: newPerfil } : d);
   }
 
+  async function saveInstitutional(user: User, { name, email, orgao }: Pick<User, "name" | "email" | "orgao">) {
+    const response = await fetch("/api/v1/usuarios", { method: "PATCH", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, version: user.version, name, email, orgao }) });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(result?.error ?? "Não foi possível salvar o cadastro.");
+    const persisted = fromRecord(institutionalUser.parse(result?.data));
+    setUsers(previous => previous.map(item => item.id === user.id ? persisted : item));
+    setDetailUser(previous => previous?.id === user.id ? persisted : previous);
+    setSaved("Cadastro institucional salvo.");
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <Header title="Usuários" subtitle="Gerenciamento de usuários e permissões" />
+      <p role={unavailable ? "alert" : "note"} style={{ padding: "8px 26px" }}>{unavailable
+        ? "A consulta ao cadastro institucional está indisponível."
+        : institutional ? "Cadastro institucional. Perfil e status são definidos pela autenticação institucional."
+        : "Prévia demonstrativa com usuários fictícios. Nenhuma ação desta tela cria contas ou altera os logins locais."}</p>
+      {saved && <p role="status" style={{ padding: "0 26px", color: "var(--theme-22c55e)" }}>{saved}</p>}
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 32px" }}>
         {/* ── Page heading ─────────────────────────────────────────────── */}
@@ -647,7 +795,9 @@ export default function Usuarios() {
               Gerencie usuários, perfis de acesso e permissões do sistema.
             </p>
           </div>
-          <button
+          {institutional && <button
+            disabled={!canCreate}
+            title={!canCreate ? "Provisionamento institucional indisponível neste ambiente" : undefined}
             onClick={() => setShowNewUser(true)}
             style={{
               display: "flex", alignItems: "center", gap: 8,
@@ -658,7 +808,7 @@ export default function Usuarios() {
             }}
           >
             <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Novo usuário
-          </button>
+          </button>}
         </div>
 
         {/* ── KPI cards ─────────────────────────────────────────────────── */}
@@ -674,7 +824,7 @@ export default function Usuarios() {
           <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)", fontSize: 14, pointerEvents: "none" }}>⌕</span>
             <input
-              aria-label="Buscar usuário" value={search}
+              ref={searchInput} aria-label="Buscar usuário" value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou e-mail"
               style={{ ...inputStyle, paddingLeft: 30 }}
@@ -717,7 +867,7 @@ export default function Usuarios() {
               </thead>
               <tbody>
                 {filtered.map((u, i) => (
-                  <tr key={u.id} style={{ background: i % 2 !== 0 ? "rgba(255,255,255,0.012)" : "transparent" }}>
+                  <tr key={u.id} style={{ background: i % 2 !== 0 ? "var(--theme-table-stripe, rgba(255,255,255,0.012))" : "transparent" }}>
                     {/* User cell */}
                     <td style={cell}>
                       <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
@@ -730,7 +880,9 @@ export default function Usuarios() {
                     </td>
                     <td style={{ ...cell, color: "var(--theme-94a3b8)" }}>{u.orgao}</td>
                     <td style={cell}><PerfilBadge p={u.perfil} /></td>
-                    <td style={cell}><StatusBadge s={u.status} /></td>
+                    <td style={cell}><StatusBadge s={u.status} />
+                      {u.deletionPending && <small>Exclusão pendente</small>}
+                    </td>
                     <td style={{ ...cell, color: "var(--color-text-muted)", fontSize: 12 }}>{u.ultimoAcesso}</td>
                     {/* Actions */}
                     <td style={{ ...cell, textAlign: "center", position: "relative" }}>
@@ -759,8 +911,10 @@ export default function Usuarios() {
                             anchor={menuAnchor}
                             position={menuPosition}
                             onView={() => setDetailUser(u)}
+                            onEdit={() => institutional ? setEditUser(u) : setDetailUser(u)}
                             onNewProfile={() => setChangeProfileFor(u)}
                             onToggleStatus={() => handleToggleStatus(u.id)}
+                            onDelete={institutional && canCreate && administratorId !== u.id ? () => setDeleteUser(u) : undefined}
                             onClose={() => setOpenMenu(null)}
                           />
                         )}
@@ -812,6 +966,14 @@ export default function Usuarios() {
           onSave={handleNewUser}
         />
       )}
+      {editUser && <NewUserModal editing={editUser} onClose={() => setEditUser(null)}
+        onSave={value => saveInstitutional(editUser, value)} />}
+      {deleteUser && <DeleteUserModal user={deleteUser} onClose={() => setDeleteUser(null)} onDeleted={() => {
+        setUsers(previous => previous.filter(user => user.id !== deleteUser.id));
+        setDeleteUser(null);
+        setSaved("Usuário excluído.");
+        requestAnimationFrame(() => searchInput.current?.focus());
+      }} />}
     </div>
   );
 }

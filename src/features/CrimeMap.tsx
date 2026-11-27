@@ -1,149 +1,95 @@
-import { useState } from "react";
-import Header from "../components/Header";
-import MapaDF, { type MapMode } from "../components/map/MapaDF";
-import DonutChart from "../components/DonutChart";
-import AnalyticsCard from "../components/AnalyticsCard";
-import { RA_LIST, CRIME_NATURES, PERIODS, HOURS } from "../data/mockData";
-import { MOCK_OCCURRENCES } from "../data/mockOccurrences";
-import { filterDemo, summarizeDemo } from "../data/demoAnalytics";
-import { useDemoToast } from "../components/DemoProvider";
+import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Header from "@/components/Header";
+import MapaDF, { type MapMode, type MapOccurrence } from "@/components/map/MapaDF";
+import MapOccurrenceTooltip, { type MarkerHover } from "@/components/map/MapOccurrenceTooltip";
+import { spatialRaName } from "@/components/map/occurrencePresentation";
+import { occurrenceHrefFromMap } from "@/features/occurrences/map-link";
+import { RA_LIST } from "@/data/mockData";
+import { emptyDemoFilters } from "@/data/demoAnalytics";
+import { useAnalyticsSource } from "@/components/analytics/useAnalyticsSource";
+import type { AnalyticSelection } from "@/components/analytics/usePersistentAnalytics";
+import AnalyticFilters from "@/components/analytics/AnalyticFilters";
+import analyticsStyles from "@/components/analytics/Analytics.module.css";
 
 interface CrimeMapProps {
   initialRaCode?: string;
+  initialFilters?: AnalyticSelection;
+  persistent?: boolean;
 }
 
-const sparkData = [45, 52, 60, 55, 70, 68, 80, 78, 92, 88, 102, 115];
+type MapHistoryView = { filters: AnalyticSelection; mode: MapMode; showSatelliteOccurrences: boolean };
 
+export default function CrimeMap({ initialRaCode, initialFilters, persistent = false }: CrimeMapProps) {
+  const router = useRouter();
+  const viewport = useRef<HTMLDivElement>(null);
+  const [historyView] = useState<MapHistoryView | undefined>(() => window.history.state?.sentinelaCrimeMap);
+  const [hover, setHover] = useState<{
+    id: string; point: MapOccurrence; anchor: { x: number; y: number; width: number; height: number };
+  } | null>(null);
+  const [filters, setFilters] = useState<AnalyticSelection>(() => {
+    if (historyView) return historyView.filters;
+    const ra = initialRaCode ?? initialFilters?.ra ?? "";
+    const initial = { ...emptyDemoFilters(), ...initialFilters }
+    return { ...initial, period: persistent && initial.period !== "custom" ? "all" : initial.period,
+      ra: persistent || RA_LIST.some(item => item.codigo === ra) ? ra : "" };
+  });
+  const selectedRaCode = filters.ra || null;
+  const [mapMode, setMapMode] = useState<MapMode>(historyView?.mode ?? "heat");
+  const [showSatelliteOccurrences, setShowSatelliteOccurrences] = useState(historyView?.showSatelliteOccurrences ?? false);
+  const source = useAnalyticsSource(persistent, filters);
+  const { mapRecords: mapOccurrences, mapSummary, summary, officialGeometry, officialRegions } = source;
+  const raInfo = selectedRaCode ? source.regionOptions.find((ra) => ra.codigo === selectedRaCode) : null;
+  // With an RA selected, statistics count validated territorial links; map points count spatial location.
+  const raPoints = persistent && selectedRaCode ? mapSummary.byRa[selectedRaCode] ?? 0 : null;
 
+  const handleOccurrenceHover = useCallback((marker: MarkerHover | null) => {
+    const id = marker?.point.occurrenceId;
+    if (!id || !marker || !viewport.current) { setHover(null); return; }
+    const { left, top, width, height } = viewport.current.getBoundingClientRect();
+    setHover({ id, point: marker.point, anchor: { x: marker.clientX - left, y: marker.clientY - top, width, height } });
+  }, []);
 
-const selectStyle: React.CSSProperties = {
-  background: "var(--theme-111d2e)",
-  border: "1px solid var(--theme-1e3a5f)",
-  borderRadius: 6,
-  color: "var(--theme-94a3b8)",
-  fontSize: 12,
-  padding: "6px 10px",
-  cursor: "pointer",
-  outline: "none",
-  minWidth: 130,
-};
-
-export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
-  const notify = useDemoToast();
-  const [selectedRaCode, setSelectedRaCode] = useState<string | null>(RA_LIST.some((ra) => ra.codigo === initialRaCode) ? initialRaCode! : null);
-  const [mapMode, setMapMode] = useState<MapMode>("heat");
-  const [period, setPeriod] = useState("all");
-  const [nature, setNature] = useState("");
-  const [hour, setHour] = useState("");
-
-  const mapOccurrences = filterDemo(MOCK_OCCURRENCES, { nature, hour, period });
-  const visibleOccurrences = filterDemo(mapOccurrences, { ra: selectedRaCode });
-  const mapSummary = summarizeDemo(mapOccurrences);
-  const summary = summarizeDemo(visibleOccurrences);
-  const metadata = selectedRaCode ? RA_LIST.find((ra) => ra.codigo === selectedRaCode) : null;
-  const raInfo = metadata ? { ...metadata, occurrence_count: summary.total, crimes_by_nature: summary.byNature, most_common_crime: summary.topNature, peak_hour: summary.peakHour, peak_day: summary.peakDay } : null;
-  const donutData = Object.entries(summary.byNature).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value }));
+  const handleOccurrenceOpen = useCallback((point: MapOccurrence) => {
+    if (!point.occurrenceId) return;
+    const href = occurrenceHrefFromMap(point.occurrenceId, {
+      latitude: point.latitude, longitude: point.longitude,
+      raName: spatialRaName(officialGeometry, point, officialRegions),
+    });
+    if (!href) return;
+    setHover(null);
+    const view: MapHistoryView = { filters, mode: mapMode, showSatelliteOccurrences };
+    window.history.replaceState({ ...window.history.state, sentinelaCrimeMap: view }, "");
+    router.push(href);
+  }, [filters, mapMode, officialGeometry, officialRegions, router, showSatelliteOccurrences]);
 
   const handleSelectRa = (raCode: string) => {
-    setSelectedRaCode(raCode);
+    setHover(null);
+    setFilters(previous => ({ ...previous, ra: raCode }));
   };
 
   const handleBack = () => {
-    setSelectedRaCode(null);
-  };
-
-  const handleClearFilters = () => {
-    setSelectedRaCode(null);
-    setPeriod("all");
-    setNature("");
-    setHour("");
+    setHover(null);
+    setFilters(previous => ({ ...previous, ra: "" }));
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+    <div className={analyticsStyles.mapRoot} onScrollCapture={() => setHover(null)}>
       <Header title="Mapa Criminal" subtitle="Análise geográfica detalhada" />
 
-      {/* Filter bar */}
-      <div
-        style={{
-          background: "var(--theme-0d1626)",
-          borderBottom: "1px solid var(--theme-1e3a5f)",
-          padding: "10px 24px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexWrap: "wrap",
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, letterSpacing: "0.06em", marginRight: 4 }}>FILTROS</span>
-
-        <select aria-label="Período da base fictícia" style={selectStyle} value={period} onChange={(e) => setPeriod(e.target.value)}>
-          <option value="all">Toda a base fictícia</option>
-          {PERIODS.filter((p) => p.value !== "custom").map((p) => (
-            <option key={p.value} value={p.value} style={{ background: "var(--theme-111d2e)" }}>{p.label}</option>
-          ))}
-        </select>
-
-        <select
-          style={selectStyle}
-          aria-label="Região Administrativa" value={selectedRaCode ?? ""}
-          onChange={(e) => setSelectedRaCode(e.target.value || null)}
-        >
-          <option value="" style={{ background: "var(--theme-111d2e)" }}>Todas as regiões</option>
-          {RA_LIST.map((ra) => (
-            <option key={ra.codigo} value={ra.codigo} style={{ background: "var(--theme-111d2e)" }}>
-              {ra.nomeCompleto}
-            </option>
-          ))}
-        </select>
-
-        <select aria-label="Natureza criminal" style={selectStyle} value={nature} onChange={(e) => setNature(e.target.value)}>
-          <option value="" style={{ background: "var(--theme-111d2e)" }}>Todas as naturezas</option>
-          {CRIME_NATURES.map((n) => (
-            <option key={n} value={n} style={{ background: "var(--theme-111d2e)" }}>{n}</option>
-          ))}
-        </select>
-
-        <select aria-label="Faixa de horário" style={selectStyle} value={hour} onChange={(e) => setHour(e.target.value)}>
-          {HOURS.map((h) => (
-            <option key={h.value} value={h.value} style={{ background: "var(--theme-111d2e)" }}>{h.label}</option>
-          ))}
-        </select>
-
-        <div style={{ flex: 1 }} />
-
-        <button
-          onClick={handleClearFilters}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--theme-1e3a5f)",
-            borderRadius: 6,
-            color: "var(--color-text-muted)",
-            fontSize: 12,
-            padding: "6px 12px",
-            cursor: "pointer",
-          }}
-        >
-          Limpar filtros
-        </button>
-
-        <button
-          onClick={() => notify("Filtros aplicados somente aos dados fictícios; data de referência: 25/08/2026.")}
-          style={{
-            background: "#2563eb",
-            border: "none",
-            borderRadius: 6,
-            color: "#fff",
-            fontSize: 12,
-            fontWeight: 600,
-            padding: "6px 14px",
-            cursor: "pointer",
-          }}
-        >
-          Filtros aplicados à demonstração
-        </button>
+      <div className={analyticsStyles.mapFilters}>
+        <AnalyticFilters filters={filters} onChange={next => { setHover(null); setFilters(next); }} regions={source.regionOptions} catalog={source.catalogOptions} />
+        {source.pending && <p role="status">Consultando indicadores…</p>}
+        {source.error && <p role="alert">{source.error} <button type="button" onClick={source.retry}>Tentar novamente</button></p>}
+        {!source.pending && !source.error && <>
+        {summary.total === 0 && mapOccurrences.length === 0 && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
+        <p data-testid="analytics-total" data-count={summary.total} className={analyticsStyles.mapTotal}>{raPoints === null
+          ? `${summary.total.toLocaleString("pt-BR")} ocorrências únicas no recorte aplicado`
+          : <>{summary.total.toLocaleString("pt-BR")} {summary.total === 1 ? "ocorrência" : "ocorrências"} com vínculo territorial validado na RA · <span data-testid="analytics-ra-points" data-count={raPoints}>{raPoints.toLocaleString("pt-BR")} {raPoints === 1 ? "ponto localizado" : "pontos localizados"} espacialmente na RA</span></>}</p>
+        </>}
       </div>
+      {/* Official cartography loads separately; it stays visible while indicators are pending. */}
+      {!source.error && <>
 
       {/* Breadcrumb */}
       {selectedRaCode && raInfo && (
@@ -182,12 +128,10 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
         </div>
       )}
 
-      <div className="map-panels crime-panels" style={{ flex: 1, display: "flex", overflow: "auto" }}>
-        {/* Map area */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: "12px 0 12px 16px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10, paddingRight: 16 }}>
+      <section className={analyticsStyles.mapContent} aria-labelledby="crime-map-title">
+          <div className={analyticsStyles.mapHeading}>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.02em" }}>
+              <h1 id="crime-map-title" style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.02em" }}>
                 {raInfo ? raInfo.nomeDisplay : "Mapa Criminal"}
               </h1>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
@@ -196,129 +140,80 @@ export default function CrimeMap({ initialRaCode }: CrimeMapProps) {
                   : "Explore a distribuição espacial das ocorrências e identifique padrões por região."}
               </p>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              {(["heat", "points", "clusters"] as MapMode[]).map((m) => (
-                <button key={m} onClick={() => setMapMode(m)} style={{
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: "100%" }}>
+              {(["heat", "points", "clusters", "satellite"] as MapMode[]).map((m) => (
+                <button key={m} onClick={() => { setHover(null); setMapMode(m); }} aria-pressed={mapMode === m} style={{
                   background: mapMode === m ? "#2563eb" : "transparent",
                   border: mapMode === m ? "none" : "1px solid var(--theme-1e3a5f)",
                   borderRadius: 5, color: mapMode === m ? "#fff" : "var(--theme-64748b)",
                   fontSize: 11, fontWeight: mapMode === m ? 600 : 400,
                   padding: "4px 10px", cursor: "pointer",
                 }}>
-                  {m === "heat" ? "Calor" : m === "points" ? "Pontos" : "Clusters"}
+                  {m === "heat" ? "Calor" : m === "points" ? "Pontos" : m === "satellite" ? "Satélite" : "Clusters"}
                 </button>
               ))}
             </div>
           </div>
 
-          <div style={{
-            flex: 1,
-            minHeight: 0,
-            background: "var(--theme-111d2e)",
-            border: "1px solid var(--theme-1e3a5f)",
-            borderRadius: 8,
-            overflow: "hidden",
-            position: "relative",
-            marginRight: 16,
-          }}>
-            <MapaDF
+          <div ref={viewport} className={analyticsStyles.mapViewport}>
+            {persistent && !source.officialRegions ? <p role="status">{source.geometryError ? "Limites oficiais indisponíveis." : "Carregando limites oficiais…"}</p> : <MapaDF
               selectedRaCode={selectedRaCode}
               onSelectRa={handleSelectRa}
               occurrencesByRa={mapSummary.byRa}
+              statisticsByRa={persistent && Object.keys(summary.byRa).length ? summary.byRa : undefined}
               showPoints={false}
+              streetBasemap
+              satelliteOccurrences={{ visible: showSatelliteOccurrences, onChange: setShowSatelliteOccurrences }}
+              occurrenceInteraction={{ onHover: handleOccurrenceHover, onOpen: handleOccurrenceOpen }}
               mapMode={mapMode}
               mockOccurrences={mapOccurrences}
-              heatReferenceOccurrences={MOCK_OCCURRENCES}
-            />
+              heatReferenceOccurrences={source.heatReference}
+              officialRegions={source.officialRegions}
+              heatUnavailable={source.heatUnavailable}
+              countsUnavailable={source.pending}
+            />}
+            {source.pending && source.officialRegions && <p className={analyticsStyles.mapNotice} role="status">Carregando ocorrências…</p>}
+            {source.heatUnavailable && mapMode === "heat" && <p className={analyticsStyles.mapNotice} role="status">Calor indisponível: a base de referência excede o limite de pontos.</p>}
+            {source.pointsTruncated && (mapMode === "points" || mapMode === "clusters") && <p className={analyticsStyles.mapNotice} role="status">Camada parcial. Restrinja os filtros para ver todos os pontos.</p>}
+            {persistent && source.officialRegions && !source.pending && mapMode !== "satellite" && !source.heatUnavailable && mapOccurrences.length === 0 &&
+              <p className={analyticsStyles.mapNotice} role="status">Nenhum ponto geográfico homologado no recorte.</p>}
+            {hover && <MapOccurrenceTooltip key={hover.id} {...hover} geometry={officialGeometry} regions={officialRegions} />}
           </div>
-        </div>
-
-        {/* Side panel */}
-        <div className="map-side-panel" style={{ width: 270, flexShrink: 0, overflowY: "auto", padding: "12px 16px 12px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-          {raInfo && (
-            <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
-                Resumo — {raInfo.nomeDisplay}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginBottom: 2 }}>Total</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "var(--theme-f1f5f9)" }}>{raInfo.occurrence_count.toLocaleString("pt-BR")}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, color: "var(--color-text-muted)", marginBottom: 2 }}>Variação</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: raInfo.variation > 0 ? "var(--theme-22c55e)" : "var(--theme-ef4444)" }}>
-                    {raInfo.variation > 0 ? "+" : ""}{raInfo.variation.toFixed(1)}%
-                  </div>
-                </div>
-              </div>
-              <div style={{ borderTop: "1px solid var(--theme-1e3a5f)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>Principal natureza</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{raInfo.most_common_crime}</div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                    {(((raInfo.crimes_by_nature[raInfo.most_common_crime] ?? 0) / (raInfo.occurrence_count || 1)) * 100).toFixed(1)}% do total
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>Horário de maior incidência</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{raInfo.peak_hour}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>Dia da semana crítico</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{raInfo.peak_day}</div>
-                </div>
-              </div>
+          <footer className={analyticsStyles.mapCaption}>
+            <p>{selectedRaCode
+              ? 'Use "Voltar para visão do DF" para ver o mapa completo.'
+              : "Selecione uma Região Administrativa no mapa para filtrar as ocorrências por área."}</p>
+            <p>{persistent ? "Leitura PostgreSQL" : "Base fictícia"} · {source.periodLabel}</p>
+          </footer>
+      </section>
+      {raInfo && !source.pending && (
+        <section className={analyticsStyles.mapRegionSummary} aria-labelledby="crime-map-ra-summary">
+          <h2 id="crime-map-ra-summary">Resumo — {raInfo.nomeDisplay}</h2>
+          <dl>
+            <div>
+              <dt>{raPoints === null ? "Total" : "Vínculo territorial validado"}</dt>
+              <dd>{summary.total.toLocaleString("pt-BR")}</dd>
             </div>
-          )}
-
-          <AnalyticsCard
-            label={raInfo ? `Variação — ${raInfo.nomeDisplay}` : "Variação geral"}
-            value={raInfo ? `${raInfo.variation > 0 ? "+" : ""}${raInfo.variation.toFixed(1)}%` : "+8,4%"}
-            sub="Comparação fictícia ilustrativa"
-            variation={raInfo?.variation ?? 8.4}
-            sparkData={sparkData}
-            color={raInfo && raInfo.variation > 0 ? "var(--theme-22c55e)" : "var(--theme-ef4444)"}
-          />
-
-          <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
-            <div style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
-              Indicadores rápidos
+            <div>
+              <dt>{raPoints === null ? "Parcela do recorte do DF" : "Pontos localizados na RA"}</dt>
+              <dd>{raPoints === null ? `${((summary.total / (mapSummary.total || 1)) * 100).toFixed(1)}%` : raPoints.toLocaleString("pt-BR")}</dd>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Horário crítico</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--theme-f97316)" }}>{summary.peakHour}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Dia crítico</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--theme-f97316)" }}>{summary.peakDay}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>RAs monitoradas</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--theme-93c5fd)" }}>37</span>
-              </div>
+            <div>
+              <dt>Principal natureza</dt>
+              <dd>{summary.topNature}</dd>
+              <dd>{(((summary.byNature[summary.topNature] ?? 0) / (summary.total || 1)) * 100).toFixed(1)}% do total</dd>
             </div>
-          </div>
-
-          <div style={{ background: "var(--theme-111d2e)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 8, padding: "14px 16px" }}>
-            <DonutChart data={donutData} title="Naturezas em destaque" size={150} />
-          </div>
-
-          <div style={{ background: "rgba(37,99,235,0.06)", border: "1px solid rgba(37,99,235,0.2)", borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: "#2563eb", fontWeight: 600, marginBottom: 6 }}>Sobre este mapa</div>
-            <div style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
-              {selectedRaCode
-                ? `Visualizando ocorrências concentradas em ${raInfo?.nomeDisplay ?? selectedRaCode}. Clique em "Voltar para visão do DF" para ver o mapa completo.`
-                : "Clique em qualquer Região Administrativa no mapa para ver dados detalhados e filtrar as ocorrências por área."}
+            <div>
+              <dt>Horário de maior incidência</dt>
+              <dd>{summary.peakHour}</dd>
             </div>
-          </div>
-
-          <div style={{ fontSize: 10, color: "var(--color-text-muted)", textAlign: "center", fontStyle: "italic", paddingBottom: 4 }}>
-            Base fictícia · referência de filtros: 25/08/2026 · variações ilustrativas
-          </div>
-        </div>
-      </div>
+            <div>
+              <dt>Dia da semana crítico</dt>
+              <dd>{summary.peakDay}</dd>
+            </div>
+          </dl>
+        </section>
+      )}</>}
     </div>
   );
 }

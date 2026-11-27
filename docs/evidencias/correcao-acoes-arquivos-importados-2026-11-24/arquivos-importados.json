@@ -1,0 +1,21 @@
+[
+  {
+    "width": 1440,
+    "lote": "568fe957-94e5-49e8-8f83-1567d9ee9a92",
+    "associacao": "1eb3c50d-5016-42a9-a8d6-3f730b9db797",
+    "auditoriaEdicao": "63b62180-a373-406e-a9e5-4d0854856bc7",
+    "anterior": "Área; \"aspas\"\nLínea, final",
+    "corrigido": "Local sintético revisado 1440"
+  },
+  {
+    "width": 390,
+    "lote": "568fe957-94e5-49e8-8f83-1567d9ee9a92",
+    "associacao": "1eb3c50d-5016-42a9-a8d6-3f730b9db797",
+    "auditoriaEdicao": "fbc7c9e8-d07e-4c00-a23c-6bca88f6780f",
+    "anterior": "Local sintético revisado 1440",
+    "corrigido": "Local sintético revisado 390",
+    "situacao": "inativada",
+    "recebidasAntes": 2,
+    "recebidasDepois": 1
+  }
+]

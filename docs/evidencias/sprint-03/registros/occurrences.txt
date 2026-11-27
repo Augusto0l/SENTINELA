@@ -1,0 +1,3 @@
+Ocorrências: claro, 790 registros; filtros, ordenação, paginação, modal, foco e três resoluções aprovados.
+Ocorrências: escuro, 790 registros; filtros, ordenação, paginação, modal, foco e três resoluções aprovados.
+Dashboard e Mapa mantêm os quantitativos; nenhum erro JavaScript de página.

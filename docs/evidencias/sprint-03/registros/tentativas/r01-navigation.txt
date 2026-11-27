@@ -1,0 +1,19 @@
+PASS 7 rotas por navegação, item ativo e header no tema escuro
+PASS Recolher, navegar e expandir no tema escuro
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "http://127.0.0.1:3000/dashboard", waiting until "domcontentloaded"[22m
+
+    at go (D:\Projetos\SENTINELA\scripts\check-navigation.mjs:23:28)
+    at D:\Projetos\SENTINELA\scripts\check-navigation.mjs:84:15 {
+  log: [
+    '  - navigating to "http://127.0.0.1:3000/dashboard", waiting until "domcontentloaded"'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.23.2

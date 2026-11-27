@@ -1,0 +1,9 @@
+PASS 7 rotas por navegação, item ativo e header no tema escuro
+PASS Recolher, navegar e expandir no tema escuro
+PASS Responsividade de sidebar/header em 13 larguras, 3 telas, tema escuro
+PASS 7 rotas por navegação, item ativo e header no tema claro
+PASS Recolher, navegar e expandir no tema claro
+PASS Responsividade de sidebar/header em 13 larguras, 3 telas, tema claro
+PASS Notificações, avatar, navegação por teclado e foco visível
+PASS Permissões dos três perfis e recuperação do seletor na tela de acesso negado
+PASS Retorno ao login demonstrativo; nenhum erro JavaScript

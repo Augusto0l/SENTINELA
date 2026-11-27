@@ -1,0 +1,158 @@
+{
+  "checkedAt": "2026-10-28T17:47:08.022Z",
+  "timezone": "America/Sao_Paulo",
+  "branch": "test/sprint3-homologacao",
+  "base": "33f6bf5",
+  "institutionalMainAtStart": "2739dbb",
+  "buildId": "ZegOWoXQpLl_y15v4YfR1",
+  "environment": {
+    "node": "v22.23.2",
+    "pnpm": "10.34.3",
+    "browser": "Chrome 156.0.8078.48"
+  },
+  "technical": {
+    "frozenInstall": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "tests": {
+      "total": 96,
+      "passed": 96,
+      "failed": 0,
+      "skipped": 0,
+      "new": 13
+    },
+    "build": "passed",
+    "contracts": {
+      "status": "passed",
+      "schemas": 23,
+      "operations": 13,
+      "payloads": 29
+    },
+    "diffCheck": "passed"
+  },
+  "browser": [
+    {
+      "name": "import",
+      "round": "2026-10-28T17-25-16-541Z",
+      "startedAt": "2026-10-28T17:25:52.595Z",
+      "finishedAt": "2026-10-28T17:26:34.813Z",
+      "status": "passed",
+      "log": "registros/import.txt"
+    },
+    {
+      "name": "analytics",
+      "round": "2026-10-28T17-25-16-541Z",
+      "startedAt": "2026-10-28T17:26:34.818Z",
+      "finishedAt": "2026-10-28T17:27:12.454Z",
+      "status": "passed",
+      "log": "registros/analytics.txt"
+    },
+    {
+      "name": "occurrences",
+      "round": "2026-10-28T17-25-16-541Z",
+      "startedAt": "2026-10-28T17:27:12.455Z",
+      "finishedAt": "2026-10-28T17:27:29.267Z",
+      "status": "passed",
+      "log": "registros/occurrences.txt"
+    },
+    {
+      "name": "sprint2",
+      "round": "2026-10-28T17-25-16-541Z",
+      "startedAt": "2026-10-28T17:27:29.269Z",
+      "finishedAt": "2026-10-28T17:28:03.738Z",
+      "status": "passed",
+      "log": "registros/sprint2.txt"
+    },
+    {
+      "name": "worker",
+      "round": "2026-10-28T17-27-35-687Z",
+      "startedAt": "2026-10-28T17:27:36.188Z",
+      "finishedAt": "2026-10-28T17:28:03.992Z",
+      "status": "passed",
+      "log": "registros/worker.txt"
+    },
+    {
+      "name": "satellite",
+      "round": "2026-10-28T17-38-20-944Z",
+      "startedAt": "2026-10-28T17:38:21.043Z",
+      "finishedAt": "2026-10-28T17:39:37.257Z",
+      "status": "passed",
+      "log": "registros/satellite.txt"
+    },
+    {
+      "name": "location-ui",
+      "round": "2026-10-28T17-38-20-944Z",
+      "startedAt": "2026-10-28T17:39:37.259Z",
+      "finishedAt": "2026-10-28T17:39:51.643Z",
+      "status": "passed",
+      "log": "registros/location-ui.txt"
+    },
+    {
+      "name": "navigation",
+      "round": "2026-10-28T17-38-20-944Z",
+      "startedAt": "2026-10-28T17:39:51.645Z",
+      "finishedAt": "2026-10-28T17:42:09.227Z",
+      "status": "passed",
+      "log": "registros/navigation.txt"
+    },
+    {
+      "name": "location",
+      "round": "2026-10-28T17-40-34-718Z",
+      "startedAt": "2026-10-28T17:40:35.353Z",
+      "finishedAt": "2026-10-28T17:41:43.178Z",
+      "status": "passed",
+      "log": "registros/location.txt"
+    }
+  ],
+  "initialFailures": [
+    {
+      "name": "worker",
+      "round": "2026-10-28T17-25-16-541Z",
+      "log": "registros/tentativas/r01-worker.txt",
+      "status": "failed",
+      "finishedAt": "2026-10-28T17:25:52.594Z"
+    },
+    {
+      "name": "satellite",
+      "round": "2026-10-28T17-25-16-541Z",
+      "log": "registros/tentativas/r01-satellite.txt",
+      "status": "failed",
+      "finishedAt": "2026-10-28T17:28:35.820Z"
+    },
+    {
+      "name": "location",
+      "round": "2026-10-28T17-25-16-541Z",
+      "log": "registros/tentativas/r01-location.txt",
+      "status": "failed",
+      "finishedAt": "2026-10-28T17:28:47.027Z"
+    },
+    {
+      "name": "navigation",
+      "round": "2026-10-28T17-25-16-541Z",
+      "log": "registros/tentativas/r01-navigation.txt",
+      "status": "failed",
+      "finishedAt": "2026-10-28T17:30:20.642Z"
+    },
+    {
+      "name": "worker",
+      "round": "2026-10-28T17-26-18-330Z",
+      "log": "registros/tentativas/r02-worker.txt",
+      "status": "failed",
+      "finishedAt": "2026-10-28T17:26:34.959Z"
+    }
+  ],
+  "openapiSha256": "036563c80526275751570ebe65a78c75d05dcc54819516a1611caaa6a5f51bc3",
+  "limits": {
+    "fileBytes": 52428800,
+    "rows": 10000,
+    "workerOperationMs": 60000
+  },
+  "limitations": [
+    "No academic sign-off or formal sprint closure.",
+    "Synthetic Worker failures and clocks do not benchmark real elapsed 60 seconds or hostile heap use.",
+    "Location fixtures explicitly separated from live provider verification.",
+    "No Firefox/Safari, physical devices, real auth, database or operational import.",
+    "Some browser scripts block Google fonts."
+  ],
+  "basis": "Technical command results observed locally; browser statuses consolidated from actual timestamped runs, retaining failures."
+}

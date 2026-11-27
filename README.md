@@ -12,11 +12,20 @@ O **SENTINELA** é uma plataforma web e mobile para centralização, cadastro, v
 
 ## Executar o protótipo web
 
-Use Node 22 e pnpm conforme `.mise.toml`. Instale com `pnpm install --frozen-lockfile` e execute `pnpm dev`; a rota inicial abre `/login`, uma demonstração que não autentica nem envia credenciais. As telas também podem ser acessadas diretamente, pois ainda não há controle de acesso.
+Use Node 22 e pnpm conforme `.mise.toml`. Instale com `pnpm install --frozen-lockfile`. No Windows, `pnpm dev` e `npm run dev:local` iniciam a execução operacional em `http://localhost:3000/login` com Supabase Auth e o PostgreSQL local atestado. [Execução do piloto PCDF em localhost:3000](docs/desenvolvimento/piloto-pcdf-2021-01.md#iniciar-e-consultar-janeiro-de-2021).
+
+O lançador carrega a URL e a chave publicável do Supabase de `.env.local`. O perfil vem de `sentinela_api.meu_acesso()`. A gestão de escrita exige o vínculo e a liberação institucional no PostgreSQL. O teste de navegador `node scripts/check-supabase-auth-browser.mjs` usa login manual no Edge. Para executar apenas o Next.js com o provedor configurado para uma prévia ou teste, use `pnpm dev:next`.
+
+Após verificar a sessão real e a referência de aprovação, a manutenção pode registrar o vínculo local com `database/release/register-supabase-institutional-user.psql`. Para o procedimento de liberação, o hash da conta Supabase usa o SHA-256 de `JSON.stringify(["sentinela-supabase", origemSupabase, authUserId])`, com a origem canônica do projeto e a identidade retornada pelo Auth. Cada exclusão ainda exige a aprovação do UUID e da revisão do lote. [Procedimento de liberação](docs/relatorios/backend-operacional-gestao-arquivos-2026-11-24.md).
 
 Verificações: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm validate:contracts`, `pnpm check:routes` e `pnpm build`. O teste de rotas é estático; homologação HTTP/visual requer servidor funcionando. O servidor de produção usa `pnpm start` após build aprovado. A configuração shadcn/ui e os componentes reutilizáveis estão descritos em [Design System](docs/design-system.md).
 
-A hospedagem prevista é Vercel com suporte nativo a Next.js: build `pnpm build`, sem configurar `dist` como saída. Os scripts manuais `.figma/make/deploy` e `deploy-preview` chamam a CLI `vercel` (pré-requisito instalado e autenticado), respectivamente produção e preview. Esses comandos publicam e só devem ser executados quando a publicação for solicitada; a revisão da sprint não executa deploy.
+A hospedagem prevista é Vercel com suporte nativo a Next.js e build `pnpm build`.
+A preparação da Sprint 4, a instalação, a sequência de migrations e os
+bloqueios para publicar dados reais estão no
+[guia de implantação](docs/guia-implantacao-sprint-04.md).
+Os scripts manuais `.figma/make/deploy` e `deploy-preview` publicam por CLI.
+Sua execução depende de autorização específica.
 
 No Windows, `scripts/next-cli.mjs` mantém o compilador nativo quando disponível e usa o fallback oficial SWC WebAssembly com Webpack se o addon nativo falhar com `ERR_DLOPEN_FAILED`. O fallback tem a mesma versão fixada do Next.js e repara apenas arquivos ausentes no cache local da dependência. Nenhuma política de segurança é alterada. Build, rotas e cinco resoluções foram homologados; consulte as [evidências da Sprint 1](docs/evidencias/sprint-01/README.md). A CI Linux foi preparada, mas sua execução remota não foi verificada.
 

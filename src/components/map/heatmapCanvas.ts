@@ -1,6 +1,32 @@
 import { densityColor, sampleDensity, type DensityField } from "@/components/map/heatmapDensity";
 
-export function renderDensityHeatmap(canvas: HTMLCanvasElement, svg: SVGSVGElement, field: DensityField, referencePeak: number, boundary: Path2D) {
+export function renderProjectedHeatmap(canvas: HTMLCanvasElement, width: number, height: number, field: DensityField, referencePeak: number, boundary: Path2D) {
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  canvas.width = Math.ceil(width);
+  canvas.height = Math.ceil(height);
+  if (referencePeak <= 0 || field.peak <= 0) return;
+
+  // Paint once in map coordinates. Gestures move this bitmap with the SVG.
+  const image = context.createImageData(canvas.width, canvas.height);
+  const scaleX = canvas.width / width, scaleY = canvas.height / height;
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const density = sampleDensity(field, (x + .5) / scaleX, (y + .5) / scaleY);
+      if (density > 0) image.data.set(densityColor(density, referencePeak), (y * canvas.width + x) * 4);
+    }
+  }
+  const buffer = document.createElement("canvas");
+  buffer.width = canvas.width;
+  buffer.height = canvas.height;
+  buffer.getContext("2d")?.putImageData(image, 0, 0);
+  context.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+  context.clip(boundary, "evenodd");
+  context.resetTransform();
+  context.drawImage(buffer, 0, 0);
+}
+
+export function renderDensityHeatmap(canvas: HTMLCanvasElement, svg: SVGSVGElement, field: DensityField, referencePeak: number, boundary: Path2D, maxOpacity?: number) {
   const context = canvas.getContext("2d");
   const matrix = svg.getScreenCTM();
   const bounds = canvas.getBoundingClientRect();
@@ -26,7 +52,7 @@ export function renderDensityHeatmap(canvas: HTMLCanvasElement, svg: SVGSVGEleme
       const density = sampleDensity(field, mapX, mapY);
       if (density <= 0) continue;
       const offset = (y * canvas.width + x) * 4;
-      const color = densityColor(density, referencePeak);
+      const color = densityColor(density, referencePeak, maxOpacity);
       image.data.set(color, offset);
     }
   }

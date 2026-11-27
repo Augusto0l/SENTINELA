@@ -1,0 +1,56 @@
+{
+  "checkedAt": "2026-10-28T16:46:22.678Z",
+  "branch": "feat/sprint3-contratos-api",
+  "baseCommit": "626ab0022046ae5d2a171c98d3c88a351909dd84",
+  "institutionalMain": "ad7899df62b3a9fa88ab849c56a7fb90ca1ae9ee",
+  "pr219State": {
+    "state": "open",
+    "source": "user_confirmation"
+  },
+  "environment": {
+    "node": "v22.23.2",
+    "pnpm": "10.34.3"
+  },
+  "checks": {
+    "frozenInstall": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "tests": {
+      "total": 83,
+      "passed": 83,
+      "failed": 0,
+      "skipped": 0,
+      "new": 21
+    },
+    "build": "passed",
+    "diffCheck": "passed"
+  },
+  "apiValidation": {
+    "schemas": 23,
+    "paths": 11,
+    "operations": 13,
+    "payloads": 29
+  },
+  "openapiSha256": "036563c80526275751570ebe65a78c75d05dcc54819516a1611caaa6a5f51bc3",
+  "buildId": "CvvxpMVK5nsgiIZ3YYXof",
+  "developmentValidators": {
+    "@apidevtools/swagger-parser": "^13.1.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^2.1.1"
+  },
+  "limitations": [
+    "No new API handlers or persistence.",
+    "No new browser validation; UI unchanged.",
+    "Remote issue criteria not retrieved; local documentation consulted."
+  ],
+  "basis": "Technical command results observed locally; API validation and hashes generated at evidence capture.",
+  "postMergeVerification": {
+    "checkedAt": "2026-10-28T16:48:44.122Z",
+    "pr": 219,
+    "merged": true,
+    "institutionalMain": "2739dbb22d822024aa56701ab2c67ba93f35f793",
+    "containsOriginalBase": true,
+    "source": "git fetch ceub; git log ceub/main; git merge-base --is-ancestor 626ab00 ceub/main",
+    "recommendedPrBase": "main"
+  }
+}

@@ -1,190 +1,384 @@
-import { useState } from "react";
-import Header from "../components/Header";
-import { MOCK_OCCURRENCES } from "../data/mockOccurrences";
+"use client"
 
-const PAGE_SIZE = 25;
+import { useCallback, useEffect, useState } from "react"
 
-const NATURES = Array.from(new Set(MOCK_OCCURRENCES.map((o) => o.natureza))).sort();
-const RA_CODES = Array.from(new Set(MOCK_OCCURRENCES.map((o) => o.raCode))).sort();
+import Header from "@/components/Header"
 
-const colHead: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 700,
-  color: "var(--color-text-muted)",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  padding: "8px 12px",
-  textAlign: "left",
-  borderBottom: "1px solid var(--theme-1e3a5f)",
-  whiteSpace: "nowrap",
-};
+import Button from "@/components/ui/button"
+import Link from "next/link"
+import SimulationWorkspace from "@/features/occurrences/SimulationWorkspace"
 
-const cell: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--theme-94a3b8)",
-  padding: "9px 12px",
-  borderBottom: "1px solid rgba(30,58,95,0.5)",
-  whiteSpace: "nowrap",
-};
+import {
+  emptyFilters,
+  listUrl,
+  natureLabels,
+  paginationWindow,
+  queryFromFilters,
+  readList,
+  type Filters,
+} from "@/features/occurrences/client"
 
-export default function Occurrences() {
-  const [page, setPage] = useState(1);
-  const [filterNature, setFilterNature] = useState("");
-  const [filterRA, setFilterRA] = useState("");
-  const [search, setSearch] = useState("");
+import type { PersistentQuery } from "@/contracts/persistent-occurrences"
 
-  const filtered = MOCK_OCCURRENCES.filter((o) => {
-    if (filterNature && o.natureza !== filterNature) return false;
-    if (filterRA && o.raCode !== filterRA) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (!o.id.toLowerCase().includes(q) && !o.raName.toLowerCase().includes(q) && !o.natureza.toLowerCase().includes(q)) return false;
+import useRead from "@/features/occurrences/use-read"
+
+import ReadError from "@/features/occurrences/ReadError"
+
+import PersistentDetails from "@/features/occurrences/PersistentDetails"
+import CatalogSelect from "@/features/occurrences/CatalogSelect"
+import { useOperations } from "@/components/OperationalProvider"
+import { actionAccess } from "@/lib/auth/policy"
+
+import styles from "@/features/Occurrences.module.css"
+
+const initial = queryFromFilters(emptyFilters())
+
+const headings: {
+  field: PersistentQuery["sortBy"]
+  label: string
+}[] = [
+  { field: "identificacao", label: "Identificação" },
+  { field: "data", label: "Data" },
+  { field: "horario", label: "Horário" },
+  { field: "ra", label: "Região Administrativa" },
+  { field: "local", label: "Local" },
+]
+
+export default function Occurrences({ isolated = false }: { isolated?: boolean }) {
+  const { role } = useOperations()
+  const [draft, setDraft] = useState<Filters>(emptyFilters)
+
+  const [query, setQuery] = useState(initial)
+
+  const [validation, setValidation] = useState("")
+
+  const [attempt, setAttempt] = useState(0)
+
+  const [selected, setSelected] = useState<string | null>(null)
+
+  const url = listUrl(query)
+
+  const load = useCallback(
+    (signal: AbortSignal) => readList(query, signal),
+    [query],
+  )
+
+  const state = useRead(url + ":" + attempt, load)
+
+  const data = state.data
+
+  const pagination = data?.pagination
+
+  useEffect(() => {
+    if (
+      pagination &&
+      pagination.total > 0 &&
+      query.page > pagination.totalPages
+    )
+      setQuery((q) => ({ ...q, page: pagination.totalPages }))
+  }, [pagination, query.page])
+
+  function apply(event: React.FormEvent) {
+    event.preventDefault()
+
+    try {
+      const next = queryFromFilters(draft, 1, query.sortBy, query.direction)
+
+      setValidation("")
+
+      if (listUrl(next) !== url) setQuery(next)
+    } catch {
+      setValidation(
+        "Revise os identificadores e as datas. A data inicial deve ser anterior ou igual à final.",
+      )
     }
-    return true;
-  });
+  }
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  function clear() {
+    setDraft(emptyFilters())
+    setValidation("")
+    setQuery((q) => ({ ...initial, sortBy: q.sortBy, direction: q.direction }))
+  }
 
-  const selectStyle: React.CSSProperties = {
-    background: "var(--theme-111d2e)",
-    border: "1px solid var(--theme-1e3a5f)",
-    borderRadius: 6,
-    color: "var(--theme-94a3b8)",
-    fontSize: 12,
-    padding: "6px 10px",
-    cursor: "pointer",
-    outline: "none",
-  };
+  function sort(field: PersistentQuery["sortBy"]) {
+    setQuery((q) => ({
+      ...q,
+      page: 1,
+      sortBy: field,
+      direction: q.sortBy === field && q.direction === "asc" ? "desc" : "asc",
+    }))
+  }
+
+  function input(
+    field: keyof Filters,
+    label: string,
+    type = "text",
+    placeholder?: string,
+  ) {
+    return (
+      <label>
+        {label}
+        <input
+          type={type}
+          value={draft[field]}
+          placeholder={placeholder}
+          onChange={(e) => setDraft((d) => ({ ...d, [field]: e.target.value }))}
+        />
+      </label>
+    )
+  }
+
+  const filtered = Object.keys(query).some(
+    (k) => !["page", "pageSize", "sortBy", "direction"].includes(k),
+  )
+
+  const pages = pagination?.totalPages ?? 0
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      <Header title="Ocorrências" subtitle="Base demonstrativa" />
-
-      <div style={{ flex: 1, overflow: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Title + filters */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+    <div className={styles.screen}>
+      <Header
+        title="Ocorrências"
+        subtitle="Consulta persistente"
+        dataMode="read-only"
+      />
+      <div className={styles.content}>
+        <div className={styles.heading}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0 }}>Ocorrências</h1>
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
-              {filtered.length.toLocaleString("pt-BR")} registros demonstrativos · Dados não representam ocorrências policiais reais
+            <h1>Ocorrências</h1>
+            <p>
+              {data
+                ? `${pagination?.total.toLocaleString("pt-BR")} ocorrências encontradas`
+                : "Consulta à base local"}{" "}
+              · dados sintéticos de desenvolvimento
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <input
-              aria-label="Buscar ID, RA ou natureza" value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Buscar ID, RA ou natureza…"
-              style={{ ...selectStyle, minWidth: 200 }}
-            />
-            <select aria-label="Filtrar por natureza" style={selectStyle} value={filterNature} onChange={(e) => { setFilterNature(e.target.value); setPage(1); }}>
-              <option value="">Todas as naturezas</option>
-              {NATURES.map((n) => <option key={n} value={n} style={{ background: "var(--theme-111d2e)" }}>{n}</option>)}
-            </select>
-            <select aria-label="Filtrar por Região Administrativa" style={selectStyle} value={filterRA} onChange={(e) => { setFilterRA(e.target.value); setPage(1); }}>
-              <option value="">Todas as regiões</option>
-              {RA_CODES.map((c) => <option key={c} value={c} style={{ background: "var(--theme-111d2e)" }}>{c}</option>)}
-            </select>
-          </div>
+          {actionAccess(role, "cadastrar").enabled && <Button asChild><Link href="/ocorrencias/nova">{isolated ? "Gerenciar ocorrências sintéticas" : "Novo cadastro demonstrativo"}</Link></Button>}
         </div>
-
-        {/* Table */}
-        <div style={{ background: "var(--theme-0d1a2d)", border: "1px solid var(--theme-1e3a5f)", borderRadius: 10, overflow: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-          <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead style={{ background: "var(--theme-0a1525)", position: "sticky", top: 0 }}>
+        <form
+          className={styles.filters}
+          onSubmit={apply}
+          aria-label="Filtros de ocorrências"
+        >
+          {input(
+            "identificacao",
+            "Buscar identificação",
+            "search",
+            "UUID, ano, unidade ou número",
+          )}
+          {input("local", "Buscar localização", "search", "Trecho do local")}
+          <CatalogSelect kind="regioes" value={draft.raId} onChange={value => setDraft(d => ({ ...d, raId: value }))} />
+          <CatalogSelect kind="naturezas" value={draft.naturezaId} onChange={value => setDraft(d => ({ ...d, naturezaId: value }))} />
+          {input("startDate", "Data inicial", "date")}
+          {input("endDate", "Data final", "date")}
+          <div className={styles.actions}>
+            <Button type="submit">Aplicar filtros</Button>
+            <Button type="button" variant="outline" onClick={clear}>
+              Limpar filtros
+            </Button>
+          </div>
+        </form>
+        <p className={styles.note}>
+          RA e natureza exibem somente catálogos persistentes visíveis; os filtros usam seus UUIDs reais. Natureza original não equivale à categoria padronizada.
+          Consulta somente de leitura; cadastro, edição, inativação e consulta
+          de inativas não estão disponíveis.
+        </p>
+        {validation && <p role="alert">{validation}</p>}
+        <section
+          className={styles.panel}
+          aria-label="Resultados de ocorrências"
+          aria-busy={state.loading}
+        >
+          {state.loading && (
+            <p role="status" className={styles.message}>
+              {query.page === 1 && !filtered
+                ? "Carregando ocorrências…"
+                : "Atualizando consulta…"}
+            </p>
+          )}
+          {state.error && (
+            <div className={styles.message}>
+              <ReadError
+                error={state.error}
+                retry={() => setAttempt((v) => v + 1)}
+              />
+            </div>
+          )}
+          <div className={styles.tableWrap}>
+            <table>
+              <thead>
                 <tr>
-                  <th style={colHead}>ID</th>
-                  <th style={colHead}>Data</th>
-                  <th style={colHead}>Horário</th>
-                  <th style={colHead}>Natureza</th>
-                  <th style={colHead}>Região Administrativa</th>
-                  <th style={colHead}>Local</th>
+                  {headings.map((h) => (
+                    <th
+                      key={h.field}
+                      scope="col"
+                      aria-sort={
+                        query.sortBy === h.field
+                          ? query.direction === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() => sort(h.field)}
+                        title={
+                          h.field === "identificacao"
+                            ? "Ordena pelo número do registro; desempate por UUID"
+                            : undefined
+                        }
+                        aria-label={`Ordenar por ${h.label} em ordem ${
+                          query.sortBy === h.field && query.direction === "asc"
+                            ? "decrescente"
+                            : "crescente"
+                        }`}
+                      >
+                        {h.label}{" "}
+                        <span aria-hidden="true">
+                          {query.sortBy === h.field
+                            ? query.direction === "asc"
+                              ? "↑"
+                              : "↓"
+                            : "↕"}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
+                  <th scope="col" title="Ordenação por natureza não disponível">
+                    Naturezas
+                  </th>
+                  <th scope="col">Estado e ações</th>
                 </tr>
               </thead>
               <tbody>
-                {pageData.map((o, i) => (
-                  <tr
-                    key={o.id}
-                    style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}
-                  >
-                    <td style={{ ...cell, color: "var(--theme-60a5fa)", fontFamily: "monospace", fontSize: 11 }}>{o.id}</td>
-                    <td style={cell}>{o.data}</td>
-                    <td style={cell}>{o.horario}</td>
-                    <td style={{ ...cell, color: "var(--theme-f1f5f9)", fontWeight: 500 }}>{o.natureza}</td>
-                    <td style={cell}>{o.raName}</td>
-                    <td style={{ ...cell, color: "var(--color-text-muted)", fontSize: 11 }}>{o.local}</td>
-                  </tr>
-                ))}
-                {pageData.length === 0 && (
-                  <tr>
-                    <td colSpan={6} style={{ ...cell, textAlign: "center", padding: 32, color: "var(--color-text-muted)" }}>
-                      Nenhum registro encontrado com os filtros aplicados.
+                {data?.items.map((o) => (
+                  <tr key={o.id}>
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.id}
+                        aria-label={`Ver detalhes de ${o.id}`}
+                        onClick={() => setSelected(o.id)}
+                      >
+                        {o.id}
+                      </button>
+                      <small>
+                        {[o.anoRegistro, o.unidadeRegistro, o.numeroRegistro]
+                          .filter(Boolean)
+                          .join(" / ") || "Identificação não informada"}
+                      </small>
+                    </td>
+                    <td>{o.data ?? "Não informada"}</td>
+                    <td>{o.horario ?? "Não informado"}</td>
+                    <td>{o.ra?.nome ?? "Não informada"}</td>
+                    <td className={styles.local}>
+                      {o.local ?? "Não informado"}
+                    </td>
+                    <td>
+                      {o.naturezas.length ? (
+                        <ul>
+                          {natureLabels(o).map((label, i) => (
+                            <li key={o.naturezas[i].id}>{label}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        "Não disponíveis"
+                      )}
+                    </td>
+                    <td>
+                      {o.ativo ? "Ativa" : "Inativa"}
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          disabled
+                          title={actionAccess(role, "editar").reason}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          disabled
+                          title={actionAccess(role, "inativar").reason}
+                        >
+                          Inativar
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 16px",
-            borderTop: "1px solid var(--theme-1e3a5f)",
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-              Página {page} de {totalPages} · {filtered.length.toLocaleString("pt-BR")} registros
+          {data && !data.items.length && (
+            <p role="status" className={styles.message}>
+              {filtered
+                ? "Nenhuma ocorrência corresponde aos filtros aplicados."
+                : "Nenhuma ocorrência disponível na base local."}
+            </p>
+          )}
+          <nav
+            className={styles.pagination}
+            aria-label="Paginação de ocorrências"
+          >
+            <span>
+              {pagination
+                ? `Página ${
+                    pages === 0 ? 0 : query.page
+                  } de ${pages} · ${pagination.total.toLocaleString("pt-BR")} registros`
+                : "25 registros por página"}
             </span>
-            <div style={{ display: "flex", gap: 4 }}>
-              <PagBtn onClick={() => setPage(1)} disabled={page === 1}>«</PagBtn>
-              <PagBtn onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>‹</PagBtn>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-                const n = start + i;
-                return (
-                  <PagBtn key={n} onClick={() => setPage(n)} active={n === page}>{n}</PagBtn>
-                );
-              })}
-              <PagBtn onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>›</PagBtn>
-              <PagBtn onClick={() => setPage(totalPages)} disabled={page === totalPages}>»</PagBtn>
+            <div className={styles.actions}>
+              <Button
+                variant="outline"
+                aria-label="Primeira página"
+                disabled={!data || query.page <= 1 || pages === 0}
+                onClick={() => setQuery((q) => ({ ...q, page: 1 }))}
+              >
+                «
+              </Button>
+              <Button
+                variant="outline"
+                aria-label="Página anterior"
+                disabled={!data || query.page <= 1 || pages === 0}
+                onClick={() => setQuery((q) => ({ ...q, page: q.page - 1 }))}
+              >
+                ‹
+              </Button>
+              {paginationWindow(query.page, pages).map((n) => (
+                <Button
+                  key={n}
+                  variant={n === query.page ? "default" : "outline"}
+                  aria-label={`Página ${n}`}
+                  aria-current={n === query.page ? "page" : undefined}
+                  onClick={() => setQuery((q) => ({ ...q, page: n }))}
+                >
+                  {n}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                aria-label="Próxima página"
+                disabled={!data || query.page >= pages}
+                onClick={() => setQuery((q) => ({ ...q, page: q.page + 1 }))}
+              >
+                ›
+              </Button>
+              <Button
+                variant="outline"
+                aria-label="Última página"
+                disabled={!data || query.page >= pages}
+                onClick={() => setQuery((q) => ({ ...q, page: pages }))}
+              >
+                »
+              </Button>
             </div>
-          </div>
-        </div>
-
-        <div style={{ fontSize: 10, color: "var(--color-text-muted)", textAlign: "center", fontStyle: "italic" }}>
-          Dados demonstrativos — não representam ocorrências policiais reais
-        </div>
+          </nav>
+        </section>
       </div>
+      <details className={styles.simulationEntry}><summary>Homologar fluxos demonstrativos (separados da consulta)</summary><SimulationWorkspace /></details>
+      {selected && (
+        <PersistentDetails id={selected} onClose={() => setSelected(null)} />
+      )}
     </div>
-  );
-}
-
-function PagBtn({ children, onClick, disabled, active }: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        width: 28, height: 28,
-        border: active ? "none" : "1px solid var(--theme-1e3a5f)",
-        borderRadius: 5,
-        background: active ? "#2563eb" : disabled ? "transparent" : "transparent",
-        color: active ? "#fff" : disabled ? "var(--theme-1e3a5f)" : "var(--theme-64748b)",
-        fontSize: 12,
-        cursor: disabled ? "default" : "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}
-    >
-      {children}
-    </button>
-  );
+  )
 }

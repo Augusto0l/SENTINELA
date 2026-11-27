@@ -1,0 +1,14 @@
+{
+  "algorithm": "SHA-256",
+  "files": {
+    "database/local/sandbox/control.py": "da56abbb72e696cd66b412d0453460fda664d2876dfffca5f81bdbd5d1471fe9",
+    "database/local/sandbox/test_recovery_runtime.py": "680920ae0f18e8ebbc0923ee51d67329c16eeb1d9b0f2405a7a21b01bbd8ec21",
+    "database/local/sandbox/RECOVERY.md": "30fcd61d3973a3bfe41fc6d39b3825c4efb28941c14c4a38fa384f3cd1faf49d",
+    "database/local/sandbox/recovery_plan.py": "10d50779e3e6b1c03f2eb6abe0562a29161508dcd3d980652f0ffc64f34256d3",
+    "database/local/sandbox/test_recovery_plan.py": "cf4cd009486f404d37d34051428ee85e9af96d5ebd3b316b88267707f488a29d",
+    "database/local/sandbox/test_control.py": "1a6d7f11050b008de0d2022bed8ab22ad5dfbd8addd6121bc217fcafded00b3f",
+    "database/local/sandbox/sql/snapshot_extra.sql": "14a5df87024e068eb282e8ce199e79092c8114e3a0b8c6ec23d7cf67187ad82c",
+    "database/local/sandbox/recovery-revision-plan.json": "7896ad87fdc1db5f5a1672e274102c8584d64748f356745bba7a62150990aaf9"
+  },
+  "note": "Proposal only. Previous revision-plan/checksums and real manifest remain unchanged."
+}

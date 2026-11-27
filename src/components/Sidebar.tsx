@@ -1,191 +1,73 @@
-import { SentinelaIcon, SentinelaBrand } from "./SentinelaLogo";
+import { SentinelaBrand } from "@/components/SentinelaLogo"
+import NavigationIcon from "@/components/NavigationIcon"
+import { navigationGroups } from "@/components/navigation-items"
+import { useOperations } from "@/components/OperationalProvider"
+import { canVisit, NAVIGATION_ROUTES } from "@/lib/auth/policy"
+import styles from "@/components/Navigation.module.css"
+import LogoutForm from "@/components/auth/LogoutForm"
 
 interface SidebarProps {
-  currentPage: string;
-  onNavigate: (page: string) => void;
-  collapsed: boolean;
-  onToggle: () => void;
+  currentPage: string
+  onNavigate: (page: string) => void
+  collapsed: boolean
+  onToggle?: () => void
+  onClose?: () => void
+  navigationId: string
+  pcdf?: boolean
+  dashboard?: boolean
 }
 
-const navGroups = [
-  {
-    label: "VISÃO GERAL",
-    items: [
-      { key: "dashboard", label: "Dashboard", icon: "⊞" },
-      { key: "crime-map", label: "Mapa Criminal", icon: "◎" },
-    ],
-  },
-  {
-    label: "OCORRÊNCIAS",
-    items: [
-      { key: "occurrences", label: "Ocorrências", icon: "≡" },
-      { key: "new", label: "Nova Ocorrência", icon: "+" },
-      { key: "import", label: "Importar Dados", icon: "↑" },
-    ],
-  },
-  {
-    label: "GESTÃO",
-    items: [
-      { key: "users", label: "Usuários", icon: "◯" },
-      { key: "settings", label: "Configurações", icon: "⚙" },
-      { key: "login", label: "Voltar ao login demonstrativo", icon: "↪" },
-    ],
-  },
-];
-
-export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ currentPage, onNavigate, collapsed, onToggle, onClose, navigationId, pcdf = false, dashboard = false }: SidebarProps) {
+  const { role, principal } = useOperations()
   return (
-    <aside className={`system-sidebar ${collapsed ? "is-collapsed" : ""}`}
-      style={{
-        width: collapsed ? 56 : 240,
-        minWidth: collapsed ? 56 : 240,
-        background: "var(--theme-0d1626)",
-        borderRight: "1px solid var(--theme-1e3a5f)",
-        display: "flex",
-        flexDirection: "column",
-        transition: "width 0.2s ease, min-width 0.2s ease",
-        overflow: "hidden",
-        position: "relative",
-        zIndex: 10,
-      }}
-    >
-      {/* Logo */}
-      <div
-        style={{
-          padding: collapsed ? "16px 0" : "16px 18px",
-          borderBottom: "1px solid var(--theme-1e3a5f)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: collapsed ? "center" : "flex-start",
-        }}
-      >
-        {collapsed ? <SentinelaIcon size={34} /> : <SentinelaBrand iconSize={34} />}
+    <aside aria-label="Navegação do SENTINELA" className={`system-sidebar ${styles.sidebar}${dashboard ? ` ${styles.dashboardSidebar}` : ""}${collapsed ? ` ${styles.collapsed} is-collapsed` : ""}${onClose ? ` ${styles.drawerSidebar}` : ""}`}>
+      <div className={styles.brand}>
+        <SentinelaBrand iconSize={34} />
+        {onToggle && <button className={styles.collapseButton} type="button" onClick={onToggle}
+          aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"}
+          aria-expanded={!collapsed} aria-controls={navigationId}
+          title={collapsed ? "Expandir navegação" : "Recolher navegação"}>
+          <NavigationIcon name="panel" size={17} />
+        </button>}
+        {onClose && <button className={styles.drawerClose} type="button" onClick={onClose} aria-label="Fechar navegação">
+          <NavigationIcon name="close" />
+        </button>}
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: "12px 0", overflowY: "auto" }}>
-        {navGroups.map((group) => (
-          <div key={group.label} style={{ marginBottom: 8 }}>
-            {!collapsed && (
-              <div
-                style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: "var(--color-text-muted)",
-                  letterSpacing: "0.1em",
-                  padding: "10px 20px 4px",
-                }}
-              >
-                {group.label}
-              </div>
-            )}
-            {group.items.map((item) => {
-              const active = currentPage === item.key;
-              return (
-                <button
-                  key={item.key}
-                  aria-label={item.label}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => onNavigate(item.key)}
-                  title={collapsed ? item.label : undefined}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: collapsed ? "9px 0" : "9px 20px",
-                    justifyContent: collapsed ? "center" : "flex-start",
-                    background: active ? "rgba(37,99,235,0.15)" : "transparent",
-                    border: "none",
-                    borderLeft: active ? "3px solid #2563eb" : "3px solid transparent",
-                    color: active ? "var(--theme-93c5fd)" : "var(--theme-64748b)",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: active ? 600 : 400,
-                    transition: "all 0.15s",
-                    textAlign: "left",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--theme-94a3b8)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLButtonElement).style.color = "var(--theme-64748b)";
-                  }}
-                >
-                  <span style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
-                  {!collapsed && <span className="sidebar-text">{item.label}</span>}
-                </button>
-              );
-            })}
+      <div className={styles.workspace}>
+        <span className={styles.workspaceIcon}><NavigationIcon name="shield" /></span>
+        <div className={styles.sidebarText}>
+          <strong>Distrito Federal</strong>
+          <span>Análise e monitoramento</span>
+        </div>
+        <span className={styles.workspaceTag}>DF</span>
+      </div>
+
+      <nav id={navigationId} aria-label="Menu principal" className={styles.navigation}>
+        {navigationGroups.map((group) => (
+          <div key={group.label} className={styles.navGroup}>
+            <p className={styles.groupLabel}>{group.label}</p>
+            {group.items.filter((item) => (item.key !== "review" || pcdf)
+              && item.key in NAVIGATION_ROUTES && canVisit(role, NAVIGATION_ROUTES[item.key])).map((item) => (
+              <button key={item.key} type="button" className={styles.navItem}
+                aria-label={item.label} aria-current={currentPage === item.key ? "page" : undefined}
+                title={item.label} onClick={() => onNavigate(item.key)}>
+                <span className={styles.navIcon}><NavigationIcon name={item.icon} /></span>
+                <span className={styles.sidebarText}>{item.label}</span>
+                {currentPage === item.key && <span className={styles.activeDot} aria-hidden="true" />}
+              </button>
+            ))}
           </div>
         ))}
       </nav>
+      <LogoutForm className={styles.logout}><button type="submit" className={styles.navItem} aria-label="Encerrar sessão" title="Encerrar sessão"><span className={styles.navIcon}><NavigationIcon name="logout" /></span><span className={styles.sidebarText}>Encerrar sessão</span></button></LogoutForm>
 
-      {/* User */}
-      <div
-        style={{
-          padding: collapsed ? "14px 0" : "14px 16px",
-          borderTop: "1px solid var(--theme-1e3a5f)",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          justifyContent: collapsed ? "center" : "flex-start",
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#fff",
-            flexShrink: 0,
-          }}
-        >
-          PA
+      <div className={styles.sidebarFooter}>
+        <div className={styles.userCard} title={`${principal.name} · ${role}`}>
+          <span className={styles.avatar}>{principal.name.slice(0, 2).toLocaleUpperCase("pt-BR")}</span>
+          <div className={styles.sidebarText}><strong>{principal.name}</strong><span>{role}</span></div>
         </div>
-        {!collapsed && (
-          <div className="sidebar-text" style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              Pedro Augusto
-            </div>
-            <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Administrador</div>
-          </div>
-        )}
       </div>
-
-      {/* Toggle button */}
-      <button
-        onClick={onToggle}
-        aria-label={collapsed ? "Expandir navegação" : "Recolher navegação"}
-        aria-expanded={!collapsed}
-        title={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-        style={{
-          position: "absolute",
-          right: 6,
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          background: "var(--theme-0d1626)",
-          border: "1px solid var(--theme-1e3a5f)",
-          color: "var(--color-text-muted)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 10,
-          zIndex: 20,
-        }}
-      >
-        {collapsed ? "▶" : "◀"}
-      </button>
     </aside>
-  );
+  )
 }

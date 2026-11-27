@@ -1,0 +1,62 @@
+-- SENTINELA · local-manual-0005 · retira a FK de naturezas_retiradas para eventos_auditoria.
+-- A FK da 0004 fica fora do contrato de vínculos de sentinela_exclusao.vinculos_inesperados() e bloqueia
+-- a prévia e a exclusão física de lotes. A integridade passa a um gatilho de restrição adiado, que exige
+-- o evento de edição manual da mesma transação. Eventos de auditoria são imutáveis.
+-- Variáveis: cluster_uuid e system_id do destino atestado. Uma única transação.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL search_path=pg_catalog,pg_temp;
+SELECT set_config('sentinela.manual_release_uuid',:'cluster_uuid',true) AS expected_cluster,
+       set_config('sentinela.manual_release_system',:'system_id',true) AS expected_system
+\gset
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+ OR inet_server_port() NOT IN (55484,55487) OR pg_is_in_recovery()
+ OR nullif(current_setting('sentinela.manual_release_uuid'),'') IS NULL
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.manual_release_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.manual_release_system')
+ OR NOT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-manual-0004')
+ OR EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao IN ('local-manual-0004-revertida','local-manual-0005'))
+ OR EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas)
+ OR (SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='naturezas_retiradas_auditoria_id_fkey'
+     AND conrelid='sentinela_ocorrencias_manual.naturezas_retiradas'::regclass)
+    IS DISTINCT FROM 'FOREIGN KEY (auditoria_id) REFERENCES sentinela.eventos_auditoria(id) DEFERRABLE INITIALLY DEFERRED'
+ OR ARRAY(SELECT sentinela_exclusao.vinculos_inesperados())
+    IS DISTINCT FROM ARRAY['sentinela_ocorrencias_manual.naturezas_retiradas.naturezas_retiradas_auditoria_id_fkey']
+ THEN RAISE EXCEPTION 'Destino, versão ou estado divergentes de local-manual-0005'; END IF;
+END $guard$;
+
+ALTER TABLE sentinela_ocorrencias_manual.naturezas_retiradas DROP CONSTRAINT naturezas_retiradas_auditoria_id_fkey;
+
+CREATE FUNCTION sentinela_ocorrencias_manual.validar_retirada() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+BEGIN
+ IF NOT EXISTS (SELECT FROM sentinela.eventos_auditoria e
+   JOIN sentinela.ocorrencia_naturezas n ON n.id=NEW.associacao_id
+   WHERE e.id=NEW.auditoria_id AND e.ocorrencia_id=n.ocorrencia_id AND e.acao='ocorrencia.manual.editada'
+     AND e.ator_tipo='usuario' AND e.depois->>'operacao'='cadastro-manual' AND e.transacao_id=pg_current_xact_id())
+ THEN RAISE EXCEPTION 'Retirada de natureza sem evento de edição auditado' USING ERRCODE='23503'; END IF;
+ RETURN NULL;
+END $$;
+ALTER FUNCTION sentinela_ocorrencias_manual.validar_retirada() OWNER TO sentinela_manual_writer;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.validar_retirada() FROM PUBLIC;
+CREATE CONSTRAINT TRIGGER retirada_exige_auditoria AFTER INSERT ON sentinela_ocorrencias_manual.naturezas_retiradas
+ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION sentinela_ocorrencias_manual.validar_retirada();
+
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+VALUES ('local-manual-0005','Retirada de natureza validada por auditoria, sem vínculo fora do contrato de exclusão');
+
+DO $guard$
+BEGIN
+ IF EXISTS (SELECT FROM sentinela_exclusao.vinculos_inesperados())
+  OR NOT EXISTS (SELECT FROM pg_trigger WHERE tgname='retirada_exige_auditoria'
+    AND tgrelid='sentinela_ocorrencias_manual.naturezas_retiradas'::regclass AND tgdeferrable AND tginitdeferred)
+  OR NOT EXISTS (SELECT FROM pg_class WHERE oid='sentinela_ocorrencias_manual.naturezas_retiradas'::regclass
+    AND relrowsecurity AND relforcerowsecurity)
+ THEN RAISE EXCEPTION 'Verificação transacional de local-manual-0005 falhou'; END IF;
+END $guard$;
+COMMIT;

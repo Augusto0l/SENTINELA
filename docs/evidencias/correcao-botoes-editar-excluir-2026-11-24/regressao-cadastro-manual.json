@@ -1,0 +1,18 @@
+{
+  "result": "APROVADO",
+  "viewport": [
+    1440,
+    1024,
+    768,
+    320,
+    390
+  ],
+  "mobileTouch": true,
+  "nextRestart": true,
+  "lateRollback": true,
+  "profiles": [
+    "Administrador",
+    "Operador",
+    "Analista"
+  ]
+}

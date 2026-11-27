@@ -1,0 +1,33 @@
+{
+  "startedAt": "2026-10-28T17:27:35.687Z",
+  "base": "http://127.0.0.1:3000",
+  "buildId": "ZegOWoXQpLl_y15v4YfR1",
+  "results": [
+    {
+      "name": "worker",
+      "command": "node --experimental-strip-types scripts/check-import-worker.mjs",
+      "startedAt": "2026-10-28T17:27:36.188Z",
+      "finishedAt": "2026-10-28T17:28:03.992Z",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "worker.log",
+      "artifacts": [
+        "loading-claro-1366.png",
+        "loading-claro-320.png",
+        "loading-claro-390.png",
+        "loading-claro-768.png",
+        "loading-escuro-1366.png",
+        "loading-escuro-320.png",
+        "loading-escuro-390.png",
+        "loading-escuro-768.png",
+        "loading.png",
+        "messageerror.png",
+        "results.json",
+        "runtime-error.png",
+        "send-error.png",
+        "silent-exit.png"
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-28T17:28:03.993Z"
+}

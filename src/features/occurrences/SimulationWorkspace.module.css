@@ -1,0 +1,16 @@
+.workspace { border: 1px solid var(--theme-1e3a5f); border-radius: 10px; padding: 16px; min-width: 0; background: var(--theme-0d1a2d); color: var(--color-text-primary); overflow-wrap: anywhere; }
+.workspace h2 { font-size: 18px; font-weight: 700; }
+.workspace p { margin: 10px 0; }
+.workspace label, .form label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.workspace input, .workspace select, .workspace textarea, .form textarea { max-width: 100%; min-width: 0; width: 100%; box-sizing: border-box; border: 1px solid var(--theme-1e3a5f); background: var(--theme-111d2e); color: var(--color-text-primary); padding: 8px; border-radius: 6px; }
+.workspace input[type=checkbox], .form input[type=checkbox] { width: auto; align-self: flex-start; }
+.workspace :focus-visible, .form :focus-visible { outline: 2px solid var(--theme-60a5fa); outline-offset: 3px; }
+.form, .workspace fieldset { display: flex; flex-direction: column; gap: 12px; min-width: 0; border: 0; padding: 0; margin: 12px 0; }
+.workspace legend { font-weight: 700; padding: 8px 0; }
+.workspace .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.actions button { max-width: 100%; height: auto; min-height: 40px; white-space: normal; }
+.link { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; gap: 8px; margin: 10px 0; }
+.identity { border-left: 3px solid var(--theme-60a5fa); padding-left: 12px; }
+.form textarea { min-height: 90px; }
+@media(max-width: 600px) { .workspace .grid, .link { grid-template-columns: minmax(0, 1fr); } .workspace { padding: 10px; } }

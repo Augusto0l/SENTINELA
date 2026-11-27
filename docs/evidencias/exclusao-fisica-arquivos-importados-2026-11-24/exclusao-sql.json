@@ -1,0 +1,178 @@
+{
+  "compartilhamento": {
+    "loteExcluido": "8a4e7d87-00ae-4bca-a8fd-04fd9b236b53",
+    "origemPreservada": "027f7f2a-f7f5-4902-b45b-6bb51665c7a5",
+    "ocorrenciaPreservada": "c20f86fc-c2de-4d9b-9e2a-3e7b60a73a5e",
+    "loteBloqueado": "b553e804-7580-4699-9d4c-bfcb8c2e524d"
+  },
+  "csv": {
+    "lote": "39d1e70c-8c11-4647-8015-71da63ba1fba",
+    "antes": {
+      "lotes": 1,
+      "execucoes": 1,
+      "staging": 1,
+      "origens": 1,
+      "extracoes": 1,
+      "pendencias": 2,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 5,
+      "recibos": 2,
+      "inativacoes": 1
+    },
+    "depois": {
+      "lotes": 0,
+      "execucoes": 0,
+      "staging": 0,
+      "origens": 0,
+      "extracoes": 0,
+      "pendencias": 0,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 0,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "novoLote": "b72c0cf2-bb32-4aad-a833-742c7f0c8a44"
+  },
+  "xlsx": {
+    "lote": "5719cee5-af08-44d8-ad85-7269f3946a04",
+    "antes": {
+      "lotes": 1,
+      "execucoes": 1,
+      "staging": 1,
+      "origens": 1,
+      "extracoes": 1,
+      "pendencias": 2,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 5,
+      "recibos": 2,
+      "inativacoes": 1
+    },
+    "depois": {
+      "lotes": 0,
+      "execucoes": 0,
+      "staging": 0,
+      "origens": 0,
+      "extracoes": 0,
+      "pendencias": 0,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 0,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "novoLote": "3a554e9b-4dc5-4ba2-94ab-7fa2e3f734d3"
+  },
+  "pcdfV2": {
+    "lote": "ecba7e5b-d738-460b-af8d-db6e1d8dbebb",
+    "antes": {
+      "lotes": 1,
+      "execucoes": 1,
+      "staging": 2,
+      "origens": 2,
+      "extracoes": 1,
+      "pendencias": 8,
+      "entregas": 1,
+      "aprovacoes": 1,
+      "auditorias": 2,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "depois": {
+      "lotes": 0,
+      "execucoes": 0,
+      "staging": 0,
+      "origens": 0,
+      "extracoes": 0,
+      "pendencias": 0,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 0,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "reconexao": {
+      "lotes": 0,
+      "execucoes": 0,
+      "staging": 0,
+      "origens": 0,
+      "extracoes": 0,
+      "pendencias": 0,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 0,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "comprovante": {
+      "id": "ac102409-cb2a-4160-af5f-7e9bf4ef06e0",
+      "lote": "ecba7e5b-d738-460b-af8d-db6e1d8dbebb",
+      "responsavel": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "justificativa": "Exclusão física da fixture",
+      "momento": "2026-11-24T11:20:01.86535-03:00",
+      "quantidades": {
+        "lotes": 1,
+        "execucoes": 1,
+        "staging": 2,
+        "origens": 2,
+        "extracoes": 1,
+        "pendencias": 8,
+        "correcoes": 0,
+        "inativacoes": 0,
+        "recibos": 0,
+        "entregas": 1,
+        "aprovacoes": 1,
+        "auditorias": 2,
+        "artefatos": 6
+      }
+    },
+    "novoLote": "5d157fde-930b-4471-bd45-8d766bbb1bfe",
+    "indicadoresAntes": {
+      "associacoes": 4,
+      "pendencias": 16
+    },
+    "indicadoresDepois": {
+      "associacoes": 2,
+      "pendencias": 8
+    }
+  },
+  "pcdfV1": {
+    "lote": "885f5fad-0d3f-49fd-86ad-58bf574a2776",
+    "antes": {
+      "lotes": 1,
+      "execucoes": 1,
+      "staging": 2,
+      "origens": 2,
+      "extracoes": 1,
+      "pendencias": 6,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 4,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "depois": {
+      "lotes": 0,
+      "execucoes": 0,
+      "staging": 0,
+      "origens": 0,
+      "extracoes": 0,
+      "pendencias": 0,
+      "entregas": 0,
+      "aprovacoes": 0,
+      "auditorias": 0,
+      "recibos": 0,
+      "inativacoes": 0
+    },
+    "novoLote": "be532ad5-e1a9-40e3-929a-d14ba6413aa7",
+    "competencia": "2021-02"
+  },
+  "reimportacaoCompartilhada": {
+    "loteExcluido": "9b899f8e-8945-43a2-aed1-6449c1a82fe0",
+    "lotePreservado": "3f0c7076-486a-4220-a0a4-3a9494989d08",
+    "origemReutilizada": "0f5ed7ed-96eb-4477-9ecd-4cd67a5ff8eb",
+    "novoLote": "7016c61a-c649-47ad-a3c5-3465e049b57b"
+  }
+}

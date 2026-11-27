@@ -1,0 +1,112 @@
+-- SENTINELA · reversão de local-manual-0004, somente enquanto nenhum dado manual tiver sido gravado.
+-- Com ocorrências manuais já registradas, use a restauração do backup verificado anterior à instalação.
+-- Variáveis: cluster_uuid e system_id do destino atestado. Uma única transação.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL search_path=pg_catalog,pg_temp;
+SELECT set_config('sentinela.manual_release_uuid',:'cluster_uuid',true) AS expected_cluster,
+       set_config('sentinela.manual_release_system',:'system_id',true) AS expected_system
+\gset
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+ OR inet_server_port() NOT IN (55484,55487) OR pg_is_in_recovery()
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.manual_release_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.manual_release_system')
+ OR NOT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-manual-0004')
+ OR EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-manual-0004-revertida')
+ OR EXISTS (SELECT FROM sentinela.ocorrencias WHERE origem='manual')
+ OR EXISTS (SELECT FROM sentinela_ocorrencias_manual.cadastros)
+ OR EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas)
+ OR EXISTS (SELECT FROM sentinela.eventos_auditoria WHERE depois->>'operacao'='cadastro-manual')
+ OR (SELECT count(*) FROM sentinela_ocorrencias_manual.definicoes_originais)<>5
+ THEN RAISE EXCEPTION 'Reversão recusada: destino divergente ou dados manuais já gravados; use o backup verificado'; END IF;
+END $guard$;
+
+DO $restore$
+DECLARE item record;
+BEGIN
+ FOR item IN SELECT definicao FROM sentinela_ocorrencias_manual.definicoes_originais LOOP
+  EXECUTE item.definicao;
+ END LOOP;
+END $restore$;
+
+DROP POLICY manual_autores ON sentinela.usuarios;
+DROP POLICY manual_nature_local ON sentinela.naturezas_criminais;
+DROP POLICY manual_links_writer_read ON sentinela.ocorrencia_naturezas;
+DROP POLICY manual_occurrence_update ON sentinela.ocorrencias;
+DROP POLICY manual_pendencias_leitura ON sentinela.pendencias_revisao;
+DROP POLICY manual_audit_read ON sentinela.eventos_auditoria;
+DROP POLICY manual_audit_usuario ON sentinela.eventos_auditoria;
+ALTER POLICY manual_read_links ON sentinela.ocorrencia_naturezas
+ USING (EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id));
+ALTER POLICY ocorrencias_read_associacoes ON sentinela.ocorrencia_naturezas
+ USING (EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_naturezas.ocorrencia_id));
+
+DROP FUNCTION sentinela_ocorrencias_manual.acoes(jsonb);
+DROP FUNCTION sentinela_ocorrencias_manual.contexto(uuid);
+DROP FUNCTION sentinela_ocorrencias_manual.transicionar(jsonb,text,uuid);
+DROP FUNCTION sentinela_ocorrencias_manual.pendencias_publicacao(uuid);
+DROP FUNCTION sentinela_ocorrencias_manual.editar(jsonb,text,uuid);
+DROP FUNCTION sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid);
+DROP FUNCTION sentinela_ocorrencias_manual.naturezas_ativas(uuid);
+DROP FUNCTION sentinela_ocorrencias_manual.limpar_crime(jsonb);
+DROP FUNCTION sentinela_ocorrencias_manual.referencias_validas(jsonb);
+DROP FUNCTION sentinela_ocorrencias_manual.payload_valido(jsonb,boolean);
+DROP FUNCTION sentinela_ocorrencias_manual.verificar_evento(jsonb,jsonb);
+DROP FUNCTION sentinela_ocorrencias_manual.exigir_autor(uuid,text);
+DROP FUNCTION sentinela_ocorrencias_manual.autor(uuid,text);
+DROP TRIGGER validar_dados_manuais ON sentinela_ocorrencias_manual.cadastros;
+DROP FUNCTION sentinela_ocorrencias_manual.validar_dados();
+
+-- Revoking a table privilege also removes column privileges; restore the pre-package column set.
+REVOKE SELECT ON sentinela.ocorrencias FROM sentinela_manual_writer;
+GRANT SELECT (id,origem,fonte) ON sentinela.ocorrencias TO sentinela_manual_writer;
+REVOKE UPDATE (data_fato,horario_fato,ra_id,local,latitude,longitude,geometria,ativo,consolidacao_status)
+ ON sentinela.ocorrencias FROM sentinela_manual_writer;
+REVOKE SELECT (id,natureza_id,origem,crime_tentado,classificacao_status) ON sentinela.ocorrencia_naturezas FROM sentinela_manual_writer;
+REVOKE INSERT (id,usuario_id,antes) ON sentinela.eventos_auditoria FROM sentinela_manual_writer;
+REVOKE SELECT (id,ator_tipo,usuario_id,acao,ocorrencia_id,antes,depois,justificativa,registrado_em,transacao_id)
+ ON sentinela.eventos_auditoria FROM sentinela_manual_writer;
+REVOKE SELECT (categoria_pcdf_original) ON sentinela.naturezas_criminais FROM sentinela_manual_writer;
+REVOKE SELECT (natureza_original) ON sentinela.linhas_origem FROM sentinela_manual_writer;
+REVOKE SELECT (id,auth_user_id,perfil,ativo) ON sentinela.usuarios FROM sentinela_manual_writer;
+REVOKE SELECT (id,ocorrencia_id,status) ON sentinela.pendencias_revisao FROM sentinela_manual_writer;
+REVOKE UPDATE (endereco,dados_crime) ON sentinela_ocorrencias_manual.cadastros FROM sentinela_manual_writer;
+REVOKE USAGE ON SCHEMA extensions FROM sentinela_local_admin,sentinela_local_operator;
+-- Removes only the explicit grant added by the package; inherited or PUBLIC access stays as it was.
+REVOKE EXECUTE ON FUNCTION pg_catalog.pg_control_system() FROM sentinela_manual_writer;
+REVOKE USAGE ON SCHEMA sentinela_ocorrencias_manual FROM sentinela_ocorrencias_reader;
+
+DROP POLICY manual_receipt_operational_read ON sentinela_ocorrencias_manual.cadastros;
+DROP POLICY manual_receipt_operational_update ON sentinela_ocorrencias_manual.cadastros;
+ALTER TABLE sentinela_ocorrencias_manual.cadastros DROP COLUMN dados_crime;
+DROP TABLE sentinela_ocorrencias_manual.naturezas_retiradas;
+-- Present after local-manual-0005; its trigger was dropped with the table.
+DROP FUNCTION IF EXISTS sentinela_ocorrencias_manual.validar_retirada();
+DROP TABLE sentinela_ocorrencias_manual.naturezas_uso_local;
+DROP TABLE sentinela_ocorrencias_manual.liberacao;
+DROP TABLE sentinela_ocorrencias_manual.definicoes_originais;
+-- The ledger is immutable. Record the reversal; a later installation needs a new, reviewed version.
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+VALUES ('local-manual-0004-revertida','Reversão de local-manual-0004 sem dados manuais gravados');
+
+DO $guard$
+BEGIN
+ IF to_regprocedure('sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid)') IS NOT NULL
+  OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela_ocorrencias_manual'::regnamespace AND relkind='r')<>1
+  OR EXISTS (SELECT FROM (VALUES
+      ('sentinela.exigir_historico_correcao()'::regprocedure,'4d10efd1e9d002947e7f9d704ac185aa31c7cb295f3bcf4e810d502d84662cff'),
+      ('sentinela.bloquear_correcao_sem_backend()'::regprocedure,'6944306853bc1a6703721f411397e7dc3f4ec5a24811fc78ebf7c7ffac0f091d'),
+      ('sentinela.bloquear_autoria_manual_sem_auth()'::regprocedure,'49c6b40f2fd8a8a67f8691831d960c048e4421cea4fdc4659c9a66cdcdf157cc')) e(func,hash)
+    JOIN pg_proc p ON p.oid=e.func
+    WHERE e.hash IS DISTINCT FROM encode(sha256(convert_to(regexp_replace(p.prosrc,'[[:space:]]+','','g'),'UTF8')),'hex'))
+  OR has_schema_privilege('sentinela_local_operator','extensions','USAGE')
+  OR NOT has_column_privilege('sentinela_manual_writer','sentinela.ocorrencias','fonte','SELECT')
+  OR has_column_privilege('sentinela_manual_writer','sentinela.ocorrencias','versao','SELECT')
+ THEN RAISE EXCEPTION 'Verificação da reversão falhou'; END IF;
+END $guard$;
+COMMIT;

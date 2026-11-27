@@ -1,0 +1,217 @@
+.workspace {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(12px, 1.5vw, 26px);
+  color: var(--color-text-primary);
+  container-type: inline-size;
+}
+.edit { container-type: inline-size; }
+.edit .approval { display: flex; align-items: center; }
+.approval input[type="checkbox"] { width: 18px; min-height: 18px; flex: none; accent-color: var(--theme-60a5fa); }
+.approval input[aria-invalid="true"] { outline: 1px solid var(--theme-ef4444); }
+.hero, .heroTitle, .heading { display: flex; align-items: start; gap: 12px; }
+.hero { align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.heroTitle { align-items: center; }
+.heroTitle > svg, .headingIcon, .extrasHeading > svg { flex: none; color: var(--theme-60a5fa); }
+.hero h1, .complete h1 { margin: 0; font-size: 24px; font-weight: 750; line-height: 1.15; }
+.hero p, .heading p, .extrasHeading small { margin: 4px 0 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.35; }
+.heading { margin-bottom: 11px; }
+.heading h2, .coordinates h2 { margin: 0; font-size: 17px; font-weight: 720; line-height: 1.2; }
+.headingIcon { display: grid; place-items: center; width: 30px; height: 30px; }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 42fr) minmax(0, 58fr);
+  grid-template-rows: auto auto auto 1fr;
+  grid-template-areas: "fact map" "address map" "extras map" "coordinates map";
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.layout[hidden] { display: none; }
+.layout.crimeLayout {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  grid-template-areas: none;
+  max-width: 880px;
+}
+.crimeAdditionalFields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+}
+.crimeLayout textarea { resize: vertical; line-height: 1.5; }
+.card, .location, .complete {
+  min-width: 0;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 12px;
+  background: linear-gradient(140deg, var(--theme-0d1a2d), var(--theme-0a1525));
+}
+.card, .complete { padding: 14px 16px; }
+.fact { grid-area: fact; }
+.address { grid-area: address; }
+.coordinates { grid-area: coordinates; align-self: start; }
+.extras { grid-area: extras; align-self: start; }
+.twoColumns, .postalRow, .natureRow { display: grid; align-items: end; gap: 10px 14px; }
+.twoColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.postalRow { grid-template-columns: minmax(0, 1fr) auto; max-width: 470px; margin-bottom: 7px; }
+.natureRow { grid-template-columns: minmax(0, 1fr) minmax(136px, .55fr) auto; margin-bottom: 8px; }
+.naturePicker { position: relative; }
+.natureOptions {
+  position: absolute;
+  z-index: 5;
+  top: 100%;
+  inset-inline: 0;
+  margin: 3px 0 0;
+  max-height: 190px;
+  overflow: auto;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--theme-263a55);
+  border-radius: 7px;
+  background: var(--theme-0a1525);
+  box-shadow: 0 6px 18px #0004;
+}
+.natureOptions li { padding: 8px; border-radius: 4px; overflow-wrap: anywhere; }
+.natureOptions [role="option"] { cursor: pointer; }
+.natureOptions [role="option"]:hover, .natureOptions [aria-selected="true"] { background: var(--theme-1a3050); }
+.layout label { display: grid; min-width: 0; gap: 4px; font-size: 13px; font-weight: 560; }
+.address > label { margin: 8px 0; }
+.layout :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 39px;
+  padding: 6px 10px;
+  border: 1px solid var(--theme-263a55);
+  border-radius: 7px;
+  background-color: var(--theme-0a1525);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 400;
+}
+.layout :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--theme-ef4444); }
+.invalidLabel { color: var(--theme-ef4444); }
+.layout :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--theme-60a5fa);
+  outline-offset: 2px;
+}
+.addNature { width: 100%; margin-top: 6px; }
+.card :is(p,[role="status"]):empty { display: none; }
+.card > :is(p,[role="status"]), .postalSuggestion p, .positionCard p, .searchResults p {
+  margin: 5px 0;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  font-size: 13px;
+}
+.postalSuggestion, .territory:not(:empty) { margin: 8px 0; }
+.coordinates h2 { margin-bottom: 9px; }
+.extrasHeading { display: flex; align-items: center; gap: 11px; font-weight: 700; }
+.extrasHeading h2 { margin: 0; font: inherit; }
+.extrasHeading small { display: block; font-weight: 400; }
+.extras > :not(.extrasHeading) { margin-top: 10px; }
+.error { color: var(--theme-ef4444); font-size: 13px; }
+.location {
+  grid-area: map;
+  position: sticky;
+  align-self: start;
+  top: 12px;
+  height: clamp(565px, 77dvh, 840px);
+  padding: 7px;
+  isolation: isolate;
+  overflow: hidden;
+}
+.map { position: absolute; inset: 7px; border-radius: 8px; overflow: hidden; background-color: var(--theme-1a3050); }
+.map > div { height: 100% !important; }
+.map :global(.leaflet-top.leaflet-left) { top: 54px; }
+.map :global(.map-tile-warning) { right: auto; bottom: 38px; max-width: min(245px, 43%); border-radius: 6px; }
+.map :global(.occurrence-pin) {
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: #be2531;
+  transform-origin: center;
+  color: white;
+  touch-action: none;
+}
+.searchOverlay { position: absolute; z-index: 1000; top: 18px; left: 18px; right: 18px; }
+.searchRow, .searchBar { display: flex; gap: 8px; min-width: 0; }
+.searchBar { flex: 1; align-items: center; border: 1px solid var(--theme-263a55); border-radius: 9px; padding-right: 8px; }
+.searchBar, .searchRow > button, .searchResults, .positionCard { background: var(--theme-0a1525); }
+.searchBar input { border: 0; background: transparent; }
+.searchBar button { flex: none; }
+.searchResults {
+  margin-top: 5px;
+  margin-inline-start: 44px;
+  padding: 7px 10px;
+  max-height: min(210px, 33vh);
+  overflow-y: auto;
+  border: 1px solid var(--theme-263a55);
+  border-radius: 8px;
+}
+.searchResults ul { margin: 0; padding: 0; }
+.searchResults li { list-style: none; }
+.searchResults li button { width: 100%; text-align: start; padding: 8px; border-top: 1px solid var(--theme-1e3a5f); cursor: pointer; }
+.searchResults li button:hover { background: var(--theme-0d1a2d); }
+.positionCard {
+  position: absolute;
+  z-index: 800;
+  right: 18px;
+  bottom: 38px;
+  width: min(320px, calc(100% - 36px));
+  max-height: 48%;
+  overflow: auto;
+  padding: 11px 13px;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px #0004;
+}
+.positionCard h2 { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.positionCard h2 svg { color: var(--theme-60a5fa); flex: none; }
+.positionCard dl { margin: 0; }
+.positionCard dl div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1px 8px;
+  border-top: 1px solid var(--theme-1e3a5f);
+  padding: 3px 0;
+  font-size: 12px;
+}
+.positionCard dt { color: var(--color-text-muted); }
+.positionCard dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.actions { display: flex; justify-content: end; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.hero .actions { flex: none; margin-top: 0; }
+.feedback { margin-bottom: 12px; font-size: 13px; }
+.complete { max-width: 720px; margin: 24px auto; }
+.complete p { margin: 10px 0; overflow-wrap: anywhere; }
+.cancel h2 { margin: 0 0 8px; font-size: 19px; font-weight: 700; }
+@container (max-width: 850px) {
+  .layout { grid-template-columns: minmax(0,1fr); grid-template-rows: auto; grid-template-areas: "fact" "address" "extras" "map" "coordinates"; }
+  .location { position: relative; top: auto; height: 460px; }
+}
+@container (max-width: 520px) {
+  .hero { flex-direction: column; align-items: stretch; }
+  .crimeAdditionalFields { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 450px) {
+  .card { padding: 12px; }
+  .location { height: auto; }
+  .map { position: relative; inset: auto; height: 360px; }
+  .positionCard { position: relative; right: auto; bottom: auto; width: auto; max-height: none; margin-top: 8px; }
+  .twoColumns, .natureRow, .postalRow { gap: 8px; }
+  .natureRow { grid-template-columns: minmax(0, 1fr) auto; }
+  .natureRow label:first-child { grid-column: 1 / -1; }
+  .address .twoColumns { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 355px) {
+  .postalRow { grid-template-columns: minmax(0, 1fr); }
+}
+.addressSearch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+}

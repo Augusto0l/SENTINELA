@@ -1,0 +1,32 @@
+{
+  "base": "http://127.0.0.1:3000",
+  "environment": {
+    "node": "v22.23.2",
+    "browser": "156.0.8078.48",
+    "viewportHeight": 900,
+    "remoteFonts": "blocked-in-test"
+  },
+  "checks": [
+    "Arquivos de formato inválido, vazios e XLSX corrompido apresentam erros.",
+    "Prévia real: contagens, múltiplas naturezas, duplicata preservada, filtro e valores originais corretos.",
+    "Temas claro/escuro em 1366, 768, 390 e 320 px: sem overflow da página, tabela com rolagem própria.",
+    "Confirmação explícita sem persistência, retorno à prévia e correção de mapeamento funcionam.",
+    "Mapeamento inteiramente manual de cabeçalhos desconhecidos produz a mesma análise.",
+    "XLSX identifica planilhas, lê a selecionada e limpa a análise ao selecionar planilha vazia.",
+    "Drag-and-drop, limpeza e seleção repetida funcionam sem dados antigos.",
+    "Prévia pagina os 26 registros reais em 25 + 1, sem truncamento.",
+    "Modelos disponíveis, foco visível e nenhum erro JavaScript ou requisição de gravação."
+  ],
+  "errors": [],
+  "uploads": [],
+  "screenshots": [
+    1366,
+    768,
+    390,
+    320
+  ],
+  "themes": [
+    "claro",
+    "escuro"
+  ]
+}

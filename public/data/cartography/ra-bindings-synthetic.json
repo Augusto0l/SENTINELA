@@ -1,0 +1,345 @@
+{
+  "version": "ide-df-bindings-2026-11-13-v1",
+  "sourceId": "https://www.geoservicos.ide.df.gov.br/arcgis/rest/services/Publico/LIMITES/FeatureServer/1",
+  "sourceHash": "fd13e671d7660ba6fe2703ff69ba82e8ccb30e7cbc09f2887bfcdd4c69d28553",
+  "extractedOn": "2026-11-13",
+  "validFrom": null,
+  "validTo": null,
+  "temporalBasis": "extraction-only",
+  "scope": "sandbox",
+  "entries": [
+    {
+      "raId": "cd7f727e-49aa-5aa8-8327-31f51371edcc",
+      "catalogName": "PLANO PILOTO",
+      "code": "RA-I",
+      "sourceName": "PLANO PILOTO",
+      "sourceObjectId": "69",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "5ceb6079-8bfc-5818-82ef-48b2795c8ba2",
+      "catalogName": "GAMA",
+      "code": "RA-II",
+      "sourceName": "GAMA",
+      "sourceObjectId": "105",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "4ccf20e7-cee9-559a-8fc1-0af0363a2652",
+      "catalogName": "TAGUATINGA",
+      "code": "RA-III",
+      "sourceName": "TAGUATINGA",
+      "sourceObjectId": "81",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "48a8fd91-ac28-5208-8c65-c5ed2dff091c",
+      "catalogName": "BRAZLÂNDIA",
+      "code": "RA-IV",
+      "sourceName": "BRAZLÂNDIA",
+      "sourceObjectId": "92",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "9338d651-0f2e-50d3-85b5-33eadedc2108",
+      "catalogName": "CEILÂNDIA",
+      "code": "RA-IX",
+      "sourceName": "CEILÂNDIA",
+      "sourceObjectId": "102",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "2c8312ab-8df9-5993-87a3-018f12606ae3",
+      "catalogName": "SOBRADINHO",
+      "code": "RA-V",
+      "sourceName": "SOBRADINHO",
+      "sourceObjectId": "70",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "bfe8489f-4d24-57e4-8763-9b012a0b501d",
+      "catalogName": "PLANALTINA",
+      "code": "RA-VI",
+      "sourceName": "PLANALTINA",
+      "sourceObjectId": "90",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "f587b584-e0b5-56df-8f05-28851c40909f",
+      "catalogName": "PARANOÁ",
+      "code": "RA-VII",
+      "sourceName": "PARANOÁ",
+      "sourceObjectId": "96",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "e12ad9ae-c906-5d66-87b6-fc3447cce67d",
+      "catalogName": "NÚCLEO BANDEIRANTE",
+      "code": "RA-VIII",
+      "sourceName": "NÚCLEO BANDEIRANTE",
+      "sourceObjectId": "80",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "9c31769a-3d5f-5b1b-8986-afad9319dc68",
+      "catalogName": "GUARÁ",
+      "code": "RA-X",
+      "sourceName": "GUARÁ",
+      "sourceObjectId": "71",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "f6424605-048a-592a-8b5d-572578e9ce30",
+      "catalogName": "CRUZEIRO",
+      "code": "RA-XI",
+      "sourceName": "CRUZEIRO",
+      "sourceObjectId": "72",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "46593aba-5ad7-5b08-85c9-60373f49821e",
+      "catalogName": "SAMAMBAIA",
+      "code": "RA-XII",
+      "sourceName": "SAMAMBAIA",
+      "sourceObjectId": "98",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "eeb8d43e-432d-5662-80b4-9a99a3d9ba69",
+      "catalogName": "SANTA MARIA",
+      "code": "RA-XIII",
+      "sourceName": "SANTA MARIA",
+      "sourceObjectId": "99",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "041cd8a7-c472-5051-88b6-8a9a07fd9d47",
+      "catalogName": "SÃO SEBASTIÃO",
+      "code": "RA-XIV",
+      "sourceName": "SÃO SEBASTIÃO",
+      "sourceObjectId": "100",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "267a3011-4bc0-512e-847c-57fbe54c9852",
+      "catalogName": "CANDANGOLÂNDIA",
+      "code": "RA-XIX",
+      "sourceName": "CANDANGOLÂNDIA",
+      "sourceObjectId": "74",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "9b460b71-d88f-5b4b-8abc-99ebe0d75d16",
+      "catalogName": "RECANTO DAS EMAS",
+      "code": "RA-XV",
+      "sourceName": "RECANTO DAS EMAS",
+      "sourceObjectId": "97",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "5946d219-273f-5208-8c1e-c0ff4426e8e4",
+      "catalogName": "LAGO SUL",
+      "code": "RA-XVI",
+      "sourceName": "LAGO SUL",
+      "sourceObjectId": "77",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "d9c00edb-974e-5a30-80ef-2136fdea158b",
+      "catalogName": "RIACHO FUNDO",
+      "code": "RA-XVII",
+      "sourceName": "RIACHO FUNDO",
+      "sourceObjectId": "73",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "dfe70674-5b53-5737-874c-4f5359f7db0c",
+      "catalogName": "LAGO NORTE",
+      "code": "RA-XVIII",
+      "sourceName": "LAGO NORTE",
+      "sourceObjectId": "78",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "de9afa63-0d14-5d56-89d1-84c9cda64bd1",
+      "catalogName": "ÁGUAS CLARAS",
+      "code": "RA-XX",
+      "sourceName": "ÁGUAS CLARAS",
+      "sourceObjectId": "82",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "b665f7b7-f4ed-5bc0-8a5d-451c8d58409a",
+      "catalogName": "RIACHO FUNDO II",
+      "code": "RA-XXI",
+      "sourceName": "RIACHO FUNDO II",
+      "sourceObjectId": "75",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "04650061-1863-50d4-8bf4-5e4743bb037d",
+      "catalogName": "SUDOESTE/OCTOGONAL",
+      "code": "RA-XXII",
+      "sourceName": "SUDOESTE/OCTOGONAL",
+      "sourceObjectId": "83",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "552dcb68-5625-5782-8e5c-b0ad17294203",
+      "catalogName": "VARJÃO",
+      "code": "RA-XXIII",
+      "sourceName": "VARJÃO",
+      "sourceObjectId": "84",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "dabf9ec6-42f9-5fa2-8328-5941c9d40d5c",
+      "catalogName": "PARK WAY",
+      "code": "RA-XXIV",
+      "sourceName": "PARK WAY",
+      "sourceObjectId": "76",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "4ceb2dd0-0b00-52d4-82a7-d473d438b35f",
+      "catalogName": "SIA",
+      "code": "RA-XXIX",
+      "sourceName": "SIA",
+      "sourceObjectId": "86",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "2d7edc47-690c-50a8-8dc6-4dc090b660bb",
+      "catalogName": "SCIA",
+      "code": "RA-XXV",
+      "sourceName": "SCIA",
+      "sourceObjectId": "85",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "71c5627c-4796-5589-8301-c8123eff85d3",
+      "catalogName": "SOBRADINHO II",
+      "code": "RA-XXVI",
+      "sourceName": "SOBRADINHO II",
+      "sourceObjectId": "101",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "d1014786-f87c-5f45-8d47-aed25c4eab5d",
+      "catalogName": "JARDIM BOTÂNICO",
+      "code": "RA-XXVII",
+      "sourceName": "JARDIM BOTÂNICO",
+      "sourceObjectId": "95",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "64e68ed2-84d0-5935-8b75-b2cc3de8ca0a",
+      "catalogName": "ITAPOÃ",
+      "code": "RA-XXVIII",
+      "sourceName": "ITAPOÃ",
+      "sourceObjectId": "88",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "b40596ed-5286-5f16-8c6c-eee2aeef74d8",
+      "catalogName": "VICENTE PIRES",
+      "code": "RA-XXX",
+      "sourceName": "VICENTE PIRES",
+      "sourceObjectId": "104",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "3b983094-becd-57e8-81dd-4c5bee9c38ec",
+      "catalogName": "FERCAL",
+      "code": "RA-XXXI",
+      "sourceName": "FERCAL",
+      "sourceObjectId": "93",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "b19b3bc7-cdb3-5284-88d1-48e0b413a0f9",
+      "catalogName": "SOL NASCENTE E POR DO SOL",
+      "code": "RA-XXXII",
+      "sourceName": "SOL NASCENTE E POR DO SOL",
+      "sourceObjectId": "103",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "e4310614-3c56-5449-8f30-1969e8ac719b",
+      "catalogName": "ARNIQUEIRA",
+      "code": "RA-XXXIII",
+      "sourceName": "ARNIQUEIRA",
+      "sourceObjectId": "89",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "03c795ae-77e1-57f5-87c5-ff5db2211a42",
+      "catalogName": "ARAPOANGA",
+      "code": "RA-XXXIV",
+      "sourceName": "ARAPOANGA",
+      "sourceObjectId": "79",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "d9d7befb-407d-5aaa-8f19-454ed2ad5f4d",
+      "catalogName": "AGUA QUENTE",
+      "code": "RA-XXXV",
+      "sourceName": "AGUA QUENTE",
+      "sourceObjectId": "91",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "f14bea76-adde-5b4a-87d8-69babbeedd60",
+      "catalogName": "26 DE SETEMBRO",
+      "code": "RA-XXXVI",
+      "sourceName": "26 DE SETEMBRO",
+      "sourceObjectId": "106",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    },
+    {
+      "raId": "1eec55ae-3809-5666-862c-a2444f094175",
+      "catalogName": "PONTE ALTA",
+      "code": "XXXVII",
+      "sourceName": "PONTE ALTA",
+      "sourceObjectId": "107",
+      "status": "approved",
+      "evidence": "sandbox import keyed by ra_codigo and pinned source hash; synthetic UUID only"
+    }
+  ]
+}

@@ -1,0 +1,253 @@
+-- Homologação exclusiva do lote PCDF avulso de janeiro de 2021.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL search_path=pg_catalog,pg_temp;
+SET LOCAL lock_timeout='5s';
+SET LOCAL sentinela.pcdf_review_uuid TO :'expected_uuid';
+SET LOCAL sentinela.pcdf_review_system TO :'expected_system';
+SET LOCAL sentinela.pcdf_review_sha TO :'expected_csv';
+
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_port() IS DISTINCT FROM 55487
+   OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1' OR session_user<>'postgres'
+   OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.pcdf_review_uuid')
+   OR current_setting('sentinela.sandbox_uuid',true)='c04244a6-bc8d-4491-98bc-9af8a268d30c'
+   OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.pcdf_review_system')
+   OR current_setting('sentinela.pcdf_review_system')='7710764288366362848'
+   OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+     AND relkind='r' AND relrowsecurity AND relforcerowsecurity)<>19
+   OR NOT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='clone-pcdf-coordenadas-ausencia-0001')
+ THEN RAISE EXCEPTION 'Clone atestado com RLS e reprocessamento anterior obrigatorio'; END IF;
+END $guard$;
+
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+SELECT EXISTS(SELECT FROM sentinela.schema_migrations WHERE versao='clone-pcdf-revisao-independente-0001') AS aplicado \gset
+\if :aplicado
+\else
+
+CREATE SCHEMA sentinela_pcdf_revisao;
+REVOKE ALL ON SCHEMA sentinela_pcdf_revisao FROM PUBLIC;
+GRANT USAGE ON SCHEMA sentinela_pcdf_revisao TO sentinela_pcdf_owner,sentinela_ocorrencias_reader;
+
+CREATE FUNCTION sentinela_pcdf_revisao.informado(valor text) RETURNS boolean
+LANGUAGE sql IMMUTABLE SET search_path=pg_catalog AS $fn$
+ SELECT coalesce(lower(regexp_replace(valor,'^[[:space:]]+|[[:space:]]+$','','g')) NOT IN
+    ('','null','não informado','não informada','nao informado','nao informada','ra 98_não informada'),false)
+$fn$;
+
+CREATE FUNCTION sentinela_pcdf_revisao.decimal_geo(valor text,limite integer) RETURNS numeric
+LANGUAGE sql IMMUTABLE STRICT SET search_path=pg_catalog AS $fn$
+ SELECT CASE WHEN length(valor)<=16384 AND valor ~ '^[+-]?[0-9]+(\.[0-9]+)?$' THEN
+   CASE WHEN abs(valor::numeric)<=limite THEN valor::numeric END END
+$fn$;
+
+CREATE FUNCTION sentinela_pcdf_revisao.estado_geo(lat text,lon text) RETURNS text
+LANGUAGE sql IMMUTABLE SET search_path=pg_catalog AS $fn$
+ SELECT CASE
+   WHEN (sentinela_pcdf_revisao.informado(lat) AND sentinela_pcdf_revisao.decimal_geo(lat,90) IS NULL)
+     OR (sentinela_pcdf_revisao.informado(lon) AND sentinela_pcdf_revisao.decimal_geo(lon,180) IS NULL) THEN 'invalida'
+   WHEN NOT sentinela_pcdf_revisao.informado(lat) AND NOT sentinela_pcdf_revisao.informado(lon) THEN 'ausente'
+   WHEN NOT sentinela_pcdf_revisao.informado(lat) OR NOT sentinela_pcdf_revisao.informado(lon) THEN 'incompleta'
+   ELSE 'referencia_pendente' END
+$fn$;
+
+-- Chamador privilegiado fornece referência geográfica e limite territorial já homologados para a fonte.
+CREATE FUNCTION sentinela_pcdf_revisao.ponto_geo(lat text,lon text,srid integer,evidencia text,limite extensions.geometry)
+RETURNS extensions.geometry LANGUAGE plpgsql STABLE STRICT SET search_path=pg_catalog AS $fn$
+DECLARE ponto extensions.geometry;
+BEGIN
+ IF sentinela_pcdf_revisao.estado_geo(lat,lon)<>'referencia_pendente' OR btrim(evidencia)=''
+   OR extensions.ST_SRID(limite)<>4326 OR extensions.ST_IsEmpty(limite) OR NOT extensions.ST_IsValid(limite)
+   OR extensions.ST_GeometryType(limite) NOT IN ('ST_Polygon','ST_MultiPolygon')
+   OR NOT EXISTS (SELECT FROM extensions.spatial_ref_sys r WHERE r.srid=ponto_geo.srid
+                  AND r.srtext ~ '^(GEOGCS|GEOGCRS)\[')
+ THEN RETURN NULL; END IF;
+ ponto := extensions.ST_Transform(extensions.ST_SetSRID(extensions.ST_MakePoint(
+   sentinela_pcdf_revisao.decimal_geo(lon,180)::double precision,
+   sentinela_pcdf_revisao.decimal_geo(lat,90)::double precision),srid),4326);
+ IF extensions.ST_Covers(limite,ponto) THEN RETURN ponto; END IF;
+ RETURN NULL;
+END $fn$;
+
+CREATE FUNCTION sentinela_pcdf_local.efetivos_csv_v1(raw jsonb,competencia date) RETURNS jsonb
+LANGUAGE sql STABLE SET search_path=pg_catalog AS $fn$
+ WITH entrada AS (SELECT raw->>'data' AS dia,raw->>'horario' AS hora,raw->>'ocorrencia_chave' AS declarada,
+   raw->>'ano_registro' AS ano,raw->>'unidade_registro' AS unidade,raw->>'numero_registro' AS numero),
+ dados AS (SELECT *, CASE WHEN dia ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND pg_input_is_valid(dia,'date')
+   THEN dia::date END AS data_validada FROM entrada)
+ SELECT jsonb_build_object(
+   'data',CASE WHEN data_validada>=competencia AND data_validada<competencia+interval '1 month'
+       AND left(dia,4)=raw->>'ano_fato' THEN data_validada END,
+   'horario',CASE WHEN hora ~ '^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$' THEN hora END,
+   'chave',CASE WHEN ano ~ '^[0-9]{4}$' AND ano<>'0000' AND sentinela_pcdf_revisao.informado(unidade)
+       AND sentinela_pcdf_revisao.informado(numero) AND pg_input_is_valid(declarada,'jsonb') THEN
+     CASE WHEN declarada::jsonb=jsonb_build_array('PCDF',ano,unidade,numero) THEN declarada::jsonb END END,
+   'geo',sentinela_pcdf_revisao.estado_geo(raw->>'latitude_geo_original',raw->>'longitude_geo_original'),
+   'recepcao','nova_origem') FROM dados
+$fn$;
+
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA sentinela_pcdf_revisao FROM PUBLIC;
+REVOKE ALL ON FUNCTION sentinela_pcdf_local.efetivos_csv_v1(jsonb,date) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_pcdf_local.efetivos_csv_v1(jsonb,date) TO sentinela_pcdf_owner;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA sentinela_pcdf_revisao TO sentinela_pcdf_owner,sentinela_ocorrencias_reader;
+REVOKE EXECUTE ON FUNCTION sentinela_pcdf_revisao.ponto_geo(text,text,integer,text,extensions.geometry)
+ FROM sentinela_pcdf_owner,sentinela_ocorrencias_reader;
+
+ALTER POLICY pcdf_local_staging ON sentinela.linhas_staging USING (
+ (estado='bloqueada' OR (estado='recebida' AND derivados_efetivos ? 'geo'))
+ AND ocorrencia_id IS NULL AND associacao_id IS NULL
+ AND EXISTS (SELECT FROM sentinela.execucoes_importacao e WHERE e.id=execucao_id));
+
+ALTER POLICY pcdf_csv_run_insert ON sentinela.execucoes_importacao WITH CHECK (
+ session_user='sentinela_local_admin' AND versao_importador='pcdf-csv-avulso-v2'
+ AND versao_validacao='pcdf-csv-avulso-v2' AND status='concluida' AND tentativa=1
+ AND linhas_aptas=linhas_processadas AND linhas_bloqueadas=0
+ AND ocorrencias_criadas=0 AND associacoes_criadas=0
+ AND EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.id=lote_id AND l.versao_contrato='2.0'
+     AND l.extracao_id=execucoes_importacao.extracao_id AND l.solicitado_por=execucoes_importacao.solicitado_por));
+
+-- Conserva autorização, hash dos bytes, competência do arquivo e idempotência do receptor existente.
+DO $receiver$
+DECLARE body text := pg_get_functiondef('sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea)'::regprocedure);
+ old_count text := $$count(DISTINCT NULLIF(r.raw->>'ocorrencia_chave',''))$$;
+ old_values text := $$jsonb_build_object('data',r.raw->>'data','horario',nullif(r.raw->>'horario',''),'recepcao','nova_origem')$$;
+ old_date text := $$AND (r.raw->>'data')::date>=month_start
+     AND (r.raw->>'data')::date<month_start+interval '1 month'$$;
+ old_receipt text := $$'concluida',records,records,records,issues,records,$$;
+ old_columns text := 'linhas_processadas,linhas_bloqueadas,pendencias_detectadas';
+ old_state text := $$r.diagnostics,'bloqueada'$$;
+BEGIN
+ IF strpos(body,old_count)=0 OR strpos(body,old_values)=0 OR strpos(body,old_date)=0
+   OR strpos(body,old_receipt)=0 OR strpos(body,old_columns)=0 OR strpos(body,old_state)=0
+   OR strpos(body,'sentinela_gestao_autorizacao.exigir')=0
+ THEN RAISE EXCEPTION 'Definicao do receptor divergente'; END IF;
+ body := replace(body,old_count,$$count(DISTINCT (sentinela_pcdf_local.efetivos_csv_v1(r.raw,month_start)->>'chave'))$$);
+ body := replace(body,old_values,'sentinela_pcdf_local.efetivos_csv_v1(r.raw,month_start)');
+ body := replace(body,old_date,'');
+ body := replace(body,old_columns,'linhas_processadas,linhas_aptas,pendencias_detectadas');
+ body := replace(body,old_state,$$r.diagnostics,'recebida'$$);
+ EXECUTE body;
+END $receiver$;
+
+-- Vínculo de proveniência à ocorrência continua obrigatório quando a natureza está ausente.
+ALTER TABLE sentinela.ocorrencia_naturezas ALTER COLUMN natureza_id DROP NOT NULL;
+ALTER TABLE sentinela.ocorrencia_naturezas ADD CONSTRAINT associacao_natureza_ausente_pcdf_ck CHECK (
+ natureza_id IS NOT NULL OR (origem='importacao' AND linha_origem_id IS NOT NULL AND mapeamento_id IS NULL
+   AND classificacao_status IN ('pendente','sem_correspondencia','conflitante')));
+
+DO $provenance$
+DECLARE body text := pg_get_functiondef('sentinela.validar_associacao_mapeada()'::regprocedure);
+ old_join text := 'JOIN sentinela.naturezas_criminais n ON n.id=NEW.natureza_id';
+ old_source text := 'o.fonte=n.fonte OR (o.origem=';
+BEGIN
+ IF strpos(body,old_join)=0 OR strpos(body,old_source)=0 THEN RAISE EXCEPTION 'Vinculo de natureza divergente'; END IF;
+ body := replace(body,old_join,'LEFT '||old_join);
+ body := replace(body,old_source,$$o.fonte=n.fonte OR (NEW.natureza_id IS NULL AND o.fonte='PCDF' AND o.origem='importacao'
+   AND o.versao_identidade='pcdf-tupla-conferida-v1' AND EXISTS (
+     SELECT FROM sentinela.linhas_origem l WHERE l.id=NEW.linha_origem_id
+     AND sentinela.descricao_pcdf(l.natureza_original) IS DISTINCT FROM true)) OR (o.origem=$$);
+ EXECUTE body;
+END $provenance$;
+
+-- Uma linha por chave validada. As linhas sem identidade suficiente permanecem em staging.
+CREATE TEMP TABLE pcdf_candidatas ON COMMIT DROP AS
+ WITH staged AS MATERIALIZED (
+ SELECT s.linha_origem_id,s.campos_csv,l.competencia,o.ano_registro,o.unidade_registro,o.numero_registro,
+   o.natureza_original,o.crime_tentado,o.flagrante,o.unidade_apuracao,o.latitude_geo_original AS lat,o.longitude_geo_original AS lon,
+   sentinela_pcdf_local.efetivos_csv_v1(s.campos_csv,l.competencia) AS efetivos
+ FROM sentinela.linhas_staging s JOIN sentinela.lotes_importacao l ON l.id=s.lote_id
+ JOIN sentinela.linhas_origem o ON (o.id,o.extracao_id)=(s.linha_origem_id,s.extracao_id)
+ WHERE l.id='84908630-bd04-4a03-923d-616649c8de74' AND s.ocorrencia_id IS NULL AND s.associacao_id IS NULL
+  AND o.ano_registro=s.campos_csv->>'ano_registro' AND o.unidade_registro=s.campos_csv->>'unidade_registro'
+  AND o.numero_registro=s.campos_csv->>'numero_registro'
+ ), escopo_global AS MATERIALIZED (
+ SELECT btrim(s.campos_csv->>'ano_registro') AS ano,btrim(s.campos_csv->>'unidade_registro') AS unidade,
+   btrim(s.campos_csv->>'numero_registro') AS numero,array_agg(s.linha_origem_id ORDER BY s.linha_origem_id) AS origens,
+   bool_and(s.lote_id='84908630-bd04-4a03-923d-616649c8de74') AS mesmo_lote
+ FROM sentinela.linhas_staging s WHERE s.campos_csv->>'fonte'='PCDF' GROUP BY 1,2,3
+ ), agrupadas AS (
+ SELECT ano_registro,unidade_registro,numero_registro,
+   array_agg(linha_origem_id ORDER BY linha_origem_id) AS origens,
+   min(efetivos->>'data')::date AS data_fato,
+   CASE WHEN count(DISTINCT efetivos->>'horario')=1 THEN min(efetivos->>'horario')::time END AS horario_fato,
+   CASE WHEN count(DISTINCT nullif(campos_csv->>'local',''))=1 THEN min(nullif(campos_csv->>'local','')) END AS local,
+   CASE WHEN count(DISTINCT flagrante)=1 THEN CASE min(flagrante) WHEN 'SIM' THEN true WHEN 'NÃO' THEN false END END AS flagrante,
+   CASE WHEN count(DISTINCT unidade_apuracao) FILTER (WHERE sentinela_pcdf_revisao.informado(unidade_apuracao))=1
+     THEN min(unidade_apuracao) FILTER (WHERE sentinela_pcdf_revisao.informado(unidade_apuracao)) END AS unidade_apuracao,
+   CASE WHEN count(DISTINCT jsonb_build_array(lat,lon))=1 THEN min(efetivos->>'geo') ELSE 'divergente' END AS geo,
+   min(lat) AS lat,min(lon) AS lon
+ FROM staged WHERE efetivos->>'chave' IS NOT NULL
+ GROUP BY 1,2,3
+ HAVING count(DISTINCT efetivos->>'data')<=1
+   AND NOT coalesce(bool_or(ano_registro < left(efetivos->>'data',4)),false)
+ )
+ SELECT gen_random_uuid() AS id,a.* FROM agrupadas a JOIN escopo_global g
+    ON (g.ano,g.unidade,g.numero)=(btrim(a.ano_registro),btrim(a.unidade_registro),btrim(a.numero_registro))
+   AND g.mesmo_lote AND g.origens=a.origens
+ WHERE NOT EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.fonte='PCDF'
+   AND (btrim(o.ano_registro),btrim(o.unidade_registro),btrim(o.numero_registro))=
+       (btrim(a.ano_registro),btrim(a.unidade_registro),btrim(a.numero_registro)));
+
+DO $cohort$
+BEGIN
+ IF current_setting('sentinela.pcdf_review_sha')<>'91fa79f88988d1540e81f438e0fb470cea07a0809ac60387577fbdf0be9d6a00'
+   OR NOT EXISTS (SELECT FROM sentinela.lotes_importacao WHERE id='84908630-bd04-4a03-923d-616649c8de74'
+      AND sha256_arquivo=current_setting('sentinela.pcdf_review_sha') AND versao_contrato='2.0')
+   OR (sentinela_gestao.impacto('84908630-bd04-4a03-923d-616649c8de74',NULL)->>'revisao') IS DISTINCT FROM
+      '634f7f20897453028d0551c68d26778e69a7a772bdf2485fad39ba2ffff3600b'
+   OR (SELECT count(*) FROM pcdf_candidatas)<>6090 OR (SELECT sum(cardinality(origens)) FROM pcdf_candidatas)<>6392
+ THEN RAISE EXCEPTION 'Coorte, CSV ou revisao divergente'; END IF;
+END $cohort$;
+
+-- O manifesto da fonte declara crs_origem nulo. Nenhum ponto é derivado neste lote.
+WITH referencia(srid,evidencia,limite) AS (VALUES (NULL::integer,NULL::text,NULL::extensions.geometry)),
+ avaliadas AS MATERIALIZED (SELECT c.*,r.evidencia,r.srid,
+   CASE WHEN c.geo='referencia_pendente' THEN sentinela_pcdf_revisao.ponto_geo(c.lat,c.lon,r.srid,r.evidencia,r.limite) END AS ponto
+   FROM pcdf_candidatas c CROSS JOIN referencia r)
+INSERT INTO sentinela.ocorrencias(id,origem,fonte,ano_registro,unidade_registro,numero_registro,versao_identidade,
+ identidade_status,evidencia_identidade,data_fato,horario_fato,local,flagrante,unidade_apuracao,localizacao_status,
+ latitude,longitude,geometria,referencia_espacial_confirmada,regra_transformacao,consolidacao_status)
+SELECT id,'importacao','PCDF',ano_registro,unidade_registro,numero_registro,'pcdf-tupla-conferida-v1',
+ 'homologada','Homologação em clone. Tupla literal conciliada com a origem e o CSV '||current_setting('sentinela.pcdf_review_sha'),
+ data_fato,horario_fato,local,flagrante,unidade_apuracao,
+ CASE WHEN ponto IS NOT NULL THEN 'validada' WHEN geo='incompleta' THEN 'referencia_pendente'
+      WHEN geo='referencia_pendente' AND srid IS NOT NULL THEN 'divergente' ELSE geo END,
+ extensions.ST_Y(ponto),extensions.ST_X(ponto),ponto,CASE WHEN ponto IS NOT NULL THEN evidencia END,
+ CASE WHEN ponto IS NOT NULL THEN format('GEO %s para EPSG:4326, longitude/latitude, v1',srid) END,'consolidada'
+FROM avaliadas;
+
+INSERT INTO sentinela.ocorrencia_naturezas(ocorrencia_id,natureza_id,origem,linha_origem_id,crime_tentado,classificacao_status)
+SELECT c.id,n.id,'importacao',o.id,CASE o.crime_tentado WHEN 'SIM' THEN true WHEN 'NÃO' THEN false END,
+ CASE WHEN n.id IS NULL THEN 'sem_correspondencia' ELSE 'pendente' END
+FROM pcdf_candidatas c CROSS JOIN LATERAL unnest(c.origens) AS origem(id)
+JOIN sentinela.linhas_origem o ON o.id=origem.id
+LEFT JOIN sentinela.naturezas_criminais n ON n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL
+ AND n.descricao_original COLLATE "C"=o.natureza_original COLLATE "C";
+
+\ir pcdf-independent-review-reader.sql
+
+INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa)
+VALUES('servico','sentinela-pcdf','pcdf.revisao_independente',
+ jsonb_build_object('lote','84908630-bd04-4a03-923d-616649c8de74','versao','clone-pcdf-revisao-independente-0001',
+   'csvSha256',current_setting('sentinela.pcdf_review_sha'),'recebidas',6393,'consolidadas',6090,'vinculos',6392,
+   'identidadeEmRevisao',1,'pontosValidados',0,'historicoPreservado',true,
+   'sha256OrigensConsolidadas',(SELECT encode(sha256(convert_to(string_agg(o.id::text,',' ORDER BY o.id),'UTF8')),'hex')
+      FROM pcdf_candidatas c CROSS JOIN LATERAL unnest(c.origens) AS o(id))),
+ 'Homologação da identidade por tupla e separação das dimensões de revisão');
+
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+VALUES ('clone-pcdf-revisao-independente-0001','Homologação PCDF de identidade, revisão e dimensões independentes');
+\endif
+
+DO $accept$
+BEGIN
+ IF (SELECT count(*) FROM sentinela.ocorrencias WHERE versao_identidade='pcdf-tupla-conferida-v1')<>6090
+   OR (SELECT count(*) FROM sentinela.ocorrencias WHERE versao_identidade='pcdf-tupla-conferida-v1' AND geometria IS NOT NULL)<>0
+   OR (SELECT count(*) FROM sentinela.ocorrencia_naturezas)<>6392
+   OR (SELECT count(*) FROM sentinela.pendencias_revisao)<>26714
+   OR (SELECT count(*) FROM sentinela.eventos_auditoria WHERE acao='pcdf.revisao_independente'
+       AND depois->>'csvSha256'=current_setting('sentinela.pcdf_review_sha'))<>1
+ THEN RAISE EXCEPTION 'Critérios de aceite não satisfeitos'; END IF;
+END $accept$;
+COMMIT;

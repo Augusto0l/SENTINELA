@@ -1,0 +1,46 @@
+\set ON_ERROR_STOP on
+BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SET LOCAL search_path=pg_catalog,pg_temp;
+
+WITH alvo AS (
+  SELECT l.id,l.extracao_id,l.sha256_arquivo,l.tamanho_bytes,l.versao_contrato,l.versao_tratamento
+  FROM sentinela.lotes_importacao l
+  JOIN sentinela.extracoes_origem x ON x.id=l.extracao_id
+  WHERE x.fonte='PCDF' AND l.competencia=:'competencia'::date AND l.nome_arquivo=:'arquivo'
+), plano AS MATERIALIZED (
+  SELECT a.*,sentinela_exclusao.plano(a.id) AS p FROM alvo a
+), fks AS (
+  SELECT c.conrelid::regclass::text AS tabela,
+         c.confrelid::regclass::text AS referencia, c.conname::text AS nome
+  FROM pg_constraint c WHERE c.contype='f' AND c.confrelid IN (
+    'sentinela.extracoes_origem'::regclass,'sentinela.lotes_importacao'::regclass,'sentinela.execucoes_importacao'::regclass,
+    'sentinela.linhas_origem'::regclass,'sentinela.linhas_staging'::regclass,'sentinela.pendencias_revisao'::regclass,
+    'sentinela.historico_correcoes'::regclass,'sentinela.eventos_auditoria'::regclass,'sentinela_import_local.requests'::regclass
+  )
+)
+SELECT json_build_object(
+  'release',(SELECT versao FROM sentinela_gestao_autorizacao.release WHERE singleton),
+  'aberta',(SELECT aberta FROM sentinela_gestao_autorizacao.release WHERE singleton),
+  'atores',(SELECT count(*) FROM sentinela_gestao_autorizacao.atores),
+  'aprovacoes',(SELECT count(*) FROM sentinela_gestao_autorizacao.exclusoes),
+  'fks_inesperadas',(SELECT count(*) FROM sentinela_exclusao.vinculos_inesperados()),
+  'rls_forcada',(SELECT count(*)=19 FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+     AND relkind='r' AND relrowsecurity AND relforcerowsecurity),
+  'fks',(SELECT json_agg(fks ORDER BY tabela,referencia,nome) FROM fks),
+  'lotes',(SELECT json_agg(json_build_object(
+    'id',id,'versao',versao_contrato,'tratamento',versao_tratamento,'bytes',tamanho_bytes,'sha256',sha256_arquivo,
+    'quantidades',sentinela_exclusao.quantidades(p),'compartilhadas',p->'compartilhadas','candidatas',p->'candidatas',
+    'revisao',sentinela_exclusao.revisao(p),
+    'bloqueios',(SELECT json_object_agg(tipo,quantidade) FROM (
+      SELECT b->>'tipo' AS tipo,count(*) AS quantidade FROM jsonb_array_elements(p->'bloqueios') b GROUP BY 1
+    ) resumo),
+    'outras_importacoes_da_extracao',(SELECT count(*) FROM sentinela.lotes_importacao outro
+      WHERE outro.extracao_id=plano.extracao_id AND outro.id<>plano.id),
+    'staging_com_ocorrencia',(SELECT count(*) FROM sentinela.linhas_staging s WHERE s.lote_id=plano.id AND s.ocorrencia_id IS NOT NULL)
+  )) FROM plano)
+)
+FROM pg_control_system()
+WHERE current_database()='sentinela_pcdf_local' AND inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=55484
+  AND current_setting('sentinela.sandbox_uuid',true)=:'expected_uuid'
+  AND system_identifier::text=:'expected_system';
+COMMIT;

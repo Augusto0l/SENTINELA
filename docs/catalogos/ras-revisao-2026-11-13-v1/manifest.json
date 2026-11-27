@@ -1,0 +1,15 @@
+{
+  "version": "ra-review-2026-11-13-v1",
+  "purpose": "approval dossier; not an executable load package",
+  "files": {
+    "attributes.json": "04ecd8701da5654e70bff9a295723b423c18d00c3553098abb0bed744e0e6bdb",
+    "lei7917.html": "f69c4f65de6c1a7234e708a7402e1bab16e54a30aab7eab58878a1df89a5567d",
+    "lei7918.html": "51248d0ff2672e219a908f0539d651a5a8584a382b6b0f50e2469b37aaec181e",
+    "matrix.json": "558eb51ef4cbf4feb3d44e4bbe91f39428be065b89da75bf7c54a4b0fe931d08",
+    "matrix.md": "d3c715c6c2dfc8cb4fa70499b1b67067607cf64f666f8420cec181cafe25cefa"
+  },
+  "preservedSource": "fd13e671d7660ba6fe2703ff69ba82e8ccb30e7cbc09f2887bfcdd4c69d28553",
+  "sqlPackageChanged": false,
+  "sqlRevalidation": "not performed: no SQL or load payload changed; prior evidence remains historical",
+  "loadAuthorized": false
+}

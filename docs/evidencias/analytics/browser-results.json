@@ -1,0 +1,32 @@
+{
+  "base": "http://127.0.0.1:3000",
+  "checkedAt": "2026-10-28T15:54:23.141Z",
+  "checks": [
+    "/dashboard: intervalo inclusivo, atalhos, validação, vazio, limpeza, geometria e referência de calor preservados.",
+    "/mapa-criminal: intervalo inclusivo, atalhos, validação, vazio, limpeza, geometria e referência de calor preservados.",
+    "Filtros combinados: 6 ocorrências; série mensal, navegação Dashboard → Mapa e camada Satélite mantêm o mesmo recorte.",
+    "URL com intervalo inválido não amplia a consulta; mensagem orienta a recuperação por limpeza.",
+    "/dashboard: temas claro/escuro, larguras 1366/768/390/320 px, campos acessíveis, foco visível e aplicação por Enter.",
+    "/mapa-criminal: temas claro/escuro, larguras 1366/768/390/320 px, campos acessíveis, foco visível e aplicação por Enter.",
+    "Nenhum erro JavaScript não tratado durante o roteiro."
+  ],
+  "samples": [
+    {
+      "route": "/dashboard",
+      "base": 790,
+      "lastSevenDays": 14,
+      "referencePeak": "8.136348724365234"
+    },
+    {
+      "route": "/mapa-criminal",
+      "base": 790,
+      "lastSevenDays": 14,
+      "referencePeak": "8.136348724365234"
+    }
+  ],
+  "errors": [],
+  "limitations": [
+    "Fonte Google bloqueada para evitar dependência de rede externa.",
+    "Tiles do modo Satélite não são exercitados por este roteiro; usar check-satellite.mjs."
+  ]
+}

@@ -1,0 +1,160 @@
+-- SENTINELA · local-pcdf-pontos-0001 · publicação dos pontos PCDF no Dashboard e no Mapa Criminal.
+-- Decisão do responsável (25/11/2026): publicar os pares Latitude/Longitude GEO do extrato PCDF como graus
+-- decimais em EPSG:4326, sem comprovação formal do CRS de origem. A decisão e as contagens ficam na auditoria.
+-- Primeira execução: instala a estrutura e publica. Execuções seguintes: republicam (ex.: após novos lotes).
+-- Variáveis: cluster_uuid e system_id do destino atestado. Uma única transação; nenhuma ocorrência é alterada.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL statement_timeout='300s';
+SET LOCAL search_path=pg_catalog,pg_temp;
+SELECT set_config('sentinela.geo_uuid',:'cluster_uuid',true) AS expected_cluster,
+       set_config('sentinela.geo_system',:'system_id',true) AS expected_system
+\gset
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+ OR inet_server_port() NOT IN (55484,55487) OR pg_is_in_recovery()
+ OR nullif(current_setting('sentinela.geo_uuid'),'') IS NULL
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.geo_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.geo_system')
+ OR to_regclass('sentinela_ocorrencias_analytics.pontos_confirmados') IS NULL
+ OR to_regclass('sentinela_ocorrencias_analytics.pontos_pcdf_publicados') IS NULL
+ OR (SELECT count(*) FROM sentinela.regioes_administrativas)<>37
+ -- The ledger is immutable: an installation is active while installs exceed reversals by one.
+ -- Without the table (first run or after a reversal), the reviewed empty placeholder must be in place.
+ OR (to_regclass('sentinela_ocorrencias_analytics.pcdf_pontos') IS NULL AND (SELECT count(*) FROM sentinela.schema_migrations WHERE versao='local-pcdf-pontos-0001' OR versao LIKE 'local-pcdf-pontos-0001-reinstalada-%')<>(SELECT count(*) FROM sentinela.schema_migrations WHERE versao LIKE 'local-pcdf-pontos-0001-revertida%'))
+ OR (to_regclass('sentinela_ocorrencias_analytics.pcdf_pontos') IS NULL
+   AND regexp_replace(pg_get_viewdef('sentinela_ocorrencias_analytics.pontos_pcdf_publicados'::regclass),'\s+',' ','g')
+     IS DISTINCT FROM ' SELECT NULL::uuid AS id, NULL::double precision AS latitude, NULL::double precision AS longitude WHERE false;')
+ OR (to_regclass('sentinela_ocorrencias_analytics.pcdf_pontos') IS NOT NULL
+   AND (SELECT count(*) FROM sentinela.schema_migrations WHERE versao='local-pcdf-pontos-0001' OR versao LIKE 'local-pcdf-pontos-0001-reinstalada-%')<>(SELECT count(*) FROM sentinela.schema_migrations WHERE versao LIKE 'local-pcdf-pontos-0001-revertida%')+1)
+ THEN RAISE EXCEPTION 'Destino, versão ou estado divergentes da publicação de pontos PCDF'; END IF;
+END $guard$;
+
+SELECT to_regclass('sentinela_ocorrencias_analytics.pcdf_pontos') IS NOT NULL AS instalado
+\gset
+\if :instalado
+\else
+-- Published points: written only by this script, read by the analytics owner through the views.
+CREATE TABLE sentinela_ocorrencias_analytics.pcdf_pontos (
+ ocorrencia_id uuid PRIMARY KEY,
+ versao_ocorrencia bigint NOT NULL CHECK (versao_ocorrencia > 0),
+ latitude double precision NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+ longitude double precision NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+ geometria extensions.geometry(Point,4326) NOT NULL,
+ ra_codigo text NOT NULL,
+ origem_sha256 text NOT NULL CHECK (origem_sha256 ~ '^[a-f0-9]{64}$'),
+ publicacao_id uuid NOT NULL,
+ publicado_em timestamptz NOT NULL DEFAULT clock_timestamp(),
+ CHECK (extensions.ST_X(geometria)=longitude AND extensions.ST_Y(geometria)=latitude)
+);
+ALTER TABLE sentinela_ocorrencias_analytics.pcdf_pontos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_ocorrencias_analytics.pcdf_pontos FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON sentinela_ocorrencias_analytics.pcdf_pontos FROM PUBLIC;
+GRANT SELECT ON sentinela_ocorrencias_analytics.pcdf_pontos TO sentinela_ocorrencias_reader;
+CREATE POLICY pcdf_pontos_leitura ON sentinela_ocorrencias_analytics.pcdf_pontos FOR SELECT
+ TO sentinela_ocorrencias_reader USING (true);
+
+-- A point counts only while its occurrence is active, consolidated and at the published version.
+CREATE OR REPLACE VIEW sentinela_ocorrencias_analytics.pontos_pcdf_publicados WITH (security_barrier=true) AS
+ SELECT p.ocorrencia_id AS id, p.latitude, p.longitude, p.ra_codigo
+ FROM sentinela_ocorrencias_analytics.pcdf_pontos p
+ JOIN sentinela.ocorrencias o ON o.id=p.ocorrencia_id
+ WHERE o.ativo AND o.consolidacao_status='consolidada' AND o.fonte='PCDF' AND o.origem='importacao'
+   AND o.versao=p.versao_ocorrencia;
+CREATE OR REPLACE VIEW sentinela_ocorrencias_analytics.pontos_confirmados WITH (security_barrier=true) AS
+ SELECT o.id,extensions.ST_Y(o.geometria) AS latitude,extensions.ST_X(o.geometria) AS longitude,r.codigo_interno::text AS ra_codigo
+ FROM sentinela.ocorrencias o LEFT JOIN sentinela.regioes_administrativas r ON r.id=o.ra_id
+ WHERE o.ativo AND o.consolidacao_status='consolidada' AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL'
+   AND o.localizacao_status='validada' AND o.referencia_espacial_confirmada='WGS84; IDE-DF-2026-11-13'
+   AND nullif(btrim(o.regra_transformacao),'') IS NOT NULL
+   AND o.geometria IS NOT NULL AND extensions.ST_SRID(o.geometria)=4326
+   AND extensions.ST_Y(o.geometria)=o.latitude AND extensions.ST_X(o.geometria)=o.longitude
+ UNION ALL
+ SELECT id,latitude,longitude,ra_codigo FROM sentinela_ocorrencias_analytics.pontos_pcdf_publicados;
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+SELECT CASE WHEN n=0 THEN 'local-pcdf-pontos-0001' ELSE 'local-pcdf-pontos-0001-reinstalada-'||(n+1) END,
+ 'Pontos PCDF publicados no mapa por decisão do responsável, CRS de origem sem comprovação formal'
+FROM (SELECT (SELECT count(*) FROM sentinela.schema_migrations WHERE versao='local-pcdf-pontos-0001' OR versao LIKE 'local-pcdf-pontos-0001-reinstalada-%') AS n) i;
+\endif
+
+-- One pair per occurrence: every source line must carry the same numeric pair.
+CREATE TEMP TABLE pcdf_pares ON COMMIT DROP AS
+ SELECT a.ocorrencia_id AS id, count(*) AS origens,
+   count(*) FILTER (WHERE v.valida) AS validas,
+   count(DISTINCT (v.lat,v.lon)) FILTER (WHERE v.valida) AS distintos,
+   min(v.lat) FILTER (WHERE v.valida) AS lat, min(v.lon) FILTER (WHERE v.valida) AS lon,
+   encode(sha256(convert_to(string_agg(l.id::text||':'||coalesce(l.latitude_geo_original,'')||','||coalesce(l.longitude_geo_original,''),
+     '|' ORDER BY l.id),'UTF8')),'hex') AS origem_sha256
+ FROM sentinela.ocorrencia_naturezas a
+ JOIN sentinela.linhas_origem l ON l.id=a.linha_origem_id
+ CROSS JOIN LATERAL (SELECT btrim(l.latitude_geo_original) ~ '^-?[0-9]{1,3}(\.[0-9]{1,15})?$'
+     AND btrim(l.longitude_geo_original) ~ '^-?[0-9]{1,3}(\.[0-9]{1,15})?$' AS valida) f
+ CROSS JOIN LATERAL (SELECT f.valida,
+     CASE WHEN f.valida THEN btrim(l.latitude_geo_original)::numeric END AS lat,
+     CASE WHEN f.valida THEN btrim(l.longitude_geo_original)::numeric END AS lon) v
+ WHERE NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas r WHERE r.associacao_id=a.id)
+ GROUP BY a.ocorrencia_id;
+
+CREATE TEMP TABLE pcdf_candidatos ON COMMIT DROP AS
+ SELECT o.id, o.versao, p.lat::float8 AS latitude, p.lon::float8 AS longitude, p.origem_sha256,
+   extensions.ST_SetSRID(extensions.ST_MakePoint(p.lon::float8,p.lat::float8),4326) AS ponto
+ FROM sentinela.ocorrencias o JOIN pcdf_pares p ON p.id=o.id
+ WHERE o.ativo AND o.consolidacao_status='consolidada' AND o.fonte='PCDF' AND o.origem='importacao'
+   AND p.origens=p.validas AND p.distintos=1 AND p.lat BETWEEN -90 AND 90 AND p.lon BETWEEN -180 AND 180;
+CREATE INDEX ON pcdf_candidatos USING gist (ponto);
+ANALYZE pcdf_candidatos;
+
+-- Exactly one official RA must cover the point; outside the DF or on a shared boundary stays unpublished.
+CREATE TEMP TABLE pcdf_cobertura ON COMMIT DROP AS
+ SELECT c.id, min(r.codigo_interno::text) AS ra, count(*) AS ras
+ FROM sentinela.regioes_administrativas r JOIN pcdf_candidatos c ON extensions.ST_Covers(r.limite,c.ponto)
+ GROUP BY c.id;
+
+SELECT gen_random_uuid() AS publicacao
+\gset
+DELETE FROM sentinela_ocorrencias_analytics.pcdf_pontos p
+ WHERE NOT EXISTS (SELECT FROM pcdf_candidatos c JOIN pcdf_cobertura v USING (id) WHERE c.id=p.ocorrencia_id AND v.ras=1);
+INSERT INTO sentinela_ocorrencias_analytics.pcdf_pontos
+ (ocorrencia_id,versao_ocorrencia,latitude,longitude,geometria,ra_codigo,origem_sha256,publicacao_id)
+SELECT c.id,c.versao,c.latitude,c.longitude,c.ponto,v.ra,c.origem_sha256,:'publicacao'::uuid
+ FROM pcdf_candidatos c JOIN pcdf_cobertura v USING (id) WHERE v.ras=1
+ON CONFLICT (ocorrencia_id) DO UPDATE SET versao_ocorrencia=excluded.versao_ocorrencia,latitude=excluded.latitude,
+ longitude=excluded.longitude,geometria=excluded.geometria,ra_codigo=excluded.ra_codigo,origem_sha256=excluded.origem_sha256,
+ publicacao_id=excluded.publicacao_id,publicado_em=clock_timestamp()
+ WHERE (pcdf_pontos.versao_ocorrencia,pcdf_pontos.latitude,pcdf_pontos.longitude,pcdf_pontos.ra_codigo,pcdf_pontos.origem_sha256)
+   IS DISTINCT FROM (excluded.versao_ocorrencia,excluded.latitude,excluded.longitude,excluded.ra_codigo,excluded.origem_sha256);
+
+INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa,request_id)
+SELECT 'servico','sentinela-pcdf-geo','pcdf.publicacao_pontos',jsonb_build_object(
+  'publicacao',:'publicacao','crsDestino','EPSG:4326',
+  'crsOrigem','graus decimais assumidos como WGS84/SIRGAS2000; sem comprovação formal',
+  'consolidadasPcdf',(SELECT count(*) FROM sentinela.ocorrencias WHERE ativo AND consolidacao_status='consolidada' AND fonte='PCDF'),
+  'candidatos',(SELECT count(*) FROM pcdf_candidatos),
+  'publicados',(SELECT count(*) FROM sentinela_ocorrencias_analytics.pcdf_pontos),
+  'foraDoDf',(SELECT count(*) FROM pcdf_candidatos c WHERE NOT EXISTS (SELECT FROM pcdf_cobertura v WHERE v.id=c.id)),
+  'raAmbigua',(SELECT count(*) FROM pcdf_cobertura WHERE ras>1),
+  'semParUnicoValido',(SELECT count(*) FROM pcdf_pares WHERE NOT (origens=validas AND distintos=1)),
+  'paresDistintos',(SELECT count(DISTINCT (latitude,longitude)) FROM sentinela_ocorrencias_analytics.pcdf_pontos)),
+ 'Publicação de pontos PCDF por decisão do responsável em 25/11/2026; CRS de origem sem comprovação formal',:'publicacao';
+
+DO $guard$
+BEGIN
+ IF EXISTS (SELECT id FROM sentinela_ocorrencias_analytics.pontos_confirmados GROUP BY id HAVING count(*)>1)
+  OR EXISTS (SELECT FROM sentinela_ocorrencias_analytics.pcdf_pontos p JOIN sentinela.ocorrencias o ON o.id=p.ocorrencia_id
+     WHERE o.fonte<>'PCDF' OR o.localizacao_status='validada')
+  -- The views apply the reader's RLS (application logins only); check the same conditions on the table.
+  OR (SELECT count(*) FROM sentinela_ocorrencias_analytics.pcdf_pontos p JOIN sentinela.ocorrencias o ON o.id=p.ocorrencia_id
+      WHERE o.ativo AND o.consolidacao_status='consolidada' AND o.fonte='PCDF' AND o.origem='importacao'
+        AND o.versao=p.versao_ocorrencia)
+     <>(SELECT count(*) FROM pcdf_candidatos c JOIN pcdf_cobertura v USING (id) WHERE v.ras=1)
+  OR NOT EXISTS (SELECT FROM pg_class WHERE oid='sentinela_ocorrencias_analytics.pcdf_pontos'::regclass
+     AND relrowsecurity AND relforcerowsecurity)
+  OR has_table_privilege('sentinela_local_analyst','sentinela_ocorrencias_analytics.pcdf_pontos','SELECT,INSERT,UPDATE,DELETE')
+ THEN RAISE EXCEPTION 'Verificação transacional da publicação de pontos PCDF falhou'; END IF;
+END $guard$;
+SELECT 'pontos PCDF publicados: '||count(*) FROM sentinela_ocorrencias_analytics.pcdf_pontos;
+COMMIT;

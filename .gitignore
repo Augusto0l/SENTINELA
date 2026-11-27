@@ -1,8 +1,17 @@
 node_modules/
+/.pnpm-store/
 dist/
 build/
 .cache/
 .env*
+.pgpass
+pgpass.conf
+*.pem
+*.key
+*.pfx
+*.dump
+next-accounts.json
+sentinela-sessions/
 .vite/
 vite.config.*.timestamp-*
 *.tsbuildinfo
@@ -27,5 +36,7 @@ temp/
 /.opencode-skills/
 
 .next/
+.next-build-validation/
+.next-http-validation-*/
 out/
 next-env.d.ts

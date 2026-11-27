@@ -1,0 +1,171 @@
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding: 12px 16px; background: var(--theme-0d1626); border: 1px solid var(--theme-1e3a5f); border-radius: 8px; flex-shrink: 0; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--theme-94a3b8); min-width: 0; flex: 1 1 145px; }
+.field select, .field input { width: 100%; min-width: 0; max-width: 100%; background: var(--theme-111d2e); border: 1px solid var(--theme-1e3a5f); border-radius: 6px; color: var(--theme-f1f5f9); padding: 7px 8px; font-size: 12px; min-height: 36px; }
+.dates { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; flex: 2 1 340px; min-width: 0; }
+.dates .field { flex: 1 1 120px; }
+.error, .applied { flex-basis: 100%; margin: 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.error { color: var(--theme-f59e0b); }
+.applied { color: var(--theme-94a3b8); }
+.trend { height: 170px; min-width: 0; margin-top: 8px; }
+.empty { padding: 12px 16px; margin: 0; border: 1px solid var(--theme-1e3a5f); border-radius: 8px; color: var(--theme-94a3b8); font-size: 13px; }
+.mapRoot {
+  --map-gutter: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+.mapFilters { container-type: inline-size; margin: 10px var(--map-gutter) 0; flex-shrink: 0; }
+.mapFilters > .filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
+  padding: 8px 10px;
+}
+.mapFilters .field { gap: 3px; line-height: 1.3; }
+.mapFilters select { text-overflow: ellipsis; }
+.mapFilters .field select, .mapFilters .field input { padding-block: 5px; }
+.mapFilters .filters > button, .mapFilters .dates > button { font-size: 12px; }
+.mapFilters .dates, .mapFilters .applied, .mapFilters .error { grid-column: 1 / -1; }
+.mapFilters .dates { gap: 6px 8px; }
+.mapFilters .dates .field { flex: 1 1 130px; }
+.mapFilters .applied { line-height: 1.3; }
+@container (width < 560px) {
+  .mapFilters .filters:has(> .dates) > .field:first-child { grid-column: 1 / -1; }
+}
+@container (560px <= width < 820px) {
+  .mapFilters > .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mapFilters .dates { grid-column: 2 / -1; }
+}
+@container (width >= 820px) {
+  .mapFilters > .filters { display: flex; padding-inline: 12px; }
+  .mapFilters .filters > .field { flex: 1 1 136px; }
+  .mapFilters .dates { flex: 1 1 calc(100% - 160px); }
+  .mapFilters .dates .field { flex: 0 1 150px; }
+}
+.mapTotal { margin: 6px 0 0; color: var(--color-text-muted); font-size: 12px; }
+.mapContent {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px var(--map-gutter) 8px;
+  min-width: 0;
+}
+.mapHeading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.mapViewport {
+  position: relative;
+  flex: 1;
+  min-height: clamp(360px, 52dvh, 520px);
+  contain: size;
+  overflow: hidden;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 8px;
+  background: var(--theme-111d2e);
+}
+.mapCaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+.mapRegionSummary {
+  flex-shrink: 0;
+  margin: 0 var(--map-gutter) 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 8px;
+  background: var(--theme-111d2e);
+  font-size: 12px;
+}
+.mapRegionSummary h2 { margin-bottom: 6px; font-weight: 700; }
+.mapRegionSummary dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(145px, 100%), 1fr)); gap: 8px 12px; }
+.mapRegionSummary dt { color: var(--color-text-muted); }
+.mapRegionSummary dd { overflow-wrap: anywhere; }
+.series { color: var(--theme-94a3b8); font-size: 12px; overflow-wrap: anywhere; }
+.series summary { cursor: pointer; }
+.series table { width: 100%; margin-top: 8px; border-collapse: collapse; }
+.series th, .series td { padding: 5px; border-bottom: 1px solid var(--theme-1e3a5f); text-align: left; }
+@media (max-width: 639px) {
+  .filters { padding: 10px; gap: 8px; }
+  .field { flex-basis: calc(50% - 8px); }
+  .dates { flex-basis: 100%; }
+  .dates .field { flex-basis: calc(50% - 8px); }
+  .mapRoot { --map-gutter: 10px; }
+  .mapViewport { min-height: clamp(360px, 44dvh, 440px); }
+}
+@media (max-width: 399px) {
+  .dates .field { flex-basis: 100%; }
+}
+.mapNotice {
+  position: absolute;
+  z-index: 6;
+  top: 8px;
+  left: 8px;
+  max-width: min(320px, calc(100% - 16px));
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--theme-map-control);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.compactFilters {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.compactPeriod {
+  position: relative;
+  flex: 1 1 165px;
+}
+.compactPeriod svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  color: var(--theme-f1f5f9);
+  pointer-events: none;
+}
+.compactPeriod select, .compactDetails summary {
+  min-height: 38px;
+  border-color: var(--theme-1e3a5f);
+  background: var(--theme-0d1626);
+  color: var(--theme-f1f5f9);
+  font-weight: 600;
+}
+.compactPeriod select { padding-left: 38px; }
+.compactDetails summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 7px;
+  padding: 0 11px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.compactDetails summary::-webkit-details-marker { display: none; }
+.compactDetails summary span { border-radius: 9px; padding: 1px 6px; background: #1856a5; color: #fff; }
+.compactPanel {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(310px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--theme-1e3a5f);
+  border-radius: 10px;
+  background: var(--theme-0d1626);
+  box-shadow: 0 12px 24px #0005;
+}
+.compactDates { flex-basis: 100%; }
+.compactDates .field { flex-basis: 110px; }

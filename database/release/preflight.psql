@@ -1,0 +1,50 @@
+-- Review and reconciliation. Requires an explicitly selected and authorized connection.
+\set ON_ERROR_STOP on
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SET LOCAL search_path=pg_catalog;
+SET LOCAL statement_timeout='15s';
+SELECT 1 / coalesce((
+  current_database()=:'destino' AND host(inet_server_addr())=:'host'
+  AND inet_server_port()=:'porta'::integer
+  AND (SELECT system_identifier::text FROM pg_control_system())=:'system_id'
+  AND current_setting('server_version_num')=:'postgres_num'
+  AND EXISTS(SELECT FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace
+    WHERE e.extname='postgis' AND e.extversion=:'postgis' AND n.nspname='extensions')
+  AND NOT pg_is_in_recovery()
+)::integer,0);
+\if :{?expected_uuid}
+SELECT 1 / coalesce((nullif(current_setting('sentinela.sandbox_uuid',true),'')=:'expected_uuid')::integer,0);
+\endif
+
+SELECT jsonb_build_object(
+  'versoes',(SELECT jsonb_agg(versao ORDER BY versao) FROM sentinela.schema_migrations),
+  'tabelasComRlsForcada',(SELECT count(*) FROM pg_class
+    WHERE relnamespace='sentinela'::regnamespace AND relkind='r' AND relrowsecurity AND relforcerowsecurity),
+  'policies',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.tablename,p.policyname)
+    FROM pg_policies p WHERE p.schemaname='sentinela'),
+  'ras',(SELECT count(*) FROM sentinela.regioes_administrativas),
+  'ocorrencias',(SELECT count(*) FROM sentinela.ocorrencias),
+  'associacoes',(SELECT count(*) FROM sentinela.ocorrencia_naturezas),
+  'linhasOriginais',(SELECT count(*) FROM sentinela.linhas_origem),
+  'linhasStaging',(SELECT count(*) FROM sentinela.linhas_staging),
+  'eventos',(SELECT count(*) FROM sentinela.eventos_auditoria),
+  'interfaces',jsonb_build_object(
+    'leituraAtestada',to_regprocedure('sentinela_ocorrencias_local.identidade()') IS NOT NULL,
+    'analytics',to_regclass('sentinela_ocorrencias_analytics.ocorrencias') IS NOT NULL,
+    'cadastroCompleto',to_regprocedure('sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text)') IS NOT NULL,
+    'gestao',to_regprocedure('sentinela_gestao.mutar(jsonb,text)') IS NOT NULL,
+    'custodiaV2',to_regclass('sentinela_pcdf_local.entregas_pacote') IS NOT NULL),
+  'loginsLocais',(SELECT coalesce(jsonb_object_agg(rolname,jsonb_build_object('login',rolcanlogin,
+    'privilegiado',rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole OR rolreplication OR rolinherit,
+    'membro',EXISTS(SELECT FROM pg_auth_members m WHERE r.oid IN (m.roleid,m.member)))),'{}'::jsonb)
+    FROM pg_roles r WHERE rolname IN ('sentinela_local_admin','sentinela_local_operator','sentinela_local_analyst')),
+  'readerPodeGravar',coalesce((SELECT r.rolsuper OR r.rolbypassrls OR r.rolcreaterole
+    OR has_schema_privilege(r.oid,'sentinela','CREATE')
+    OR EXISTS(SELECT FROM pg_class c WHERE c.relnamespace='sentinela'::regnamespace AND c.relkind='r'
+      AND (has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE')
+        OR has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE')))
+    OR EXISTS(SELECT FROM pg_proc p WHERE p.pronamespace='sentinela'::regnamespace
+      AND p.prosecdef AND has_function_privilege(r.oid,p.oid,'EXECUTE'))
+    FROM pg_roles r WHERE r.rolname='sentinela_local_reader'),true)
+);
+ROLLBACK;

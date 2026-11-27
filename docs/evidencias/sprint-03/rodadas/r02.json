@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-10-28T17:26:18.330Z",
+  "base": "http://127.0.0.1:3000",
+  "buildId": "ZegOWoXQpLl_y15v4YfR1",
+  "results": [
+    {
+      "name": "worker",
+      "command": "node --experimental-strip-types scripts/check-import-worker.mjs",
+      "startedAt": "2026-10-28T17:26:18.431Z",
+      "finishedAt": "2026-10-28T17:26:34.959Z",
+      "exitCode": 1,
+      "status": "failed",
+      "log": "worker.log",
+      "artifacts": []
+    }
+  ],
+  "finishedAt": "2026-10-28T17:26:34.960Z"
+}

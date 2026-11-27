@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "7 rotas por navegação, item ativo e header no tema escuro",
+    "Recolher, navegar e expandir no tema escuro",
+    "Responsividade de sidebar/header em 13 larguras, 3 telas, tema escuro",
+    "7 rotas por navegação, item ativo e header no tema claro",
+    "Recolher, navegar e expandir no tema claro",
+    "Responsividade de sidebar/header em 13 larguras, 3 telas, tema claro",
+    "Notificações, avatar, navegação por teclado e foco visível",
+    "Permissões dos três perfis e recuperação do seletor na tela de acesso negado",
+    "Retorno ao login demonstrativo; nenhum erro JavaScript"
+  ],
+  "errors": []
+}

@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-10-28T17:40:34.718Z",
+  "base": "http://127.0.0.1:3000",
+  "buildId": "ZegOWoXQpLl_y15v4YfR1",
+  "results": [
+    {
+      "name": "location",
+      "command": "node --experimental-strip-types scripts/check-cep-location.mjs",
+      "startedAt": "2026-10-28T17:40:35.353Z",
+      "finishedAt": "2026-10-28T17:41:43.178Z",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "location.log",
+      "artifacts": []
+    }
+  ],
+  "finishedAt": "2026-10-28T17:41:43.179Z"
+}

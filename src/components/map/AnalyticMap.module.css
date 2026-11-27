@@ -1,0 +1,126 @@
+.map {
+  /* A stable navy cartographic surface in both application themes. */
+  --heatmap-bg: #07111f;
+  --heatmap-ra-fill: #11243a;
+  --heatmap-border: #718ba8;
+  --heatmap-border-hover: #e3efff;
+  --heatmap-label: #f1f5f9;
+  --heatmap-label-shadow: 0 1px 3px #07111f;
+  --heatmap-badge: rgba(7, 17, 31, .9);
+  --heatmap-count: #c8e0ff;
+}
+.legend {
+  color: var(--map-ui-text, #c3d2e5);
+  background: var(--map-ui-surface, rgba(7, 17, 31, .94));
+  border: 1px solid var(--map-ui-border, #354d69);
+  max-width: calc(100% - 32px);
+  line-height: 1.5;
+}
+.legendSymbol { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; vertical-align: middle; border: 1px solid #c6ddff; }
+.pointSymbol { background: #ef4444; border-color: #fecaca; }
+.occurrenceTooltip {
+  position: absolute;
+  z-index: 1050;
+  width: max-content;
+  max-width: min(288px, calc(100% - 16px));
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  padding: 8px 10px;
+  pointer-events: none;
+  border: 1px solid var(--map-ui-border, #354d69);
+  border-radius: 7px;
+  background: var(--map-ui-surface, #0b1829);
+  color: var(--map-ui-text, #f1f5f9);
+  box-shadow: 0 4px 16px #0006;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.occurrenceTooltip strong { color: var(--map-ui-accent, #b9d8ff); }
+.occurrenceTooltip ul { margin: 3px 0 0; padding-inline-start: 15px; list-style: disc; }
+.occurrenceTooltip dl { display: grid; gap: 3px; margin-top: 6px; }
+.occurrenceTooltip dl div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 7px; }
+.occurrenceTooltip dt { color: var(--map-ui-muted, #a9bdd6); }
+.clusterSymbol { background: #2563eb; }
+.streetBase {
+  opacity: .72;
+  filter: grayscale(1) contrast(1.06) brightness(1.12) sepia(.6) hue-rotate(165deg) saturate(1.45);
+}
+.streetNavigation { touch-action: none; user-select: none; }
+.streetNavigation[data-zoomed="true"] { cursor: grab; }
+.streetNavigation[data-navigating="true"] :is(g, path, circle),
+.streetNavigation[data-navigating="true"] { cursor: grabbing !important; }
+.streetControls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--map-ui-border, #354d69);
+  border-radius: 7px;
+  background: var(--map-ui-border, #354d69);
+}
+.streetControls button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  background: var(--map-ui-surface, #0b192b);
+  color: var(--map-ui-text, #e3efff);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.streetControls button:first-child { border-radius: 6px 6px 0 0; }
+.streetControls button:last-child { border-radius: 0 0 6px 6px; }
+.streetControls button:hover { background: var(--map-ui-hover, #19324f); }
+.streetTile {
+  display: block;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+}
+.streetTile[data-street-tile="loaded"] { visibility: visible; }
+.map:has(.streetTile[data-street-tile="loaded"]) .streetRegion { fill-opacity: .23; }
+.streetAttribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 6px;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 4px 0 0;
+  background: var(--map-ui-surface, #07111fef);
+  color: var(--map-ui-text, #b9cce1);
+  font-size: 9px;
+  line-height: 1.3;
+}
+.streetAttribution span { white-space: nowrap; }
+.streetAttribution a { text-decoration: underline; }
+:global(html[data-theme="claro"]) :is(.legend, .occurrenceTooltip, .streetControls, .streetAttribution) {
+  --map-ui-surface: var(--theme-map-control);
+  --map-ui-border: var(--theme-1e3a5f);
+  --map-ui-text: var(--theme-f1f5f9);
+  --map-ui-muted: var(--theme-94a3b8);
+  --map-ui-accent: var(--theme-60a5fa);
+  --map-ui-hover: var(--theme-1a3050);
+}
+.streetUnavailable { display: none; }
+.map:has(.streetTile[data-street-tile="error"]):not(:has(.streetTile[data-street-tile="loaded"])) .streetUnavailable { display: inline; }
+.dashboardMap { --heatmap-bg: #091729; --heatmap-ra-fill: #112a40; --heatmap-border: #a9c3d8; }
+.dashboardScale {
+  position: absolute;
+  left: 14px;
+  bottom: 15px;
+  border: solid #cbddeb;
+  border-width: 0 1px 1px;
+  padding-inline: 3px;
+  color: #eaf4ff;
+  text-shadow: 0 1px 3px #07111f;
+  font-size: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}
