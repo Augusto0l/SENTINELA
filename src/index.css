@@ -119,13 +119,13 @@ body,
 }
 
 .leaflet-control-attribution {
-  background: rgba(8, 15, 26, 0.8) !important;
-  color: var(--theme-475569) !important;
+  background: var(--theme-map-attribution) !important;
+  color: var(--theme-94a3b8) !important;
   font-size: 10px !important;
 }
 
 .leaflet-control-attribution a {
-  color: var(--theme-475569) !important;
+  color: var(--theme-94a3b8) !important;
 }
 
 .leaflet-popup-content-wrapper {
@@ -254,10 +254,12 @@ body,
   --theme-64748b: #475569;
   --theme-60a5fa: #1d4ed8;
   --theme-93c5fd: #1d4ed8;
+  --theme-table-stripe: #f1f5f9;
 }
 
 :root {
   --theme-map-control: rgba(7,17,31,.82);
+  --theme-map-attribution: rgba(8,15,26,.8);
   --theme-e2e8f0: #e2e8f0;
   --theme-cbd5e1: #cbd5e1;
   --theme-22c55e: #22c55e;
@@ -268,6 +270,7 @@ body,
 }
 :root[data-theme="claro"] {
   --theme-map-control: rgba(248,250,252,.96);
+  --theme-map-attribution: var(--theme-map-control);
   --theme-e2e8f0: #0f172a;
   --theme-cbd5e1: #334155;
   --theme-22c55e: #15803d;

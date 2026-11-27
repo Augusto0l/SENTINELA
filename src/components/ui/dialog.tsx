@@ -4,8 +4,8 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useRef, type CSSProperties, type ReactNode } from "react";
 
-export default function Dialog({ title, children, onClose, style, drawer = false }: {
-  title: string; children: ReactNode; onClose: () => void; style?: CSSProperties; drawer?: boolean;
+export default function Dialog({ title, children, onClose, style, className, drawer = false }: {
+  title?: string; children: ReactNode; onClose: () => void; style?: CSSProperties; className?: string; drawer?: boolean;
 }) {
   const returnFocus = useRef<HTMLElement | null>(null);
   return (
@@ -13,9 +13,9 @@ export default function Dialog({ title, children, onClose, style, drawer = false
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="dialog-overlay" />
         <DialogPrimitive.Content
-          className={drawer ? "demo-dialog demo-drawer" : "demo-dialog"}
+          className={["demo-dialog", drawer && "demo-drawer", className].filter(Boolean).join(" ")}
           style={style}
-          aria-describedby={undefined}
+          {...(title && { "aria-describedby": undefined })}
           onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement | null; }}
           onCloseAutoFocus={(event) => {
             // Dialog is mounted by existing action handlers instead of a Radix Trigger.
@@ -23,10 +23,12 @@ export default function Dialog({ title, children, onClose, style, drawer = false
             if (returnFocus.current?.isConnected) returnFocus.current.focus();
           }}
         >
-          <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+          {title && <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>}
           {children}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }
+
+export { Close as DialogClose, Description as DialogDescription, Title as DialogTitle } from "@radix-ui/react-dialog";

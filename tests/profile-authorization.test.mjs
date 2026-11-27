@@ -13,7 +13,7 @@ registerHooks({
     if(["@/components/OperationalProvider","@/components/ThemeProvider","@/components/DemoProvider","@/lib/auth/local-provider","next/navigation"].includes(s))return {url:fixture,shortCircuit:true}
     if(s==="next/server")return next("next/server.js",c)
     if(s==="next/dynamic")return {url:"data:text/javascript,export default function dynamic(){return function UnmountedMap(){return null}}",shortCircuit:true}
-    if(s==="next/link")return {url:"data:text/javascript,import React from 'react';export default function Link(p){return React.createElement('a',p,p.children)}",shortCircuit:true}
+    if(["next/link","@radix-ui/react-dialog"].includes(s))return {url:fixture,shortCircuit:true}
     if(s.endsWith(".css"))return {url:"data:text/javascript,export default new Proxy({}, {get:(_,k)=>String(k)})",shortCircuit:true}
     if(s.startsWith("@/"))for(const ext of [".ts",".tsx"]) {
       const u=new URL("../src/"+s.slice(2)+ext,import.meta.url)
@@ -79,21 +79,50 @@ test("all three profiles keep only approved GET endpoints; direct persistent wri
       assert.equal((await proxy(new NextRequest("http://localhost:3000"+path,{headers,method:"POST"}))).status,403)
   }
 })
-test("rendered sidebar and header expose only permitted navigation for each verified role",()=>{
+test("missing local integration is unavailable only to signed-in importers on the canonical origin", async t => {
+  const values = {
+    NODE_ENV: "development", SENTINELA_AUTH_PROVIDER: "local", SENTINELA_LOCAL_BIND: "127.0.0.1",
+    SENTINELA_APP_ORIGIN: "http://localhost:3000", SENTINELA_PCDF_LOCAL_ID: "",
+    SENTINELA_PERSISTENT_HOMOLOGATION: "0", SENTINELA_SANDBOX_WRITE: "0", VERCEL: "", VERCEL_ENV: "",
+  }
+  for (const [key, value] of Object.entries(values)) {
+    const previous = process.env[key]
+    process.env[key] = value
+    t.after(() => { if (previous === undefined) delete process.env[key]; else process.env[key] = previous })
+  }
+  for (const path of ["/api/v1/importacoes/geral", "/api/v1/importacoes/pcdf/direta"]) {
+    const request = (method, cookie, origin = "http://localhost:3000") => proxy(new NextRequest(
+      "http://localhost:3000" + path, { method, headers: { host: "localhost:3000", cookie, origin } },
+    ))
+    const verified = "sentinela-local-session=verified-test-session"
+    for (const role of ["Administrador", "Operador"]) {
+      state.principal = principal(role)
+      assert.equal((await request("GET", "")).status, 401)
+      assert.equal((await request("GET", verified)).status, 503)
+      assert.equal((await request("POST", verified)).status, 503)
+      assert.equal((await request("POST", verified, "http://127.0.0.1:3000")).status, 403)
+      assert.equal((await request("DELETE", verified)).status, 403)
+    }
+    state.principal = principal("Analista")
+    assert.equal((await request("GET", verified)).status, 403)
+    assert.equal((await request("POST", verified)).status, 403)
+  }
+})
+test("sidebar and profile menu expose only permitted navigation for each verified role",()=>{
   for(const role of policy.ROLES) {
     state.principal=principal(role)
-    const sidebarProps={currentPage:"occurrences",onNavigate(){},collapsed:false,onToggle(){}}
+    const sidebarProps={currentPage:"occurrences",onNavigate(){},collapsed:false,onToggle(){},navigationId:"system-navigation"}
     const html=renderToStaticMarkup(React.createElement(Sidebar,sidebarProps))
-    const persisted=renderToStaticMarkup(React.createElement(Sidebar,{...sidebarProps,persistent:true}))
-    assert(html.includes("Alterações em memória"))
-    assert(persisted.includes("Dados sintéticos no banco local."))
-    assert(!persisted.includes("Alterações em memória"))
+    assert.doesNotMatch(html,/Ambiente demonstrativo|Alterações em memória/)
+    assert.match(html,/aria-label="Encerrar sessão"/)
     for(const label of ["Dashboard","Mapa Criminal"])assert(html.includes(`aria-label="${label}"`))
     for(const label of ["Nova Ocorrência","Importar Dados"])assert.equal(html.includes(`aria-label="${label}"`),role!=="Analista")
     for(const label of ["Usuários","Configurações"])assert.equal(html.includes(`aria-label="${label}"`),role==="Administrador")
-    const header=renderToStaticMarkup(React.createElement(Header,{title:"Test"}))
-    const button=header.match(/<button[^>]*aria-label="Abrir configurações da conta"[^>]*>/)?.[0]
-    assert(button);assert.equal(button.includes('disabled=""'),role!=="Administrador")
+    const header=renderToStaticMarkup(React.createElement(Header,{title:"Ocorrências",subtitle:"Subtítulo redundante",dataMode:"occurrence-read"}))
+    assert.match(header,/aria-label="Abrir perfil de Administrador"/)
+    assert.ok(header.includes(`>${role}</p>`))
+    assert.equal(header.includes('href="/configuracoes"'),role==="Administrador")
+    assert.doesNotMatch(header,/Subtítulo redundante|Notificações|Demonstração · sem persistência|Perfil:/)
   }
 })
 test("rendered forms deny Analyst creation and keep editing unavailable for every role",()=>{

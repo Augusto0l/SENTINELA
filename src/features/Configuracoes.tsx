@@ -1,490 +1,301 @@
-"use client"
-import LogoutForm from "@/components/auth/LogoutForm";
+"use client";
 
-import { useTheme } from "@/components/ThemeProvider";
-import { useId, useState } from "react";
-import { useDemoToast } from "../components/DemoProvider";
-import Header from "../components/Header";
 import Link from "next/link";
-import { useOperations } from "@/components/OperationalProvider";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import Header from "@/components/Header";
+import NavigationIcon, { type NavigationIconName } from "@/components/NavigationIcon";
+import { useTheme } from "@/components/ThemeProvider";
+import LogoutForm from "@/components/auth/LogoutForm";
+import Dialog, { DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import type { Principal } from "@/lib/auth/policy";
+import styles from "./Configuracoes.module.css";
 
-// ─── Inline SVG icons ──────────────────────────────────────────────────────
-const IcPerfil = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-  </svg>
-);
-const IcPrefs = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-  </svg>
-);
-const IcPalette = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="13.5" cy="6.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
-    <circle cx="17.5" cy="10.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
-    <circle cx="8.5" cy="7.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
-    <circle cx="6.5" cy="12.5" r="1.5" fill="var(--theme-60a5fa)" stroke="none" />
-    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-  </svg>
-);
-const IcLock = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0110 0v4" />
-  </svg>
-);
-const IcBell = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 01-3.46 0" />
-  </svg>
-);
-const IcShield = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--theme-60a5fa)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-);
-const IcSave = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-    <polyline points="17 21 17 13 7 13 7 21" />
-    <polyline points="7 3 7 8 15 8" />
-  </svg>
-);
-const IcCheck = () => (
-  <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-    <polyline points="2,7 6,11 12,3" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const IcLogout = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
+type Props = Pick<Principal, "name" | "role" | "source"> & {
+  email: string | null;
+  lastAccess: string | null;
+  mfaEnabled: boolean | null;
+};
 
-// ─── Theme preview SVG icons ───────────────────────────────────────────────
-const MonitorClaro = () => (
-  <svg width="56" height="44" viewBox="0 0 56 44" fill="none">
-    <rect x="4" y="2" width="48" height="34" rx="4" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.5" />
-    <rect x="9" y="7" width="38" height="24" rx="2" fill="#e2e8f0" />
-    <rect x="9" y="7" width="10" height="24" rx="1" fill="#cbd5e1" />
-    <rect x="22" y="9" width="22" height="4" rx="1" fill="#94a3b8" opacity=".5" />
-    <rect x="22" y="15" width="16" height="3" rx="1" fill="#94a3b8" opacity=".35" />
-    <rect x="20" y="36" width="16" height="3" rx="1" fill="#cbd5e1" />
-    <rect x="16" y="39" width="24" height="2" rx="1" fill="#e2e8f0" />
-  </svg>
-);
-const MonitorEscuro = () => (
-  <svg width="56" height="44" viewBox="0 0 56 44" fill="none">
-    <rect x="4" y="2" width="48" height="34" rx="4" fill="#0d1a2d" stroke="#1e3a5f" strokeWidth="1.5" />
-    <rect x="9" y="7" width="38" height="24" rx="2" fill="#0a1525" />
-    <rect x="9" y="7" width="10" height="24" rx="1" fill="#081322" />
-    <rect x="22" y="9" width="22" height="4" rx="1" fill="#1e3a5f" opacity=".8" />
-    <rect x="22" y="15" width="16" height="3" rx="1" fill="#1e3a5f" opacity=".5" />
-    <rect x="20" y="36" width="16" height="3" rx="1" fill="#1e3a5f" />
-    <rect x="16" y="39" width="24" height="2" rx="1" fill="#0d1a2d" />
-  </svg>
-);
-const MonitorSistema = () => (
-  <svg width="56" height="44" viewBox="0 0 56 44" fill="none">
-    <rect x="4" y="2" width="48" height="34" rx="4" fill="#0d1a2d" stroke="#1e3a5f" strokeWidth="1.5" />
-    <clipPath id="sc"><rect x="4" y="2" width="48" height="34" rx="4" /></clipPath>
-    <rect x="4" y="2" width="24" height="34" fill="#f1f5f9" clipPath="url(#sc)" />
-    <rect x="9" y="7" width="14" height="24" rx="2" fill="#e2e8f0" clipPath="url(#sc)" />
-    <rect x="9" y="7" width="5" height="24" rx="1" fill="#cbd5e1" clipPath="url(#sc)" />
-    <rect x="28" y="7" width="19" height="24" rx="2" fill="#0a1525" />
-    <rect x="28" y="7" width="5" height="24" rx="1" fill="#081322" />
-    <rect x="20" y="36" width="16" height="3" rx="1" fill="#1e3a5f" />
-    <rect x="16" y="39" width="24" height="2" rx="1" fill="#0d1a2d" />
-  </svg>
-);
+const accountIcons = {
+  profile: "M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2",
+  lock: "M5 10h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Zm2 0V7a5 5 0 0 1 10 0v3",
+  sliders: "M3 7h10m4 0h4M3 17h4m4 0h10M17 7a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM11 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z",
+  monitor: "M3 3h18v13H3zM8 21h8m-4-5v5",
+  info: "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Zm-10 0v5m0-10v.01",
+  key: "M14.5 3a6.5 6.5 0 0 0-5.9 9.2L3 18v3h4v-3h3v-3l1.8-1.6A6.5 6.5 0 1 0 14.5 3ZM16 8h.01",
+  mail: "M3 5h18v14H3zM3 6l9 7 9-7",
+  laptop: "M4 4h16v12H4zM4 16l-2 4h20l-2-4",
+  remove: "M14 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 21v-2a4 4 0 0 1 4-4h5m4 0 5 5m0-5-5 5",
+};
+type IconName = keyof typeof accountIcons | NavigationIconName;
 
-// ─── Toggle pill ────────────────────────────────────────────────────────────
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+const tabs = [
+  { key: "perfil", label: "Perfil", icon: "profile" },
+  { key: "seguranca", label: "Segurança", icon: "lock" },
+  { key: "preferencias", label: "Preferências", icon: "sliders" },
+  { key: "notificacoes", label: "Notificações", icon: "bell" },
+  { key: "sessao", label: "Sessão", icon: "monitor" },
+] as const;
+type Tab = (typeof tabs)[number]["key"];
+
+function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
+  if (!(name in accountIcons)) return <NavigationIcon name={name as NavigationIconName} size={size} />;
   return (
-    <button
-      onClick={() => onChange(!on)}
-      role="switch"
-      aria-label={label}
-      aria-checked={on}
-      style={{
-        width: 42, height: 24, borderRadius: 12, border: "none",
-        background: on ? "#2563eb" : "var(--theme-1e3a5f)",
-        position: "relative", cursor: "pointer", flexShrink: 0,
-        transition: "background .18s ease", padding: 0, outline: "none",
-      }}
-    >
-      <span style={{
-        position: "absolute", top: 3, left: on ? 21 : 3,
-        width: 18, height: 18, borderRadius: "50%",
-        background: on ? "#fff" : "var(--theme-64748b)",
-        transition: "left .18s ease",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
-      }} />
-    </button>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d={accountIcons[name as keyof typeof accountIcons]} />
+    </svg>
   );
 }
 
-// ─── Card shell ─────────────────────────────────────────────────────────────
-function Card({ icon, title, subtitle, children }: {
-  icon: React.ReactNode; title: string; subtitle: string; children: React.ReactNode;
+function Panel({ title, description, icon, danger, children }: {
+  title: string;
+  description: string;
+  icon: IconName;
+  danger?: boolean;
+  children?: ReactNode;
 }) {
   return (
-    <section style={{
-      background: "var(--theme-111d2e)",
-      border: "1px solid var(--theme-1a3050)",
-      borderRadius: 12,
-      marginBottom: 12,
-      overflow: "hidden",
-    }}>
-      {/* header row */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "18px 22px 16px",
-        borderBottom: "1px solid var(--theme-1a3050)",
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-          background: "rgba(37,99,235,0.1)",
-          border: "1px solid rgba(96,165,250,0.12)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          {icon}
-        </div>
+    <section className={danger ? `${styles.panel} ${styles.danger}` : styles.panel}>
+      <header className={styles.panelHeader}>
+        <span className={styles.iconTile}><Icon name={icon} size={23} /></span>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--theme-f1f5f9)", letterSpacing: "-0.01em" }}>{title}</div>
-          <div style={{ fontSize: 11.5, color: "var(--color-text-muted)", marginTop: 1 }}>{subtitle}</div>
+          <h2>{title}</h2>
+          <p>{description}</p>
         </div>
-      </div>
-      <div style={{ padding: "4px 22px 18px" }}>
-        {children}
-      </div>
+      </header>
+      {children}
     </section>
   );
 }
 
-// ─── Perfil / Segurança field row ──────────────────────────────────────────
-function FieldRow({ label, value, onChange, type = "text" }: {
-  label: string; value: string; onChange?: (v: string) => void; type?: string;
+function ActionRow({ title, description, icon, children }: {
+  title: string;
+  description: string;
+  icon: IconName;
+  children: ReactNode;
 }) {
-  const id = useId();
   return (
-    <div className="field-row" style={{
-      display: "grid", gridTemplateColumns: "160px 1fr",
-      alignItems: "center", gap: 14,
-      padding: "11px 0",
-      borderBottom: "1px solid rgba(26,48,80,0.6)",
-    }}>
-      <label htmlFor={id} style={{ fontSize: 13, color: "var(--theme-94a3b8)" }}>{label}</label>
-      <input
-        id={id} autoComplete={type === "password" ? "off" : undefined}
-        type={type}
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        style={{
-          width: "100%", boxSizing: "border-box",
-          background: "var(--theme-0d1728)",
-          border: "1px solid var(--theme-1e3a5f)",
-          borderRadius: 7, color: "var(--theme-f1f5f9)", fontSize: 13,
-          padding: "8px 12px", outline: "none",
-          letterSpacing: type === "password" ? "0.12em" : "normal",
-          transition: "border-color .15s",
-        }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
-        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")}
-      />
+    <div className={styles.actionRow}>
+      <span className={styles.iconTile}><Icon name={icon} size={21} /></span>
+      <div>
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      <div className={styles.actions}>{children}</div>
     </div>
   );
 }
 
-// ─── Switch row ─────────────────────────────────────────────────────────────
-function SwitchRow({ label, on, onChange, last }: {
-  label: string; on: boolean; onChange: (v: boolean) => void; last?: boolean;
-}) {
+function Facts({ items }: { items: readonly { label: string; icon: IconName; value: ReactNode }[] }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "13px 0",
-      borderBottom: last ? "none" : "1px solid rgba(26,48,80,0.6)",
-    }}>
-      <span style={{ fontSize: 13, color: "var(--theme-94a3b8)" }}>{label}</span>
-      <Toggle on={on} onChange={onChange} label={label} />
-    </div>
-  );
-}
-
-// ─── Session info row ───────────────────────────────────────────────────────
-function InfoRow({ label, value, badge, last }: {
-  label: string; value: string; badge?: boolean; last?: boolean;
-}) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "12px 0",
-      borderBottom: last ? "none" : "1px solid rgba(26,48,80,0.6)",
-    }}>
-      <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{label}</span>
-      {badge ? (
-        <span style={{
-          fontSize: 11, fontWeight: 700, color: "var(--theme-22c55e)",
-          background: "rgba(34,197,94,0.1)",
-          border: "1px solid rgba(34,197,94,0.25)",
-          borderRadius: 20, padding: "2px 11px",
-        }}>{value}</span>
-      ) : (
-        <span style={{ fontSize: 13, color: "var(--theme-94a3b8)" }}>{value}</span>
-      )}
-    </div>
-  );
-}
-
-// ─── Theme card ─────────────────────────────────────────────────────────────
-function ThemeCard({ label, selected, onSelect, preview }: {
-  label: string; selected: boolean; onSelect: () => void; preview: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      aria-pressed={selected}
-      style={{
-        flex: 1, position: "relative",
-        background: selected ? "rgba(37,99,235,0.07)" : "var(--theme-0d1728)",
-        border: `2px solid ${selected ? "#2563eb" : "var(--theme-1e3a5f)"}`,
-        borderRadius: 10, cursor: "pointer",
-        display: "flex", flexDirection: "column",
-        alignItems: "center", gap: 10,
-        padding: "18px 10px 14px",
-        transition: "border-color .15s, background .15s",
-      }}
-    >
-      {selected && (
-        <div style={{
-          position: "absolute", top: 7, right: 7,
-          width: 20, height: 20, borderRadius: "50%",
-          background: "#2563eb",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <IcCheck />
+    <dl className={styles.facts}>
+      {items.map(({ label, icon, value }) => (
+        <div key={label} className={styles.fact}>
+          <dt><Icon name={icon} size={19} />{label}</dt>
+          <dd>{value}</dd>
         </div>
-      )}
-      {preview}
-      <span style={{
-        fontSize: 12, fontWeight: selected ? 600 : 400,
-        color: selected ? "var(--theme-60a5fa)" : "var(--theme-64748b)",
-      }}>{label}</span>
-    </button>
+      ))}
+    </dl>
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
-export default function Configuracoes() {
-  const notify = useDemoToast();
-  const { principal } = useOperations();
-  // Perfil
-  const [nome, setNome]         = useState(principal.name);
-  const [email, setEmail]       = useState("");
-  const [cargo, setCargo]       = useState(principal.role as string);
+export default function Configuracoes({ name, role, source, email, lastAccess, mfaEnabled }: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>("seguranca");
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const tabButtons = useRef<Partial<Record<Tab, HTMLButtonElement>>>({});
+  const { theme, setTheme } = useTheme();
+  const institutional = source === "supabase";
+  const preview = source === "preview";
+  const nameParts = name.trim().split(/\s+/, 2);
+  const initials = (nameParts.length === 1
+    ? Array.from(nameParts[0]).slice(0, 2)
+    : nameParts.map(word => Array.from(word)[0])).join("").toLocaleUpperCase("pt-BR");
+  const emailText = email ?? "E-mail indisponível";
+  const accountStatus = institutional ? "Ativa" : preview ? "Demonstração" : "Acesso local";
+  const sessionStatus = preview ? "Sessão demonstrativa" : "Sessão autenticada";
+  const mfaStatus = mfaEnabled === null ? "Indisponível" : mfaEnabled ? "Ativado" : "Desativado";
+  const badge = (label: string, positive: boolean) => (
+    <span className={positive ? `${styles.badge} ${styles.positive}` : styles.badge}>{label}</span>
+  );
+  const openTab = (tab: Tab) => {
+    setActiveTab(tab);
+    tabButtons.current[tab]?.focus();
+  };
 
-  // Segurança
-  const [mfa, setMfa]                       = useState(false);
-
-  // Preferências
-  const [compacto, setCompacto]                 = useState(false);
-  const [exibirId, setExibirId]                 = useState(true);
-  const [confirmarExcluir, setConfirmarExcluir] = useState(true);
-  const [carregarMapa, setCarregarMapa]         = useState(true);
-
-  // Notificações
-  const [notifCriticas, setNotifCriticas]       = useState(true);
-  const [notifImport, setNotifImport]           = useState(true);
-  const [notifUsuarios, setNotifUsuarios]       = useState(false);
-  const [notifRelatorios, setNotifRelatorios]   = useState(true);
-
-  // Aparência
-  const { theme: tema, setTheme: setTema } = useTheme();
-
-  // Save state
-  const [saving, setSaving]   = useState(false);
-  const [savedOk, setSavedOk] = useState(false);
-
-  async function handleSave() {
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSaving(false);
-    setSavedOk(true);
-    notify("Simulação concluída. As demais preferências não foram gravadas nem aplicadas às outras telas.");
-    setTimeout(() => setSavedOk(false), 2600);
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let next: number;
+    switch (event.key) {
+      case "ArrowRight": next = (index + 1) % tabs.length; break;
+      case "ArrowLeft": next = (index + tabs.length - 1) % tabs.length; break;
+      case "Home": next = 0; break;
+      case "End": next = tabs.length - 1; break;
+      default: return;
+    }
+    event.preventDefault();
+    openTab(tabs[next].key);
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      <Header title="Configurações" subtitle="Gerencie preferências da sua conta" />
-      <p role="note" style={{ padding: "8px 26px" }}>Configurações demonstrativas. Preferências visuais são locais; cadastro definitivo, confirmação de e-mail e recuperação de senha permanecem adiados.</p>
+    <>
+      <Header title="Configurações" />
+      <div className={styles.page}>
+        <header className={styles.heading}>
+          <h1>Configurações</h1>
+          <p>Gerencie seu perfil, segurança, preferências da plataforma, notificações e sessões.</p>
+        </header>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 36px" }}>
-        {/* ── Page heading ─────────────────────────────────────────────── */}
-        <div className="page-heading" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
-          <div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--theme-f1f5f9)", margin: 0, letterSpacing: "-0.025em" }}>
-              Configurações
-            </h1>
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "4px 0 0" }}>
-              Gerencie as preferências e configurações da sua conta.
-            </p>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 2 }}>
-            {savedOk && (
-              <span style={{ fontSize: 12, color: "var(--theme-22c55e)", display: "flex", alignItems: "center", gap: 5 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Simulação concluída; demais preferências sem gravação
-              </span>
-            )}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                background: "#2563eb", border: "none", borderRadius: 8,
-                color: "#fff", fontSize: 13, fontWeight: 700,
-                padding: "10px 18px", cursor: saving ? "wait" : "pointer",
-                opacity: saving ? 0.7 : 1, transition: "opacity .15s",
-                boxShadow: "0 2px 10px rgba(37,99,235,0.35)",
-              }}
-            >
-              <IcSave />
-              {saving ? "Simulando…" : "Simular alterações"}
+        <div className={styles.tabs} role="tablist" aria-label="Configurações da conta">
+          {tabs.map(({ key, label, icon }, index) => (
+            <button key={key} ref={node => { if (node) tabButtons.current[key] = node; }}
+              type="button" role="tab" id={`settings-tab-${key}`} aria-controls={`settings-panel-${key}`}
+              aria-selected={activeTab === key} tabIndex={activeTab === key ? 0 : -1}
+              onClick={() => setActiveTab(key)} onKeyDown={event => handleTabKey(event, index)}>
+              <Icon name={icon} size={19} />{label}
             </button>
-          </div>
+          ))}
         </div>
 
-        {/* ── Two-column grid ──────────────────────────────────────────── */}
-        <div className="two-column-grid" style={{ display: "grid", gap: 12, alignItems: "start" }}>
-
-          {/* ═══ LEFT COLUMN ═══ */}
-          <div>
-            {/* Perfil */}
-            <Card icon={<IcPerfil />} title="Perfil" subtitle="Prévia de edição; não altera sua conta ou suas permissões">
-              <FieldRow label="Nome completo" value={nome} onChange={setNome} />
-              <FieldRow label="E-mail"        value={email} onChange={setEmail} type="email" />
-              <FieldRow label="Cargo / Função" value={cargo} onChange={setCargo} />
-            </Card>
-
-            {/* Preferências */}
-            <Card icon={<IcPrefs />} title="Preferências do sistema" subtitle="Configurações gerais da plataforma">
-              <SwitchRow label="Modo compacto de tabela"       on={compacto}         onChange={setCompacto} />
-              <SwitchRow label="Exibir ID das ocorrências"     on={exibirId}         onChange={setExibirId} />
-              <SwitchRow label="Confirmar antes de excluir"    on={confirmarExcluir} onChange={setConfirmarExcluir} />
-              <SwitchRow label="Carregar mapa automaticamente" on={carregarMapa}     onChange={setCarregarMapa} last />
-            </Card>
-
-            {/* Aparência */}
-            <Card icon={<IcPalette />} title="Aparência" subtitle="Personalize a aparência da plataforma">
-              <div style={{ paddingTop: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-94a3b8)", marginBottom: 14 }}>
-                  Tema da interface
-                </div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                  <ThemeCard label="Claro"   selected={tema === "claro"}   onSelect={() => setTema("claro")}   preview={<MonitorClaro />} />
-                  <ThemeCard label="Escuro"  selected={tema === "escuro"}  onSelect={() => setTema("escuro")}  preview={<MonitorEscuro />} />
-                  <ThemeCard label="Sistema" selected={tema === "sistema"} onSelect={() => setTema("sistema")} preview={<MonitorSistema />} />
-                </div>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 12px",
-                  background: "rgba(37,99,235,0.04)",
-                  border: "1px solid rgba(30,58,95,0.5)",
-                  borderRadius: 7,
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--theme-475569)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
-                    O tema é aplicado imediatamente e salvo neste navegador.
-                  </span>
-                </div>
-              </div>
-            </Card>
+        <section aria-label="Conta atual" className={styles.accountCard}>
+          <div className={styles.identity}>
+            <span className={styles.avatar} aria-hidden="true">{initials}</span>
+            <div>
+              <h2>{name}</h2>
+              <p>{emailText}</p>
+            </div>
           </div>
+          <dl className={styles.accountDetails}>
+            <div>
+              <dt><Icon name="users" size={18} />Perfil</dt>
+              <dd>{role}</dd>
+            </div>
+            <div>
+              <dt><Icon name="shield" size={18} />Status da conta</dt>
+              <dd>{badge(accountStatus, institutional)}</dd>
+            </div>
+          </dl>
+        </section>
 
-          {/* ═══ RIGHT COLUMN ═══ */}
-          <div>
-            {/* Segurança */}
-            <Card icon={<IcLock />} title="Segurança" subtitle="Gerencie sua senha e autenticação">
-              <p>Defina uma nova senha pelo fluxo autenticado. As preferências demonstrativas não alteram credenciais.</p>
+        {tabs.map(({ key }) => (
+          <div key={key} role="tabpanel" id={`settings-panel-${key}`} aria-labelledby={`settings-tab-${key}`}
+            hidden={activeTab !== key} tabIndex={0}>
+            {activeTab === key && <>
+              {key === "seguranca" && (
+                <div className={styles.security}>
+                  <Panel icon="lock" title="Segurança da conta" description="Gerencie o acesso e a proteção da sua conta na plataforma.">
+                    <div className={styles.rows}>
+                      <ActionRow icon="key" title="Alterar senha" description={institutional
+                        ? "Defina uma nova senha forte para sua conta."
+                        : "Alteração de senha disponível para contas institucionais."}>
+                        {institutional
+                          ? <Link href="/atualizar-senha" className={`${styles.button} ${styles.primary}`}>Alterar senha</Link>
+                          : <button type="button" className={styles.button} disabled>Alterar senha</button>}
+                      </ActionRow>
+                      <ActionRow icon="shield" title="Autenticação em dois fatores (MFA)" description="A configuração de um segundo fator está indisponível nesta tela.">
+                        {mfaEnabled === null
+                          ? <span className={styles.switch} aria-hidden="true" data-unknown />
+                          : <button type="button" role="switch" aria-label="Autenticação em dois fatores (MFA)" aria-checked={mfaEnabled} className={styles.switch} disabled />}
+                        <button type="button" className={styles.button} disabled>Configurar</button>
+                      </ActionRow>
+                      <ActionRow icon="mail" title="Recuperação de acesso" description="A atualização do e-mail de recuperação está indisponível.">
+                        <button type="button" className={styles.button} disabled>Atualizar e-mail</button>
+                      </ActionRow>
+                      <ActionRow icon="laptop" title="Dispositivos confiáveis" description="A lista de dispositivos confiáveis está indisponível.">
+                        <button type="button" className={styles.button} disabled>Gerenciar<Icon name="chevron" size={15} /></button>
+                      </ActionRow>
+                      <ActionRow icon="layers" title="Sessões ativas" description="Consulte a sessão atual. O total de sessões está indisponível.">
+                        <button type="button" className={styles.button} onClick={() => openTab("sessao")}>
+                          Ver sessões<Icon name="chevron" size={15} />
+                        </button>
+                      </ActionRow>
+                    </div>
+                  </Panel>
 
-              {/* MFA toggle row */}
-              <div style={{
-                display: "flex", alignItems: "center", gap: 14,
-                padding: "15px 0 12px",
-                borderBottom: "1px solid rgba(26,48,80,0.6)",
-              }}>
-                <Toggle on={mfa} onChange={setMfa} label="Simular autenticação em dois fatores" />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)" }}>
-                    Autenticação em dois fatores
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
-                    Controle ilustrativo; nenhum autenticador está conectado
+                  <Panel icon="info" title="Resumo da conta" description="Informações essenciais sobre o seu acesso.">
+                    <Facts items={[
+                      { label: "Perfil", icon: "profile", value: role },
+                      { label: "Último acesso", icon: "calendar", value: lastAccess ?? "Indisponível" },
+                      { label: "Senha atualizada em", icon: "key", value: "Indisponível" },
+                      { label: "MFA (dois fatores)", icon: "shield", value: badge(mfaStatus, mfaEnabled === true) },
+                      { label: "Sessões abertas", icon: "monitor", value: "Total indisponível" },
+                    ]} />
+                  </Panel>
+
+                  <div className={styles.risk}>
+                    <Panel icon="alert" title="Zona de risco" description="Ações sensíveis que afetam o acesso à sua conta." danger>
+                      <div className={styles.rows}>
+                        <ActionRow icon="logout" title="Sair de todos os dispositivos" description={institutional
+                          ? "Encerra também esta sessão e exige um novo login."
+                          : "O encerramento em todos os dispositivos está disponível para contas institucionais."}>
+                          <button type="button" className={`${styles.button} ${styles.dangerButton}`}
+                            disabled={!institutional} onClick={() => setConfirmLogout(true)}>
+                            <Icon name="logout" size={16} />Sair de todos os dispositivos
+                          </button>
+                        </ActionRow>
+                        <ActionRow icon="remove" title="Solicitar desativação de conta" description="O envio de solicitações de desativação está indisponível.">
+                          <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled>
+                            <Icon name="remove" size={16} />Solicitar desativação
+                          </button>
+                        </ActionRow>
+                      </div>
+                    </Panel>
                   </div>
                 </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
-                {principal.source === "local" ? <button type="button" disabled>Alteração de senha adiada no acesso local</button> : <Link href="/atualizar-senha" style={{
-                  background: "#2563eb", border: "none", borderRadius: 7,
-                  color: "#fff", fontSize: 13, fontWeight: 600,
-                  padding: "8px 18px", cursor: "pointer",
-                  boxShadow: "0 1px 6px rgba(37,99,235,0.3)",
-                }}>
-                  Alterar senha
-                </Link>}
-              </div>
-            </Card>
-
-            {/* Notificações */}
-            <Card icon={<IcBell />} title="Notificações" subtitle="Configure como você recebe alertas">
-              <SwitchRow label="Variações críticas de indicadores" on={notifCriticas}  onChange={setNotifCriticas} />
-              <SwitchRow label="Erros em importações de dados"     on={notifImport}    onChange={setNotifImport} />
-              <SwitchRow label="Novos usuários cadastrados"        on={notifUsuarios}  onChange={setNotifUsuarios} />
-              <SwitchRow label="Relatórios disponíveis"            on={notifRelatorios} onChange={setNotifRelatorios} last />
-            </Card>
-
-            {/* Sessão e acesso */}
-            <Card icon={<IcShield />} title="Sessão e acesso" subtitle="Informações sobre sua sessão atual">
-              <InfoRow label="Último acesso"     value="Não consultado" />
-              <InfoRow label="Dispositivo ativo" value="Não consultado" />
-              <InfoRow label="Endereço IP"        value="Não consultado" />
-              <InfoRow label="Sessão"             value="Identidade verificada no servidor" badge last />
-
-              <LogoutForm style={{ display: "flex", justifyContent: "flex-end", paddingTop: 14 }}>
-                <button type="submit"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    background: "transparent",
-                    border: "1px solid var(--theme-1e3a5f)",
-                    borderRadius: 7, color: "var(--color-text-muted)", fontSize: 13,
-                    padding: "8px 14px", cursor: "pointer",
-                    transition: "border-color .15s, color .15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--theme-475569)"; e.currentTarget.style.color = "var(--theme-94a3b8)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--theme-1e3a5f)"; e.currentTarget.style.color = "var(--theme-64748b)"; }}
-                >
-                  <IcLogout />
-                  Encerrar todas as sessões
-                </button>
-              </LogoutForm>
-            </Card>
+              )}
+              {key === "perfil" && (
+                <Panel icon="profile" title="Dados do perfil" description="Dados vinculados à conta com a qual você entrou.">
+                  <Facts items={[
+                    { label: "Nome", icon: "profile", value: name },
+                    { label: "E-mail", icon: "mail", value: emailText },
+                    { label: "Perfil", icon: "users", value: role },
+                    { label: "Status da conta", icon: "shield", value: badge(accountStatus, institutional) },
+                  ]} />
+                </Panel>
+              )}
+              {key === "preferencias" && (
+                <Panel icon="sliders" title="Aparência" description="O tema selecionado é salvo neste navegador.">
+                  <div className={styles.rows}>
+                    <ActionRow icon="sun" title="Tema da plataforma" description="Escolha o tema claro, escuro ou siga a preferência do sistema.">
+                      <select className={styles.button} aria-label="Tema da plataforma" value={theme}
+                        onChange={event => {
+                          const value = event.currentTarget.value;
+                          if (value === "claro" || value === "escuro" || value === "sistema") setTheme(value);
+                        }}>
+                        <option value="claro">Claro</option>
+                        <option value="escuro">Escuro</option>
+                        <option value="sistema">Sistema</option>
+                      </select>
+                    </ActionRow>
+                  </div>
+                </Panel>
+              )}
+              {key === "notificacoes" && (
+                <Panel icon="bell" title="Preferências de notificações" description="A configuração de notificações está indisponível nesta tela." />
+              )}
+              {key === "sessao" && (
+                <Panel icon="monitor" title="Sessão atual" description="Informações sobre o acesso neste navegador.">
+                  <Facts items={[
+                    { label: "Sessão atual", icon: "monitor", value: badge(sessionStatus, !preview) },
+                    { label: "Último acesso", icon: "calendar", value: lastAccess ?? "Indisponível" },
+                    { label: "Sessões abertas", icon: "layers", value: "Total indisponível" },
+                  ]} />
+                </Panel>
+              )}
+            </>}
           </div>
-        </div>
+        ))}
       </div>
-    </div>
+
+      {confirmLogout && (
+        <Dialog className={styles.confirmDialog} onClose={() => setConfirmLogout(false)}>
+          <DialogTitle asChild><h2>Sair de todos os dispositivos?</h2></DialogTitle>
+          <DialogDescription>Você precisará entrar novamente no SENTINELA, inclusive neste dispositivo.</DialogDescription>
+          <LogoutForm className={styles.confirmActions}>
+            <button type="button" className={styles.button} onClick={() => setConfirmLogout(false)}>Cancelar</button>
+            <button type="submit" className={`${styles.button} ${styles.dangerButton}`}>Confirmar saída</button>
+          </LogoutForm>
+        </Dialog>
+      )}
+    </>
   );
 }
