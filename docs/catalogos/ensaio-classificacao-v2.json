@@ -1,0 +1,131 @@
+{
+  "versao": "ensaio-classificacao-v2",
+  "clone": "clone-30a8bbcf2dd747e5ad12a569c3e2b2fa",
+  "porta": 55487,
+  "naoHomologado": true,
+  "antes": {
+    "ocorrencias": 6091,
+    "associacoes": 6393,
+    "status": {
+      "pendente": 6393
+    },
+    "pendencias": {
+      "coordenadas/aberta": 18625,
+      "endereco_ra/aberta": 1695,
+      "classificacao/aberta": 6393,
+      "identificacao/aberta": 1
+    }
+  },
+  "janeiro": {
+    "inicial": {
+      "status": {
+        "pendente": 6392
+      },
+      "pendClassAbertas": 6392
+    },
+    "aplicado": {
+      "status": {
+        "mapeada": 6378,
+        "conflitante": 14
+      },
+      "pendClassAbertas": 14
+    },
+    "resultado": {
+      "versao": "pcdf-classificacao-v2-ensaio",
+      "mapeadas": 6378,
+      "conflitantes": 14,
+      "desconhecidas": 0,
+      "semCorrespondencia": 0,
+      "pendenciasResolvidas": 6378
+    },
+    "reversao": {
+      "versao": "pcdf-classificacao-v2-ensaio",
+      "revertidas": 6392,
+      "pendenciasReabertas": 6378
+    }
+  },
+  "fevereiro": {
+    "recibo": {
+      "month": "2021-02",
+      "state": "done",
+      "unique": 5221,
+      "links": 5490
+    },
+    "resultado": {
+      "versao": "pcdf-classificacao-v2-ensaio",
+      "mapeadas": 5476,
+      "conflitantes": 14,
+      "desconhecidas": 0,
+      "semCorrespondencia": 0,
+      "pendenciasResolvidas": 0
+    },
+    "estado": {
+      "status": {
+        "mapeada": 5476,
+        "conflitante": 14
+      },
+      "pendClassAbertas": 0
+    }
+  },
+  "depois": {
+    "ocorrencias": 11312,
+    "associacoes": 11883,
+    "status": {
+      "mapeada": 11854,
+      "pendente": 1,
+      "conflitante": 28
+    },
+    "pendencias": {
+      "coordenadas/aberta": 28856,
+      "endereco_ra/aberta": 5057,
+      "classificacao/aberta": 15,
+      "identificacao/aberta": 1,
+      "classificacao/resolvida": 6378
+    }
+  },
+  "perfis": {
+    "sentinela_local_admin": {
+      "importados": 6393,
+      "consolidadas": 6090
+    },
+    "sentinela_local_operator": {
+      "importados": 6393,
+      "consolidadas": 6090
+    },
+    "sentinela_local_analyst": "negado"
+  },
+  "verificacoes": [
+    "clone limpo: 6.091 ocorrências, 6.393 associações, janeiro todo pendente, RLS em 19 tabelas",
+    "0001_catalogo_proposta.sql: segunda aplicação sem efeito (idempotente)",
+    "0002_reclassificacao_backend.sql: segunda aplicação sem efeito (idempotente)",
+    "0003_homologacao_ensaio.sql: segunda aplicação sem efeito (idempotente)",
+    "instalação não altera associações, pendências nem dados policiais",
+    "dono NOLOGIN sem bypass; funções SECURITY DEFINER com search_path fixo; só o perfil Administrador executa",
+    "conta divergente da identidade Auth é recusada",
+    "Operador com conta correta não é aprovador",
+    "perfis Operador e Analista não executam a aplicação",
+    "executor técnico (session_user postgres) não é aceito como aprovador",
+    "liberação fechada recusa a aplicação",
+    "sem versão ativa explícita nada é aplicado",
+    "UPDATE direto segue bloqueado mesmo com a marca de transação",
+    "tentativas recusadas não deixaram efeito",
+    "ROLLBACK: 6378 mapeadas e 14 conflitantes calculadas, nenhum efeito",
+    "aplicação confirmada: cada associação mapeada resolveu sua pendência de classificação",
+    "janeiro: conflitantes mantêm a pendência aberta; mapeadas a encerram",
+    "localização, endereço, identificação, origem e staging preservados",
+    "histórico por campo e um evento por pendência resolvida, mais o evento do lote",
+    "repetição: nada a aplicar, sem novos eventos",
+    "três perfis: mesmas contagens visíveis antes e depois (Analista conforme sua permissão)",
+    "cada associação mapeada usa a categoria proposta para seu par (natureza, tentativa)",
+    "reversão compensatória: janeiro volta ao estado inicial e as pendências são reabertas",
+    "reversão acrescenta histórico sem apagar registros anteriores",
+    "segunda reversão: nada a reverter",
+    "reaplicação após a reversão reproduz o mesmo resultado",
+    "fevereiro importado pelo receptor real: 5490 associações entram pendentes",
+    "versão ativa sem regras homologadas: tudo rejeitado com segurança, nada classificado",
+    "versão ativa inexistente é recusada",
+    "aplicação no lote seguinte: 5476 mapeadas, 14 conflitantes, 0 desconhecidas; 0 pendências de classificação a conciliar (o receptor atual não as cria)",
+    "classificar fevereiro não altera janeiro",
+    "contagens: ocorrências 6091 + 5221, associações 6393 + 5490"
+  ]
+}

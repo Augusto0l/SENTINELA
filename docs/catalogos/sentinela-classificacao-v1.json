@@ -1,0 +1,631 @@
+{
+  "versao": "sentinela-classificacao-v1",
+  "status": "proposta-sem-homologacao",
+  "fontes": {
+    "matriz": "pcdf-matriz-conjunta-2021-01",
+    "sha256Triplas": "57d7b8c88a548a2cee70c16161f8d5ef078a3b037dd0eae8c3b05915df303e6a",
+    "inventario": "pcdf-inventario-v1",
+    "correspondencias": "pcdf-correspondencias-v1"
+  },
+  "categorias": [
+    {
+      "codigoInterno": "SEN-CAT-01",
+      "nome": "Homicídio",
+      "rotuloRelatorio": "01_HOMICIDIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-02",
+      "nome": "Tentativa de homicídio",
+      "rotuloRelatorio": "01.1_TENTATIVA DE HOMICIDIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-03",
+      "nome": "Roubo a transeunte",
+      "rotuloRelatorio": "13_ROUBO A TRANSEUNTE",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-04",
+      "nome": "Roubo em comércio",
+      "rotuloRelatorio": "19_ROUBO EM COMÉRCIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-05",
+      "nome": "Roubo em residência",
+      "rotuloRelatorio": "20_ROUBO EM RESIDÊNCIA",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-06",
+      "nome": "Roubo de veículo",
+      "rotuloRelatorio": "18_ROUBO DE VEICULO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-07",
+      "nome": "Furto em veículo",
+      "rotuloRelatorio": "28_FURTO EM INTERIOR DE VEICULO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-08",
+      "nome": "Furto de veículo",
+      "rotuloRelatorio": "25_FURTO DE VEICULO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-09",
+      "nome": "Furto em comércio",
+      "rotuloRelatorio": "26_FURTO EM COMERCIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-10",
+      "nome": "Furto em residência",
+      "rotuloRelatorio": "27_FURTO EM RESIDENCIA",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-11",
+      "nome": "Estupro",
+      "rotuloRelatorio": "ESTUPRO (Natureza; outras modalidades exigem validação)",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-12",
+      "nome": "Violência doméstica",
+      "rotuloRelatorio": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-13",
+      "nome": "Roubo em transporte coletivo",
+      "rotuloRelatorio": "14_ROUBO EM COLETIVO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-14",
+      "nome": "Feminicídio",
+      "rotuloRelatorio": "123_FEMINICIDIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-15",
+      "nome": "Tentativa de feminicídio",
+      "rotuloRelatorio": "123.1_TENTATIVA DE FEMINICIDIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-16",
+      "nome": "Estupro de vulnerável",
+      "rotuloRelatorio": "ESTUPRO DE VULNERÁVEL",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-17",
+      "nome": "Latrocínio",
+      "rotuloRelatorio": "21_LATROCINIO",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-18",
+      "nome": "Tráfico de drogas",
+      "rotuloRelatorio": "89_TRAFICO DE DROGAS",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-19",
+      "nome": "Uso e porte de drogas",
+      "rotuloRelatorio": "88_USO E PORTE DE DROGAS",
+      "status": "pendente"
+    },
+    {
+      "codigoInterno": "SEN-CAT-20",
+      "nome": "Posse/porte de arma de fogo",
+      "rotuloRelatorio": "87_PORTE/POSSE DE ARMA",
+      "status": "pendente"
+    }
+  ],
+  "resumo": {
+    "direta": {
+      "regras": 29,
+      "associacoes": 6131
+    },
+    "documentada": {
+      "regras": 2,
+      "associacoes": 116
+    },
+    "semantica": {
+      "regras": 5,
+      "associacoes": 145
+    },
+    "nao_observada": {
+      "regras": 7,
+      "associacoes": 0
+    }
+  },
+  "lacunas": [
+    "Somente homicídio e feminicídio têm categoria de tentativa. Tentativas de outros crimes não ocorreram em 2021-01 e não têm regra: decidir se usam a mesma categoria do crime consumado.",
+    "'Violência doméstica' recebe o rótulo 112 (Lei Maria da Penha), que cobre violência contra a mulher; confirmar se o nome da categoria deve refletir esse recorte.",
+    "05_ESTUPRO tem outras modalidades além das duas documentadas; o relatório exige validação para elas.",
+    "As sete naturezas não observadas em 2021-01 dependem da matriz de outras competências."
+  ],
+  "regras": [
+    {
+      "id": "PCDF-N-01",
+      "naturezaOriginal": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-18",
+      "nivel": "semantica",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 6,
+      "justificativa": "Crime autônomo (art. 35 da Lei 11.343/06) agrupado em 89. Confirmar se integra 'Tráfico de drogas'."
+    },
+    {
+      "id": "PCDF-N-02",
+      "naturezaOriginal": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "crimeTentado": false,
+      "categoriaPcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "categoriaProposta": "SEN-CAT-12",
+      "nivel": "semantica",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 121,
+      "justificativa": "Crime autônomo (art. 24-A da Lei 11.340/06) agrupado pela PCDF em 112. Confirmar se integra 'Violência doméstica' ou exige categoria própria."
+    },
+    {
+      "id": "PCDF-N-03",
+      "naturezaOriginal": "ESTUPRO",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-11",
+      "nivel": "documentada",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 30,
+      "justificativa": "Correspondência explícita no relatório PCDF."
+    },
+    {
+      "id": "PCDF-N-04",
+      "naturezaOriginal": "ESTUPRO COLETIVO",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    },
+    {
+      "id": "PCDF-N-05",
+      "naturezaOriginal": "ESTUPRO COM RESULTADO MORTE",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    },
+    {
+      "id": "PCDF-N-06",
+      "naturezaOriginal": "ESTUPRO CORRETIVO",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    },
+    {
+      "id": "PCDF-N-07",
+      "naturezaOriginal": "ESTUPRO DE VULNERÁVEL",
+      "crimeTentado": false,
+      "categoriaPcdf": "05_ESTUPRO",
+      "categoriaProposta": "SEN-CAT-16",
+      "nivel": "documentada",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 86,
+      "justificativa": "Correspondência explícita no relatório PCDF."
+    },
+    {
+      "id": "PCDF-N-08",
+      "naturezaOriginal": "FEMINICIDIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "123_FEMINICIDIO",
+      "categoriaProposta": "SEN-CAT-14",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 3,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-08",
+      "naturezaOriginal": "FEMINICIDIO",
+      "crimeTentado": true,
+      "categoriaPcdf": "123.1_TENTATIVA DE FEMINICIDIO",
+      "categoriaProposta": "SEN-CAT-15",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 5,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-09",
+      "naturezaOriginal": "FURTO DE MOTOCICLETA",
+      "crimeTentado": false,
+      "categoriaPcdf": "25_FURTO DE VEICULO",
+      "categoriaProposta": "SEN-CAT-08",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 110,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-10",
+      "naturezaOriginal": "FURTO DE VEICULO",
+      "crimeTentado": false,
+      "categoriaPcdf": "25_FURTO DE VEICULO",
+      "categoriaProposta": "SEN-CAT-08",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 235,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-11",
+      "naturezaOriginal": "FURTO EM COMERCIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "26_FURTO EM COMERCIO",
+      "categoriaProposta": "SEN-CAT-09",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 332,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-12",
+      "naturezaOriginal": "FURTO EM INTERIOR DE VEICULO",
+      "crimeTentado": false,
+      "categoriaPcdf": "28_FURTO EM INTERIOR DE VEICULO",
+      "categoriaProposta": "SEN-CAT-07",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 549,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-13",
+      "naturezaOriginal": "FURTO EM RESIDENCIA",
+      "crimeTentado": false,
+      "categoriaPcdf": "27_FURTO EM RESIDENCIA",
+      "categoriaProposta": "SEN-CAT-10",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 473,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-14",
+      "naturezaOriginal": "HOMICIDIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "01_HOMICIDIO",
+      "categoriaProposta": "SEN-CAT-01",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 33,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-14",
+      "naturezaOriginal": "HOMICIDIO",
+      "crimeTentado": true,
+      "categoriaPcdf": "01.1_TENTATIVA DE HOMICIDIO",
+      "categoriaProposta": "SEN-CAT-02",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 56,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-15",
+      "naturezaOriginal": "LATROCINIO",
+      "crimeTentado": false,
+      "categoriaPcdf": "21_LATROCINIO",
+      "categoriaProposta": "SEN-CAT-17",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 2,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-16",
+      "naturezaOriginal": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "crimeTentado": false,
+      "categoriaPcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "categoriaProposta": "SEN-CAT-12",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 1690,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-17",
+      "naturezaOriginal": "PORTE DE ARMA",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "semantica",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 14,
+      "justificativa": "Rótulo genérico: não distingue arma de fogo de outras armas, mas a categoria é 'arma de fogo'."
+    },
+    {
+      "id": "PCDF-N-18",
+      "naturezaOriginal": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "crimeTentado": false,
+      "categoriaPcdf": "88_USO E PORTE DE DROGAS",
+      "categoriaProposta": "SEN-CAT-19",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 429,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-19",
+      "naturezaOriginal": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 53,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-20",
+      "naturezaOriginal": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 28,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-21",
+      "naturezaOriginal": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 13,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-22",
+      "naturezaOriginal": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "crimeTentado": false,
+      "categoriaPcdf": "87_PORTE/POSSE DE ARMA",
+      "categoriaProposta": "SEN-CAT-20",
+      "nivel": "semantica",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 2,
+      "justificativa": "Artefato explosivo não é arma de fogo. Decidir entre categoria própria ou sem correspondência."
+    },
+    {
+      "id": "PCDF-N-23",
+      "naturezaOriginal": "ROUBO A BAR",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 4,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-24",
+      "naturezaOriginal": "ROUBO A CASA LOTERICA",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    },
+    {
+      "id": "PCDF-N-25",
+      "naturezaOriginal": "ROUBO A DROGARIA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 10,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-26",
+      "naturezaOriginal": "ROUBO A PANIFICADORA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 5,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-27",
+      "naturezaOriginal": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 3,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-28",
+      "naturezaOriginal": "ROUBO A TRAILLER",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 2,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-29",
+      "naturezaOriginal": "ROUBO A TRANSEUNTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 1387,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-30",
+      "naturezaOriginal": "ROUBO DE VEICULO",
+      "crimeTentado": false,
+      "categoriaPcdf": "18_ROUBO DE VEICULO",
+      "categoriaProposta": "SEN-CAT-06",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 199,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-31",
+      "naturezaOriginal": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "crimeTentado": false,
+      "categoriaPcdf": "20_ROUBO EM RESIDÊNCIA",
+      "categoriaProposta": "SEN-CAT-05",
+      "nivel": "semantica",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 2,
+      "justificativa": "Imóvel rural agrupado em 20. Confirmar o enquadramento em 'Roubo em residência'."
+    },
+    {
+      "id": "PCDF-N-32",
+      "naturezaOriginal": "ROUBO EM COLETIVO",
+      "crimeTentado": false,
+      "categoriaPcdf": "14_ROUBO EM COLETIVO",
+      "categoriaProposta": "SEN-CAT-13",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 53,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-33",
+      "naturezaOriginal": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "crimeTentado": false,
+      "categoriaPcdf": "19_ROUBO EM COMÉRCIO",
+      "categoriaProposta": "SEN-CAT-04",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 70,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-34",
+      "naturezaOriginal": "ROUBO EM PARADA DE ONIBUS",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 117,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-35",
+      "naturezaOriginal": "ROUBO EM RESIDENCIA",
+      "crimeTentado": false,
+      "categoriaPcdf": "20_ROUBO EM RESIDÊNCIA",
+      "categoriaProposta": "SEN-CAT-05",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 43,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-36",
+      "naturezaOriginal": "ROUBO NA PROXIMIDADES DE BANCO",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 2,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-37",
+      "naturezaOriginal": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "crimeTentado": false,
+      "categoriaPcdf": "13_ROUBO A TRANSEUNTE",
+      "categoriaProposta": "SEN-CAT-03",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 1,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-38",
+      "naturezaOriginal": "TRÁFICO DE DROGAS PREVALECENDO-SE DE FUNÇÃO PÚBLICA",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    },
+    {
+      "id": "PCDF-N-39",
+      "naturezaOriginal": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "crimeTentado": false,
+      "categoriaPcdf": "89_TRAFICO DE DROGAS",
+      "categoriaProposta": "SEN-CAT-18",
+      "nivel": "direta",
+      "ativavelNoEnsaio": true,
+      "associacoes2021_01": 224,
+      "justificativa": "Rótulo PCDF idêntico ao da categoria prevista (seção 5.2)."
+    },
+    {
+      "id": "PCDF-N-40",
+      "naturezaOriginal": "TRÁFICO INTERNACIONAL DE SUBSTANCIA ENTORPECENTE",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    },
+    {
+      "id": "PCDF-N-41",
+      "naturezaOriginal": "TRÁFICO PRIVILEGIADO",
+      "crimeTentado": null,
+      "categoriaPcdf": null,
+      "categoriaProposta": null,
+      "nivel": "nao_observada",
+      "ativavelNoEnsaio": false,
+      "associacoes2021_01": 0,
+      "justificativa": "Sem linhas em 2021-01; a matriz conjunta não traz evidência."
+    }
+  ]
+}
