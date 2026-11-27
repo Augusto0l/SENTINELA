@@ -6,6 +6,9 @@ import {
   type PersistentQuery,
 } from "@/contracts/persistent-occurrences"
 import { z } from "zod"
+import { consolidatedOccurrenceDetail, localOccurrencesPath, type LocalOccurrencesQuery } from "@/contracts/local-occurrences"
+import { managementPath } from "@/contracts/occurrence-management"
+import { successSchema } from "@/contracts/common"
 import { CATALOG_PATHS, catalogResponseSchemas, type CatalogKind, type CatalogData } from "@/contracts/persistent-catalogs"
 
 export type ReadOccurrence = z.infer<typeof persistentDetailResponseSchema>["data"]
@@ -112,6 +115,24 @@ async function get(
       "Não foi possível conectar ao serviço de leitura. Tente novamente.",
     )
   }
+}
+export async function readLocalConsultation<T>(query: LocalOccurrencesQuery, schema: z.ZodType<T>, signal: AbortSignal) {
+  const search = new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]))
+  const result = await get(localOccurrencesPath + "?" + search, successSchema(schema), signal, fetch) as { data: T }
+  return result.data
+}
+export type ConsolidatedOccurrence = z.infer<typeof consolidatedOccurrenceDetail>
+
+export async function readConsolidatedOccurrence(id: string, area: "consolidadas" | "manuais", signal: AbortSignal) {
+  const record = await readLocalConsultation({ view: "detalhe", area, id }, consolidatedOccurrenceDetail, signal)
+  if (record.id.toLowerCase() !== id.toLowerCase())
+    throw new OccurrenceReadError(0, "Resposta inesperada do serviço de leitura.")
+  return record
+}
+export async function readManagement<T>(query: object, schema: z.ZodType<T>, signal: AbortSignal) {
+  const search = new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]))
+  const result = await get(managementPath + "?" + search, successSchema(schema), signal, fetch) as { data: T }
+  return result.data
 }
 export async function readCatalog(kind: CatalogKind, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<CatalogData> {
   if (!Object.prototype.hasOwnProperty.call(CATALOG_PATHS, kind)) throw errorForStatus(400)

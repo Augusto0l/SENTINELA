@@ -11,6 +11,7 @@ type State<T> = {
 export default function useRead<T>(
   key: string,
   load: (signal: AbortSignal) => Promise<T>,
+  retry = 0,
 ) {
   const [state, setState] = useState<State<T>>({ key: "" })
   useEffect(() => {
@@ -21,8 +22,9 @@ export default function useRead<T>(
       })
       .catch((error) => {
         if (!controller.signal.aborted)
-          setState({
+          setState(previous => ({
             key,
+            data: previous.key === key && error?.status !== 401 && error?.status !== 403 ? previous.data : undefined,
             error:
               error instanceof
               OccurrenceReadError
@@ -31,10 +33,10 @@ export default function useRead<T>(
                     0,
                     "Não foi possível concluir a consulta.",
                   ),
-          })
+          }))
       })
     return () => controller.abort()
-  }, [key, load])
+  }, [key, load, retry])
   return state.key === key
     ? { ...state, loading: false }
     : { loading: true, data: undefined, error: undefined }

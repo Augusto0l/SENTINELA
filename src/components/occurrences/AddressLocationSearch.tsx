@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/button"
 import {
   completeCep,
-  postalAddressFrom,
+  lookupCep,
   type PostalAddress,
   looksLikeCep,
   locationRa,
@@ -12,26 +12,6 @@ import {
 import type { RaGeoJSON } from "@/data/geoLoader"
 import { RA_LIST } from "@/data/mockData"
 import styles from "@/components/occurrences/NewOccurrenceLocation.module.css"
-
-const postalCache = new Map<string, PostalAddress>()
-async function lookupCep(
-  cep: string,
-  signal: AbortSignal,
-): Promise<PostalAddress> {
-  const cached = postalCache.get(cep)
-  if (cached) return cached
-  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
-  })
-  if (!response.ok)
-    throw new Error("Consulta de CEP indisponível. Tente novamente.")
-  const data = await response.json()
-  const result = postalAddressFrom(data)
-  if (postalCache.size >= 100)
-    postalCache.delete(postalCache.keys().next().value!)
-  postalCache.set(cep, result)
-  return result
-}
 
 export default function AddressLocationSearch({
   address,

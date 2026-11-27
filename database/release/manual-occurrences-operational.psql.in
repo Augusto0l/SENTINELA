@@ -1,0 +1,666 @@
+-- SENTINELA · local-manual-0004 · cadastro, edição, inativação e publicação de ocorrências manuais.
+-- Renderize com database/release/render-manual-operational.py; não execute este modelo diretamente.
+-- Exige autorização do responsável, backup verificado e as variáveis cluster_uuid, system_id e supabase_url.
+-- Uma única transação: qualquer falha antes do COMMIT reverte o pacote inteiro.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL statement_timeout='120s';
+SET LOCAL search_path=pg_catalog,pg_temp;
+SELECT set_config('sentinela.manual_release_uuid',:'cluster_uuid',true) AS expected_cluster,
+       set_config('sentinela.manual_release_system',:'system_id',true) AS expected_system,
+       set_config('sentinela.manual_release_url',:'supabase_url',true) AS expected_url
+\gset
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+ OR inet_server_port() NOT IN (55484,55487) OR pg_is_in_recovery()
+ OR current_setting('server_version_num')<>'170011'
+ OR NOT EXISTS (SELECT FROM pg_extension WHERE extname='postgis' AND extversion='3.6.2')
+ OR nullif(current_setting('sentinela.manual_release_uuid'),'') IS NULL
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.manual_release_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.manual_release_system')
+ OR current_setting('sentinela.manual_release_url') !~ '^https://[a-z0-9]{20}\.supabase\.co$'
+ OR (SELECT count(*) FROM sentinela.schema_migrations WHERE versao IN
+    ('local-manual-0001','local-manual-0002','local-manual-0003','local-pcdf-naturezas-0001'))<>4
+ OR EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao LIKE 'local-manual-0004%')
+ OR to_regprocedure('sentinela_gestao_autorizacao.capacidade(uuid,text)') IS NULL
+ OR to_regclass('sentinela_ocorrencias_analytics.pontos_confirmados') IS NULL
+ OR to_regclass('sentinela_ocorrencias_manual.naturezas_uso_local') IS NOT NULL
+ OR to_regprocedure('sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text)') IS NOT NULL
+ OR EXISTS (SELECT FROM pg_attribute WHERE attrelid='sentinela_ocorrencias_manual.cadastros'::regclass AND attname='dados_crime')
+ OR EXISTS (SELECT FROM sentinela.ocorrencias WHERE origem='manual')
+ OR EXISTS (SELECT FROM sentinela_ocorrencias_manual.cadastros)
+ OR (SELECT count(*) FROM sentinela.regioes_administrativas)<>37
+ OR (SELECT count(*) FROM sentinela.naturezas_criminais WHERE fonte='PCDF' AND categoria_pcdf_original IS NULL
+     AND sentinela.descricao_pcdf(descricao_original))<>41
+ OR EXISTS (SELECT FROM sentinela.naturezas_criminais WHERE fonte='SENTINELA_MANUAL')
+ -- Guard bodies reviewed on 2026-11-25; any drift requires a new review of this package.
+ OR EXISTS (SELECT FROM (VALUES
+      ('sentinela.exigir_historico_correcao()'::regprocedure,'4d10efd1e9d002947e7f9d704ac185aa31c7cb295f3bcf4e810d502d84662cff'),
+      ('sentinela.bloquear_correcao_sem_backend()'::regprocedure,'6944306853bc1a6703721f411397e7dc3f4ec5a24811fc78ebf7c7ffac0f091d'),
+      ('sentinela.bloquear_autoria_manual_sem_auth()'::regprocedure,'49c6b40f2fd8a8a67f8691831d960c048e4421cea4fdc4659c9a66cdcdf157cc')) e(func,hash)
+    JOIN pg_proc p ON p.oid=e.func
+    WHERE e.hash IS DISTINCT FROM encode(sha256(convert_to(regexp_replace(p.prosrc,'[[:space:]]+','','g'),'UTF8')),'hex'))
+ OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace AND relkind='r'
+     AND relrowsecurity AND relforcerowsecurity)<>19
+ THEN RAISE EXCEPTION 'Destino, versões ou estado inicial divergentes do pacote manual operacional'; END IF;
+END $guard$;
+
+-- Original guard definitions, kept for the reviewed reversal script.
+CREATE TABLE sentinela_ocorrencias_manual.definicoes_originais (
+ funcao regprocedure PRIMARY KEY,
+ definicao text NOT NULL
+);
+ALTER TABLE sentinela_ocorrencias_manual.definicoes_originais ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_ocorrencias_manual.definicoes_originais FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON sentinela_ocorrencias_manual.definicoes_originais FROM PUBLIC;
+INSERT INTO sentinela_ocorrencias_manual.definicoes_originais
+SELECT p, pg_get_functiondef(p) FROM unnest(ARRAY['sentinela.exigir_historico_correcao()'::regprocedure,
+ 'sentinela.bloquear_correcao_sem_backend()'::regprocedure,'sentinela.bloquear_autoria_manual_sem_auth()'::regprocedure,
+ 'sentinela_ocorrencias_manual.catalogo(text)'::regprocedure,'sentinela_ocorrencias_manual.detalhe(uuid)'::regprocedure]) p;
+
+-- 1. Release binding and institutional authorship (Administrador or Operador with a linked identity).
+CREATE TABLE sentinela_ocorrencias_manual.liberacao (
+ singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+ porta integer NOT NULL CHECK (porta IN (55484,55487)),
+ cluster_uuid uuid NOT NULL,
+ system_id text NOT NULL,
+ supabase_url text NOT NULL CHECK (supabase_url ~ '^https://[a-z0-9]{20}\.supabase\.co$'),
+ aberta boolean NOT NULL
+);
+ALTER TABLE sentinela_ocorrencias_manual.liberacao ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_ocorrencias_manual.liberacao FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON sentinela_ocorrencias_manual.liberacao FROM PUBLIC;
+GRANT SELECT ON sentinela_ocorrencias_manual.liberacao TO sentinela_manual_writer;
+CREATE POLICY manual_liberacao_leitura ON sentinela_ocorrencias_manual.liberacao FOR SELECT TO sentinela_manual_writer USING (true);
+INSERT INTO sentinela_ocorrencias_manual.liberacao(porta,cluster_uuid,system_id,supabase_url,aberta)
+VALUES (inet_server_port(),current_setting('sentinela.manual_release_uuid')::uuid,
+ current_setting('sentinela.manual_release_system'),current_setting('sentinela.manual_release_url'),true);
+
+GRANT SELECT (id,auth_user_id,perfil,ativo) ON sentinela.usuarios TO sentinela_manual_writer;
+CREATE POLICY manual_autores ON sentinela.usuarios FOR SELECT TO sentinela_manual_writer
+ USING (ativo AND auth_user_id IS NOT NULL AND perfil IN ('Administrador','Operador'));
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_system() TO sentinela_manual_writer;
+
+-- The account fingerprint is the value the application derives from the Supabase project and auth user.
+CREATE FUNCTION sentinela_ocorrencias_manual.autor(p_usuario uuid,p_conta text) RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT u.perfil FROM sentinela.usuarios u CROSS JOIN sentinela_ocorrencias_manual.liberacao r
+ WHERE u.id=p_usuario AND u.ativo AND u.auth_user_id IS NOT NULL AND u.perfil IN ('Administrador','Operador')
+   AND session_user=CASE u.perfil WHEN 'Administrador' THEN 'sentinela_local_admin'::name ELSE 'sentinela_local_operator'::name END
+   AND r.aberta AND r.porta=inet_server_port() AND inet_server_addr()=inet '127.0.0.1'
+   AND current_database()='sentinela_pcdf_local' AND NOT pg_is_in_recovery()
+   AND r.cluster_uuid::text=current_setting('sentinela.sandbox_uuid',true)
+   AND r.system_id=(SELECT system_identifier::text FROM pg_control_system())
+   AND coalesce(p_conta ~ '^[a-f0-9]{64}$',false)
+   AND p_conta=encode(sha256(convert_to('["sentinela-supabase",'||to_json(r.supabase_url)::text||','
+     ||to_json(u.auth_user_id::text)::text||']','UTF8')),'hex')
+$$;
+
+CREATE FUNCTION sentinela_ocorrencias_manual.exigir_autor(p_usuario uuid,p_conta text) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE perfil text;
+BEGIN
+ IF current_setting('transaction_read_only')<>'off' OR current_setting('transaction_isolation')<>'read committed'
+ THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+ perfil:=sentinela_ocorrencias_manual.autor(p_usuario,p_conta);
+ IF perfil IS NULL THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+ RETURN perfil;
+END $$;
+
+-- 2. Local catalogue for manual use. It reuses the 41 original PCDF descriptions and their UUIDs.
+-- PCDF-N-* are internal review identifiers; no issuer code or institutional approval is asserted.
+CREATE TABLE sentinela_ocorrencias_manual.naturezas_uso_local (
+ natureza_id uuid PRIMARY KEY REFERENCES sentinela.naturezas_criminais(id),
+ codigo_interno text NOT NULL UNIQUE CHECK (codigo_interno ~ '^PCDF-N-[0-9]{2}$'),
+ situacao text NOT NULL CHECK (situacao='uso-local-provisorio'),
+ referencia jsonb NOT NULL CHECK (jsonb_typeof(referencia)='object'
+   AND referencia ? 'codigoOficial' AND referencia->'codigoOficial'='null'::jsonb
+   AND referencia->>'homologacaoInstitucional'='ausente'
+   AND referencia->>'inventarioSha256' ~ '^[a-f0-9]{64}$' AND referencia->>'catalogoSha256' ~ '^[a-f0-9]{64}$')
+);
+ALTER TABLE sentinela_ocorrencias_manual.naturezas_uso_local ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_ocorrencias_manual.naturezas_uso_local FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON sentinela_ocorrencias_manual.naturezas_uso_local FROM PUBLIC;
+GRANT SELECT ON sentinela_ocorrencias_manual.naturezas_uso_local TO sentinela_manual_writer,sentinela_manual_reader;
+CREATE POLICY manual_uso_local_leitura ON sentinela_ocorrencias_manual.naturezas_uso_local FOR SELECT
+ TO sentinela_manual_writer,sentinela_manual_reader USING (true);
+INSERT INTO sentinela_ocorrencias_manual.naturezas_uso_local(natureza_id,codigo_interno,situacao,referencia)
+SELECT n.id,j.codigo,'uso-local-provisorio',jsonb_build_object(
+  'fonte','pcdf-naturezas-xml-v1','catalogoSha256','__CATALOG_SHA256__','fonteXmlSha256','__XML_SHA256__',
+  'inventario','naturezas-manuais-candidatas-v1','inventarioSha256','__INVENTORY_SHA256__',
+  'codigoOficial',NULL,'homologacaoInstitucional','ausente')
+FROM jsonb_to_recordset($dados$__NATURES_JSON__$dados$::jsonb) AS j(codigo text,descricao text)
+JOIN sentinela.naturezas_criminais n ON n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL
+ AND n.descricao_original COLLATE "C"=j.descricao COLLATE "C" AND sentinela.descricao_pcdf(n.descricao_original);
+DO $guard$
+BEGIN
+ IF (SELECT count(*) FROM sentinela_ocorrencias_manual.naturezas_uso_local)<>41
+ THEN RAISE EXCEPTION 'Catálogo local divergente das 41 descrições originais da PCDF'; END IF;
+END $guard$;
+
+GRANT SELECT (categoria_pcdf_original) ON sentinela.naturezas_criminais TO sentinela_manual_writer;
+CREATE POLICY manual_nature_local ON sentinela.naturezas_criminais FOR SELECT TO sentinela_manual_writer
+ USING (EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_uso_local u WHERE u.natureza_id=naturezas_criminais.id));
+-- The association trigger reads these columns while validating the PCDF description of a manual link.
+GRANT SELECT (versao_identidade) ON sentinela.ocorrencias TO sentinela_manual_writer;
+GRANT SELECT (natureza_original) ON sentinela.linhas_origem TO sentinela_manual_writer;
+
+CREATE OR REPLACE FUNCTION sentinela_ocorrencias_manual.catalogo(termo text) RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ WITH filtro AS (SELECT coalesce(sentinela_ocorrencias_manual.normalizar_catalogo(termo),'') AS q)
+ SELECT jsonb_build_object(
+   'regioes',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'codigo',codigo_interno,'nome',nome,
+     'numeroAdministrativo',referencia_cartografica->'administrativeNumber')
+     ORDER BY sentinela_ocorrencias_manual.normalizar_catalogo(nome) COLLATE "C",id)
+     FROM sentinela.regioes_administrativas
+     WHERE q='' OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(nome),q)>0
+       OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(codigo_interno),q)>0
+       OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(codigo_oficial),q)>0
+       OR referencia_cartografica->>'administrativeNumber'=q),'[]'::jsonb),
+   'naturezas',coalesce((SELECT jsonb_agg(jsonb_build_object('id',n.id,'descricao',n.descricao_original,
+       'codigo',u.codigo_interno,'codigoOficial',NULL,'situacao',u.situacao)
+     ORDER BY sentinela_ocorrencias_manual.normalizar_catalogo(n.descricao_original) COLLATE "C",n.id)
+     FROM sentinela_ocorrencias_manual.naturezas_uso_local u JOIN sentinela.naturezas_criminais n ON n.id=u.natureza_id
+     WHERE q='' OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(n.descricao_original),q)>0
+       OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(u.codigo_interno),q)>0),'[]'::jsonb))
+ FROM filtro WHERE session_user IN ('sentinela_local_admin','sentinela_local_operator');
+$$;
+
+-- 3. Structured crime data and receipt updates.
+ALTER TABLE sentinela_ocorrencias_manual.cadastros ADD COLUMN dados_crime jsonb NOT NULL DEFAULT '{}'
+ CHECK (jsonb_typeof(dados_crime)='object');
+GRANT SELECT (dados_crime) ON sentinela_ocorrencias_manual.cadastros TO sentinela_manual_reader;
+GRANT UPDATE (endereco,dados_crime) ON sentinela_ocorrencias_manual.cadastros TO sentinela_manual_writer;
+CREATE POLICY manual_receipt_operational_read ON sentinela_ocorrencias_manual.cadastros FOR SELECT TO sentinela_manual_writer
+ USING (session_user IN ('sentinela_local_admin','sentinela_local_operator'));
+CREATE POLICY manual_receipt_operational_update ON sentinela_ocorrencias_manual.cadastros FOR UPDATE TO sentinela_manual_writer
+ USING (session_user IN ('sentinela_local_admin','sentinela_local_operator') AND EXISTS (SELECT FROM sentinela.ocorrencias o
+   WHERE o.id=ocorrencia_id AND o.ativo AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL' AND o.consolidacao_status='em_revisao'))
+ WITH CHECK (session_user IN ('sentinela_local_admin','sentinela_local_operator'));
+
+CREATE FUNCTION sentinela_ocorrencias_manual.validar_dados() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
+DECLARE
+  crime jsonb := NEW.dados_crime;
+  espacos constant text := U&' \0009\000A\000B\000C\000D\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF';
+BEGIN
+  IF jsonb_typeof(crime) IS DISTINCT FROM 'object' OR crime-ARRAY['descricao','meio','vitimas','autores','observacoes']<>'{}'
+    OR (NEW.endereco?'cep' AND NOT coalesce(jsonb_typeof(NEW.endereco->'cep')='string' AND NEW.endereco->>'cep'~'^[0-9]{8}$',false))
+    OR EXISTS(SELECT FROM (VALUES ('descricao',3000),('observacoes',1500)) k(campo,maximo)
+      WHERE crime?k.campo AND NOT coalesce(jsonb_typeof(crime->k.campo)='string'
+        AND length(btrim(crime->>k.campo,espacos)) BETWEEN 1 AND k.maximo,false))
+    OR (crime?'meio' AND NOT coalesce(crime->>'meio' IN ('arma-de-fogo','arma-branca','forca-fisica','veiculo','outro'),false))
+    OR EXISTS(SELECT FROM (VALUES ('vitimas'),('autores')) k(campo) WHERE crime?k.campo AND NOT
+      coalesce(jsonb_typeof(crime->k.campo)='number' AND crime->>k.campo~'^[0-9]{1,6}$',false))
+  THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+  IF TG_OP='INSERT' THEN
+    IF NOT (NEW.endereco?'cep' AND crime ?& ARRAY['descricao','meio','vitimas','autores'])
+    THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+  ELSIF (OLD.endereco?'cep' AND NOT NEW.endereco?'cep')
+    OR EXISTS(SELECT FROM unnest(ARRAY['descricao','meio','vitimas','autores']) k(campo)
+      WHERE OLD.dados_crime?k.campo AND NOT crime?k.campo)
+  THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.validar_dados() FROM PUBLIC;
+CREATE TRIGGER validar_dados_manuais BEFORE INSERT OR UPDATE OF endereco,dados_crime
+ ON sentinela_ocorrencias_manual.cadastros FOR EACH ROW EXECUTE FUNCTION sentinela_ocorrencias_manual.validar_dados();
+
+-- 4. Retired associations keep their rows and foreign keys; every reader excludes them.
+CREATE TABLE sentinela_ocorrencias_manual.naturezas_retiradas (
+ associacao_id uuid PRIMARY KEY REFERENCES sentinela.ocorrencia_naturezas(id),
+ auditoria_id uuid NOT NULL REFERENCES sentinela.eventos_auditoria(id) DEFERRABLE INITIALLY DEFERRED
+);
+ALTER TABLE sentinela_ocorrencias_manual.naturezas_retiradas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_ocorrencias_manual.naturezas_retiradas FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON sentinela_ocorrencias_manual.naturezas_retiradas FROM PUBLIC;
+GRANT SELECT,INSERT ON sentinela_ocorrencias_manual.naturezas_retiradas TO sentinela_manual_writer;
+GRANT SELECT (associacao_id) ON sentinela_ocorrencias_manual.naturezas_retiradas
+ TO sentinela_manual_reader,sentinela_ocorrencias_reader;
+GRANT USAGE ON SCHEMA sentinela_ocorrencias_manual TO sentinela_ocorrencias_reader;
+CREATE POLICY manual_retiradas_leitura ON sentinela_ocorrencias_manual.naturezas_retiradas FOR SELECT
+ TO sentinela_manual_writer,sentinela_manual_reader,sentinela_ocorrencias_reader USING (true);
+CREATE POLICY manual_retiradas_insert ON sentinela_ocorrencias_manual.naturezas_retiradas FOR INSERT
+ TO sentinela_manual_writer WITH CHECK (session_user IN ('sentinela_local_admin','sentinela_local_operator') AND EXISTS (
+  SELECT FROM sentinela.ocorrencia_naturezas n JOIN sentinela.ocorrencias o ON o.id=n.ocorrencia_id
+  WHERE n.id=associacao_id AND n.origem='manual' AND n.linha_origem_id IS NULL AND o.ativo
+    AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL' AND o.consolidacao_status='em_revisao'));
+ALTER POLICY manual_read_links ON sentinela.ocorrencia_naturezas USING (
+ EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id)
+ AND NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas r WHERE r.associacao_id=ocorrencia_naturezas.id));
+ALTER POLICY ocorrencias_read_associacoes ON sentinela.ocorrencia_naturezas USING (
+ EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_naturezas.ocorrencia_id)
+ AND NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas r WHERE r.associacao_id=ocorrencia_naturezas.id));
+GRANT SELECT (id,ocorrencia_id,natureza_id,origem,crime_tentado,classificacao_status) ON sentinela.ocorrencia_naturezas
+ TO sentinela_manual_writer;
+CREATE POLICY manual_links_writer_read ON sentinela.ocorrencia_naturezas FOR SELECT TO sentinela_manual_writer
+ USING (EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id));
+
+-- 5. Updates on manual occurrences: column grants, row policy, audited statement and history guards.
+GRANT SELECT ON sentinela.ocorrencias TO sentinela_manual_writer;
+GRANT UPDATE (data_fato,horario_fato,ra_id,local,latitude,longitude,geometria,ativo,consolidacao_status)
+ ON sentinela.ocorrencias TO sentinela_manual_writer;
+CREATE POLICY manual_occurrence_update ON sentinela.ocorrencias FOR UPDATE TO sentinela_manual_writer
+ USING (origem='manual' AND fonte='SENTINELA_MANUAL' AND identidade_status='manual'
+   AND session_user IN ('sentinela_local_admin','sentinela_local_operator'))
+ WITH CHECK (origem='manual' AND fonte='SENTINELA_MANUAL' AND identidade_status='manual' AND localizacao_status='validada'
+   AND session_user IN ('sentinela_local_admin','sentinela_local_operator'));
+GRANT SELECT (id,ocorrencia_id,status) ON sentinela.pendencias_revisao TO sentinela_manual_writer;
+CREATE POLICY manual_pendencias_leitura ON sentinela.pendencias_revisao FOR SELECT TO sentinela_manual_writer
+ USING (ocorrencia_id IS NOT NULL AND EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id));
+
+GRANT INSERT (id,usuario_id,antes) ON sentinela.eventos_auditoria TO sentinela_manual_writer;
+GRANT SELECT (id,ator_tipo,usuario_id,acao,ocorrencia_id,antes,depois,justificativa,registrado_em,transacao_id)
+ ON sentinela.eventos_auditoria TO sentinela_manual_writer;
+CREATE POLICY manual_audit_read ON sentinela.eventos_auditoria FOR SELECT TO sentinela_manual_writer
+ USING (ator_tipo='usuario' AND depois->>'operacao'='cadastro-manual');
+CREATE POLICY manual_audit_usuario ON sentinela.eventos_auditoria FOR INSERT TO sentinela_manual_writer WITH CHECK (
+ ator_tipo='usuario' AND servico IS NULL AND usuario_id IS NOT NULL AND depois->>'operacao'='cadastro-manual'
+ AND acao IN ('ocorrencia.manual.criada','ocorrencia.manual.editada','ocorrencia.manual.inativada','ocorrencia.manual.consolidada')
+ AND depois->>'login'=session_user::text
+ AND sentinela_ocorrencias_manual.autor(usuario_id,depois->>'conta') IS NOT NULL
+ AND EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id));
+
+-- The deferred history trigger runs at COMMIT as the login; it accepts only an exact audited change.
+-- It serializes the geometry in that session, which reads the PostGIS reference system.
+GRANT USAGE ON SCHEMA extensions TO sentinela_local_admin,sentinela_local_operator;
+CREATE FUNCTION sentinela_ocorrencias_manual.verificar_evento(anterior jsonb,novo jsonb) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT inet_server_port() IN (55484,55487) AND EXISTS (SELECT FROM sentinela.eventos_auditoria e
+  WHERE e.ocorrencia_id=(anterior->>'id')::uuid AND e.ator_tipo='usuario' AND e.depois->>'operacao'='cadastro-manual'
+    AND e.acao IN ('ocorrencia.manual.editada','ocorrencia.manual.inativada','ocorrencia.manual.consolidada')
+    AND e.transacao_id=pg_current_xact_id() AND e.depois->>'login'=session_user::text
+    AND e.antes->'registro'=anterior AND e.depois->'registro'=novo)
+$$;
+
+CREATE OR REPLACE FUNCTION sentinela.bloquear_correcao_sem_backend()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'pg_catalog'
+AS $function$
+BEGIN
+ IF current_user='sentinela_exclusao_owner' AND session_user='sentinela_local_admin'
+    AND inet_server_port()=55484 AND inet_server_addr()=inet '127.0.0.1'
+    AND TG_TABLE_SCHEMA='sentinela' AND TG_OP='DELETE' AND TG_TABLE_NAME IN ('linhas_staging','pendencias_revisao')
+ THEN RETURN NULL; END IF;
+ IF current_user='sentinela_manual_writer' AND session_user IN ('sentinela_local_admin','sentinela_local_operator')
+    AND inet_server_port() IN (55484,55487) AND inet_server_addr()=inet '127.0.0.1'
+    AND TG_TABLE_SCHEMA='sentinela' AND TG_TABLE_NAME='ocorrencias' AND TG_OP='UPDATE'
+ THEN RETURN NULL; END IF;
+  RAISE EXCEPTION 'Correcao bloqueada ate Auth e backend transacional auditado serem implementados.'
+    USING ERRCODE = '42501';
+END $function$;
+
+CREATE OR REPLACE FUNCTION sentinela.bloquear_autoria_manual_sem_auth()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'pg_catalog'
+AS $function$
+BEGIN
+  IF TG_TABLE_NAME = 'pendencias_revisao' THEN
+    IF NEW.status <> 'aberta' OR NEW.responsavel_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Atribuicao/decisao manual depende de Auth real.' USING ERRCODE = '42501';
+    END IF;
+  ELSIF NEW.ator_tipo = 'usuario' THEN
+    -- Evaluated first: each branch only resolves the schema its own owner may use.
+    IF current_user='sentinela_manual_writer' THEN
+      IF TG_TABLE_SCHEMA='sentinela' AND TG_TABLE_NAME='eventos_auditoria'
+        AND NEW.acao IN ('ocorrencia.manual.criada','ocorrencia.manual.editada','ocorrencia.manual.inativada','ocorrencia.manual.consolidada')
+        AND NEW.depois->>'operacao'='cadastro-manual'
+        AND sentinela_ocorrencias_manual.autor(NEW.usuario_id,NEW.depois->>'conta') IS NOT NULL
+      THEN RETURN NEW; END IF;
+    ELSIF current_user='sentinela_gestao_owner' AND TG_TABLE_SCHEMA='sentinela' AND TG_TABLE_NAME='eventos_auditoria'
+      AND NEW.acao='corrigir_associacao' AND NEW.depois->>'operacao'='gestao-importacao'
+      AND sentinela_gestao_autorizacao.capacidade(NEW.usuario_id,NEW.depois->>'conta') IS TRUE
+    THEN RETURN NEW; END IF;
+    RAISE EXCEPTION 'Autoria humana de auditoria depende de Auth real.' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END $function$;
+
+DO $patch$
+DECLARE definicao text:=pg_get_functiondef('sentinela.exigir_historico_correcao()'::regprocedure);
+ marcador text:='FOR item IN SELECT key, value FROM jsonb_each(novo';
+BEGIN
+ IF (length(definicao)-length(replace(definicao,marcador,'')))/length(marcador)<>1
+ THEN RAISE EXCEPTION 'Revisão inesperada da proteção de correção'; END IF;
+ EXECUTE replace(definicao,marcador,'IF TG_TABLE_NAME=''ocorrencias'' AND session_user IN (''sentinela_local_admin'',''sentinela_local_operator'')
+    AND sentinela_ocorrencias_manual.verificar_evento(anterior,novo) THEN RETURN NULL; END IF;
+  '||marcador);
+END $patch$;
+
+-- 6. Shared validation of a manual payload.
+CREATE FUNCTION sentinela_ocorrencias_manual.payload_valido(b jsonb,criacao boolean) RETURNS boolean
+LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT coalesce(jsonb_typeof(b)='object'
+  AND (b-ARRAY['data','horario','cep','endereco','bairroOuSetor','numero','complemento','referencia',
+     'raId','coordenadas','naturezas','localizacaoConfirmada','dadosCrime'])='{}'::jsonb
+  AND b ?& ARRAY['data','horario','endereco','bairroOuSetor','raId','coordenadas','naturezas','dadosCrime']
+  AND (NOT criacao OR b ? 'cep')
+  AND b->'localizacaoConfirmada'='true'::jsonb
+  AND b->>'data' ~ '^(19[0-9]{2}|[2-9][0-9]{3})-[0-9]{2}-[0-9]{2}$'
+  AND b->>'horario' ~ '^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$'
+  AND (NOT b ? 'cep' OR (jsonb_typeof(b->'cep')='string' AND b->>'cep' ~ '^[0-9]{8}$'))
+  AND NOT EXISTS (SELECT FROM (VALUES ('endereco',240),('bairroOuSetor',100),('numero',24),('complemento',120),('referencia',240)) k(campo,maximo)
+    WHERE (b ? k.campo OR k.campo IN ('endereco','bairroOuSetor'))
+      AND NOT coalesce(jsonb_typeof(b->k.campo)='string' AND length(btrim(b->>k.campo)) BETWEEN 1 AND k.maximo,false))
+  AND jsonb_typeof(b->'coordenadas')='object' AND (b->'coordenadas')-ARRAY['latitude','longitude']='{}'::jsonb
+  AND jsonb_typeof(b->'coordenadas'->'latitude')='number' AND jsonb_typeof(b->'coordenadas'->'longitude')='number'
+  AND (b->'coordenadas'->>'latitude')::float8 BETWEEN -90 AND 90 AND (b->'coordenadas'->>'longitude')::float8 BETWEEN -180 AND 180
+  AND jsonb_typeof(b->'naturezas')='array' AND jsonb_array_length(b->'naturezas') BETWEEN 1 AND 100
+  AND NOT EXISTS (SELECT FROM jsonb_array_elements(b->'naturezas') x WHERE jsonb_typeof(x)<>'object'
+    OR NOT coalesce(jsonb_typeof(x->'naturezaId')='string' AND x->>'naturezaId' ~* '^[0-9a-f-]{36}$'
+      AND jsonb_typeof(x->'crimeTentado') IN ('boolean','null'),false)
+    OR (x-ARRAY['naturezaId','crimeTentado'])<>'{}'::jsonb)
+  AND NOT EXISTS (SELECT FROM jsonb_array_elements(b->'naturezas') x GROUP BY lower(x->>'naturezaId'),x->'crimeTentado' HAVING count(*)>1)
+  AND jsonb_typeof(b->'dadosCrime')='object', false)
+$$;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.payload_valido(jsonb,boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.payload_valido(jsonb,boolean) TO sentinela_manual_writer;
+
+-- Territory and catalogue checks shared by creation and editing.
+CREATE FUNCTION sentinela_ocorrencias_manual.referencias_validas(b jsonb) RETURNS boolean
+LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ WITH p AS (SELECT (b->>'data')::date AS dia,(b->>'raId')::uuid AS ra,
+   extensions.ST_SetSRID(extensions.ST_MakePoint((b->'coordenadas'->>'longitude')::float8,(b->'coordenadas'->>'latitude')::float8),4326) AS ponto)
+ SELECT (SELECT count(*) FROM sentinela.regioes_administrativas)=37
+  AND (SELECT count(*) FROM sentinela.regioes_administrativas r, p WHERE extensions.ST_Covers(r.limite,p.ponto))=1
+  AND EXISTS (SELECT FROM sentinela.regioes_administrativas r, p WHERE r.id=p.ra AND r.vigencia @> p.dia
+    AND extensions.ST_Contains(r.limite,p.ponto))
+  AND NOT EXISTS (SELECT FROM jsonb_array_elements(b->'naturezas') x WHERE NOT EXISTS (
+    SELECT FROM sentinela_ocorrencias_manual.naturezas_uso_local u WHERE u.natureza_id=(x->>'naturezaId')::uuid))
+ FROM p
+$$;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.referencias_validas(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.referencias_validas(jsonb) TO sentinela_manual_writer;
+
+CREATE FUNCTION sentinela_ocorrencias_manual.limpar_crime(crime jsonb) RETURNS jsonb
+LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT coalesce(jsonb_object_agg(campo,CASE WHEN jsonb_typeof(valor)='string' THEN to_jsonb(btrim(valor#>>'{}')) ELSE valor END),'{}')
+ FROM jsonb_each(crime) e(campo,valor)
+$$;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.limpar_crime(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.limpar_crime(jsonb) TO sentinela_manual_writer;
+
+CREATE FUNCTION sentinela_ocorrencias_manual.naturezas_ativas(alvo uuid) RETURNS jsonb
+LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT coalesce(jsonb_agg(jsonb_build_object('id',n.id,'naturezaId',n.natureza_id,'crimeTentado',n.crime_tentado)
+  ORDER BY n.natureza_id,n.crime_tentado,n.id),'[]')
+ FROM sentinela.ocorrencia_naturezas n WHERE n.ocorrencia_id=alvo
+  AND NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas r WHERE r.associacao_id=n.id)
+$$;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.naturezas_ativas(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.naturezas_ativas(uuid) TO sentinela_manual_writer;
+
+-- 7. Creation in review, with authorship from the institutional session.
+CREATE FUNCTION sentinela_ocorrencias_manual.cadastrar_completo(b jsonb,k uuid,a text,u uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE
+  registro uuid := gen_random_uuid();
+  anterior record;
+  hash_entrada text := encode(sha256(convert_to(b::text,'UTF8')),'hex');
+  endereco jsonb; crime jsonb; ponto extensions.geometry; lat float8; lon float8; dia date; hora time;
+BEGIN
+  PERFORM sentinela_ocorrencias_manual.exigir_autor(u,a);
+  IF k IS NULL OR NOT sentinela_ocorrencias_manual.payload_valido(b,true) THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(session_user::text||a||k::text,0));
+  SELECT c.ocorrencia_id,c.digest INTO anterior FROM sentinela_ocorrencias_manual.cadastros c
+   WHERE c.login=session_user AND c.ator=a AND c.chave=k;
+  IF FOUND THEN
+    IF anterior.digest<>hash_entrada THEN RAISE EXCEPTION USING ERRCODE='23505'; END IF;
+    RETURN jsonb_build_object('id',anterior.ocorrencia_id,'origem','manual','situacao','em_revisao');
+  END IF;
+  dia:=(b->>'data')::date; hora:=(b->>'horario')::time;
+  lat:=(b->'coordenadas'->>'latitude')::float8; lon:=(b->'coordenadas'->>'longitude')::float8;
+  IF dia+hora > (clock_timestamp() AT TIME ZONE 'America/Sao_Paulo') THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+  IF NOT sentinela_ocorrencias_manual.referencias_validas(b) THEN RAISE EXCEPTION USING ERRCODE='P0002'; END IF;
+  ponto:=extensions.ST_SetSRID(extensions.ST_MakePoint(lon,lat),4326);
+  SELECT jsonb_object_agg(campo,btrim(valor)) INTO endereco FROM jsonb_each_text(b) e(campo,valor)
+   WHERE campo IN ('cep','endereco','bairroOuSetor','numero','complemento','referencia');
+  crime:=sentinela_ocorrencias_manual.limpar_crime(b->'dadosCrime');
+
+  INSERT INTO sentinela.ocorrencias(id,origem,fonte,versao_identidade,identidade_status,data_fato,horario_fato,
+    ra_id,local,latitude,longitude,localizacao_status,referencia_espacial_confirmada,regra_transformacao,geometria,consolidacao_status)
+  VALUES (registro,'manual','SENTINELA_MANUAL','manual-local-v1','manual',dia,hora,(b->>'raId')::uuid,
+    concat_ws(', ',endereco->>'endereco',endereco->>'numero',endereco->>'bairroOuSetor'),lat,lon,'validada',
+    'WGS84; IDE-DF-2026-11-13','Coordenada informada em graus decimais; sem transformação',ponto,'em_revisao');
+  INSERT INTO sentinela.ocorrencia_naturezas(ocorrencia_id,natureza_id,origem,crime_tentado,classificacao_status)
+   SELECT registro,(x->>'naturezaId')::uuid,'manual',(x->>'crimeTentado')::boolean,'pendente'
+   FROM jsonb_array_elements(b->'naturezas') x;
+  INSERT INTO sentinela_ocorrencias_manual.cadastros(ocorrencia_id,login,ator,chave,digest,endereco,dados_crime)
+   VALUES (registro,session_user,a,k,hash_entrada,endereco,crime);
+  INSERT INTO sentinela.eventos_auditoria(ator_tipo,usuario_id,acao,ocorrencia_id,depois,justificativa,request_id)
+   VALUES ('usuario',u,'ocorrencia.manual.criada',registro,
+    jsonb_build_object('operacao','cadastro-manual','login',session_user::text,'conta',a,'raId',b->'raId',
+      'naturezas',b->'naturezas','data',dia,'horario',hora,'coordenadas',b->'coordenadas','endereco',endereco,
+      'dadosCrime',crime,'situacao','em_revisao','localizacaoConfirmada',true),
+    'Cadastro manual por sessão institucional autenticada',k::text);
+  RETURN jsonb_build_object('id',registro,'origem','manual','situacao','em_revisao');
+END $$;
+
+-- 8. Editing while in review. Identity and provenance stay immutable.
+CREATE FUNCTION sentinela_ocorrencias_manual.editar(p jsonb,p_conta text,p_usuario uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE
+ alvo uuid; motivo text:=btrim(p->>'justificativa'); auditoria uuid:=gen_random_uuid(); b jsonb:=p->'dados';
+ crime jsonb; novo_endereco jsonb; anterior_endereco jsonb; anterior_crime jsonb; vinculos jsonb;
+ antes sentinela.ocorrencias; depois sentinela.ocorrencias; dia date; hora time; lat float8; lon float8;
+BEGIN
+ PERFORM sentinela_ocorrencias_manual.exigir_autor(p_usuario,p_conta);
+ IF jsonb_typeof(p) IS DISTINCT FROM 'object' OR p-ARRAY['acao','id','versao','confirmacao','justificativa','dados']<>'{}'
+  OR p->>'acao' IS DISTINCT FROM 'editar_manual' OR NOT coalesce(p->>'id' ~* '^[0-9a-f-]{36}$',false)
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+ alvo:=(p->>'id')::uuid;
+ IF p->>'confirmacao' IS DISTINCT FROM alvo::text OR NOT coalesce(length(motivo) BETWEEN 1 AND 500,false)
+  OR NOT sentinela_ocorrencias_manual.payload_valido(b,false)
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+ SELECT o.* INTO antes FROM sentinela.ocorrencias o JOIN sentinela_ocorrencias_manual.cadastros c ON c.ocorrencia_id=o.id
+  WHERE o.id=alvo AND o.ativo AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL' AND o.consolidacao_status='em_revisao'
+  FOR UPDATE OF o;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002'; END IF;
+ IF p->>'versao' IS DISTINCT FROM antes.versao::text THEN RAISE EXCEPTION USING ERRCODE='40001'; END IF;
+ dia:=(b->>'data')::date; hora:=(b->>'horario')::time;
+ lat:=(b->'coordenadas'->>'latitude')::float8; lon:=(b->'coordenadas'->>'longitude')::float8;
+ IF dia+hora > (clock_timestamp() AT TIME ZONE 'America/Sao_Paulo') OR NOT sentinela_ocorrencias_manual.referencias_validas(b)
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+
+ SELECT c.endereco,c.dados_crime INTO anterior_endereco,anterior_crime FROM sentinela_ocorrencias_manual.cadastros c WHERE c.ocorrencia_id=alvo;
+ vinculos:=sentinela_ocorrencias_manual.naturezas_ativas(alvo);
+ SELECT jsonb_object_agg(chave,btrim(valor)) INTO novo_endereco FROM jsonb_each_text(b) e(chave,valor)
+  WHERE chave IN ('cep','endereco','bairroOuSetor','numero','complemento','referencia');
+ crime:=sentinela_ocorrencias_manual.limpar_crime(b->'dadosCrime');
+
+ INSERT INTO sentinela_ocorrencias_manual.naturezas_retiradas(associacao_id,auditoria_id)
+ SELECT n.id,auditoria FROM sentinela.ocorrencia_naturezas n
+ WHERE n.ocorrencia_id=alvo AND n.origem='manual'
+   AND NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas r WHERE r.associacao_id=n.id)
+   AND NOT EXISTS (SELECT FROM jsonb_array_elements(b->'naturezas') x WHERE (x->>'naturezaId')::uuid=n.natureza_id
+     AND (x->>'crimeTentado')::boolean IS NOT DISTINCT FROM n.crime_tentado);
+ INSERT INTO sentinela.ocorrencia_naturezas(ocorrencia_id,natureza_id,origem,crime_tentado,classificacao_status)
+ SELECT alvo,(x->>'naturezaId')::uuid,'manual',(x->>'crimeTentado')::boolean,'pendente'
+ FROM jsonb_array_elements(b->'naturezas') x WHERE NOT EXISTS (
+  SELECT FROM sentinela.ocorrencia_naturezas n WHERE n.ocorrencia_id=alvo AND n.natureza_id=(x->>'naturezaId')::uuid
+   AND n.crime_tentado IS NOT DISTINCT FROM (x->>'crimeTentado')::boolean
+   AND NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_retiradas r WHERE r.associacao_id=n.id));
+
+ IF (dia,hora,(b->>'raId')::uuid,lat,lon,novo_endereco,crime,vinculos) IS NOT DISTINCT FROM
+  (antes.data_fato,antes.horario_fato,antes.ra_id,antes.latitude,antes.longitude,anterior_endereco,anterior_crime,
+   sentinela_ocorrencias_manual.naturezas_ativas(alvo))
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+ UPDATE sentinela_ocorrencias_manual.cadastros c SET endereco=novo_endereco,dados_crime=crime WHERE c.ocorrencia_id=alvo;
+ UPDATE sentinela.ocorrencias SET data_fato=dia,horario_fato=hora,ra_id=(b->>'raId')::uuid,latitude=lat,longitude=lon,
+  geometria=extensions.ST_SetSRID(extensions.ST_MakePoint(lon,lat),4326),
+  local=concat_ws(', ',novo_endereco->>'endereco',novo_endereco->>'numero',novo_endereco->>'bairroOuSetor')
+  WHERE id=alvo RETURNING * INTO depois;
+ INSERT INTO sentinela.eventos_auditoria(id,ator_tipo,usuario_id,acao,ocorrencia_id,antes,depois,justificativa,request_id)
+ VALUES (auditoria,'usuario',p_usuario,'ocorrencia.manual.editada',alvo,
+  jsonb_build_object('registro',to_jsonb(antes),'endereco',anterior_endereco,'dadosCrime',anterior_crime,'naturezas',vinculos),
+  jsonb_build_object('operacao','cadastro-manual','login',session_user::text,'conta',p_conta,'registro',to_jsonb(depois),
+   'endereco',novo_endereco,'dadosCrime',crime,'naturezas',sentinela_ocorrencias_manual.naturezas_ativas(alvo),
+   'localizacaoConfirmada',true),motivo,auditoria::text);
+ RETURN jsonb_build_object('id',alvo,'auditoria',auditoria);
+END $$;
+
+-- 9. Publication criteria. An empty array means the occurrence can be consolidated.
+CREATE FUNCTION sentinela_ocorrencias_manual.pendencias_publicacao(alvo uuid) RETURNS jsonb
+LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT coalesce(jsonb_agg(motivo ORDER BY motivo),'[]') FROM sentinela.ocorrencias o
+ JOIN sentinela_ocorrencias_manual.cadastros c ON c.ocorrencia_id=o.id
+ CROSS JOIN LATERAL (VALUES
+  ('identidade',NOT (o.origem='manual' AND o.fonte='SENTINELA_MANUAL' AND o.identidade_status='manual'
+     AND o.versao_identidade='manual-local-v1' AND EXISTS (SELECT FROM sentinela.eventos_auditoria e
+       WHERE e.ocorrencia_id=o.id AND e.acao='ocorrencia.manual.criada' AND e.ator_tipo='usuario'
+         AND e.depois->>'operacao'='cadastro-manual'))),
+  ('natureza',NOT (jsonb_array_length(sentinela_ocorrencias_manual.naturezas_ativas(o.id))>0
+     AND NOT EXISTS (SELECT FROM jsonb_array_elements(sentinela_ocorrencias_manual.naturezas_ativas(o.id)) x
+       WHERE NOT EXISTS (SELECT FROM sentinela_ocorrencias_manual.naturezas_uso_local u WHERE u.natureza_id=(x->>'naturezaId')::uuid)))),
+  ('geometria',NOT coalesce(o.localizacao_status='validada' AND o.geometria IS NOT NULL
+     AND extensions.ST_SRID(o.geometria)=4326 AND extensions.ST_X(o.geometria)=o.longitude AND extensions.ST_Y(o.geometria)=o.latitude
+     AND o.referencia_espacial_confirmada='WGS84; IDE-DF-2026-11-13' AND nullif(btrim(o.regra_transformacao),'') IS NOT NULL
+     AND (SELECT count(*) FROM sentinela.regioes_administrativas r WHERE extensions.ST_Covers(r.limite,o.geometria))=1
+     AND EXISTS (SELECT FROM sentinela.regioes_administrativas r WHERE r.id=o.ra_id AND r.vigencia @> o.data_fato
+       AND extensions.ST_Contains(r.limite,o.geometria)),false)),
+  ('dados',NOT coalesce(o.data_fato IS NOT NULL AND o.horario_fato IS NOT NULL
+     AND o.data_fato+o.horario_fato <= (clock_timestamp() AT TIME ZONE 'America/Sao_Paulo')
+     AND c.endereco ?& ARRAY['cep','endereco','bairroOuSetor'] AND c.dados_crime ?& ARRAY['descricao','meio','vitimas','autores'],false)),
+  ('pendencias',EXISTS (SELECT FROM sentinela.pendencias_revisao r WHERE r.ocorrencia_id=o.id AND r.status='aberta'))
+ ) v(motivo,bloqueia)
+ WHERE o.id=alvo AND v.bloqueia
+$$;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.pendencias_publicacao(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.pendencias_publicacao(uuid) TO sentinela_manual_writer;
+
+-- 10. Inactivation and consolidation keep the row, its links and the full audit trail.
+CREATE FUNCTION sentinela_ocorrencias_manual.transicionar(p jsonb,p_conta text,p_usuario uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE
+ acao text:=p->>'acao'; alvo uuid; motivo text:=btrim(p->>'justificativa'); auditoria uuid:=gen_random_uuid();
+ perfil text; antes sentinela.ocorrencias; depois sentinela.ocorrencias; bloqueios jsonb;
+BEGIN
+ perfil:=sentinela_ocorrencias_manual.exigir_autor(p_usuario,p_conta);
+ IF jsonb_typeof(p) IS DISTINCT FROM 'object' OR p-ARRAY['acao','id','versao','confirmacao','justificativa']<>'{}'
+  OR acao IS NULL OR acao NOT IN ('inativar_manual','consolidar_manual')
+  OR NOT coalesce(p->>'id' ~* '^[0-9a-f-]{36}$',false)
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+ alvo:=(p->>'id')::uuid;
+ IF p->>'confirmacao' IS DISTINCT FROM alvo::text OR NOT coalesce(length(motivo) BETWEEN 1 AND 500,false)
+ THEN RAISE EXCEPTION USING ERRCODE='22023'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+ SELECT o.* INTO antes FROM sentinela.ocorrencias o JOIN sentinela_ocorrencias_manual.cadastros c ON c.ocorrencia_id=o.id
+  WHERE o.id=alvo AND o.ativo AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL' FOR UPDATE OF o;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002'; END IF;
+ IF p->>'versao' IS DISTINCT FROM antes.versao::text THEN RAISE EXCEPTION USING ERRCODE='40001'; END IF;
+ -- Publication is an Administrador review; a published record leaves circulation only by an Administrador.
+ IF (acao='consolidar_manual' OR antes.consolidacao_status<>'em_revisao') AND perfil<>'Administrador'
+ THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+ IF acao='consolidar_manual' THEN
+  IF antes.consolidacao_status<>'em_revisao' THEN RAISE EXCEPTION USING ERRCODE='40001'; END IF;
+  bloqueios:=sentinela_ocorrencias_manual.pendencias_publicacao(alvo);
+  IF bloqueios<>'[]'::jsonb THEN RAISE EXCEPTION USING ERRCODE='23514', DETAIL=bloqueios::text; END IF;
+  UPDATE sentinela.ocorrencias SET consolidacao_status='consolidada' WHERE id=alvo RETURNING * INTO depois;
+ ELSE
+  UPDATE sentinela.ocorrencias SET ativo=false WHERE id=alvo RETURNING * INTO depois;
+ END IF;
+ INSERT INTO sentinela.eventos_auditoria(id,ator_tipo,usuario_id,acao,ocorrencia_id,antes,depois,justificativa,request_id)
+ VALUES (auditoria,'usuario',p_usuario,
+  CASE acao WHEN 'consolidar_manual' THEN 'ocorrencia.manual.consolidada' ELSE 'ocorrencia.manual.inativada' END,alvo,
+  jsonb_build_object('registro',to_jsonb(antes)),
+  jsonb_build_object('operacao','cadastro-manual','login',session_user::text,'conta',p_conta,'perfil',perfil,
+   'registro',to_jsonb(depois),'naturezas',sentinela_ocorrencias_manual.naturezas_ativas(alvo)),motivo,auditoria::text);
+ RETURN jsonb_build_object('id',alvo,'auditoria',auditoria);
+END $$;
+
+-- 11. Management reads for the application. Analysts are refused.
+CREATE FUNCTION sentinela_ocorrencias_manual.contexto(alvo uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE vinculos jsonb;
+BEGIN
+ IF session_user NOT IN ('sentinela_local_admin','sentinela_local_operator') THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+ vinculos:=sentinela_ocorrencias_manual.naturezas_ativas(alvo);
+ RETURN (SELECT jsonb_build_object('id',o.id,'identificacao',o.id::text,'data',o.data_fato,'horario',o.horario_fato::text,
+   'local',o.local,'natureza',NULL,'versao',o.versao::text,'revisao',NULL,'editavel',o.consolidacao_status='em_revisao',
+   'compartilhadas',0,'lotesRelacionados',0,'bloqueiaConsolidacao',false,'recebidosAfetados',0,'candidatasAfetadas',0,
+   'pendenciasAfetadas',0,'vinculos',jsonb_array_length(vinculos),
+   'pendenciasPublicacao',sentinela_ocorrencias_manual.pendencias_publicacao(o.id),
+   'manual',c.endereco||jsonb_build_object('data',o.data_fato,'horario',o.horario_fato::text,'raId',o.ra_id,
+     'coordenadas',jsonb_build_object('latitude',o.latitude,'longitude',o.longitude),'dadosCrime',c.dados_crime,
+     'naturezas',(SELECT coalesce(jsonb_agg(x-'id' ORDER BY ord),'[]') FROM jsonb_array_elements(vinculos) WITH ORDINALITY a(x,ord))))
+  FROM sentinela_ocorrencias_manual.cadastros c JOIN sentinela.ocorrencias o ON o.id=c.ocorrencia_id
+  WHERE o.id=alvo AND o.ativo AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL');
+END $$;
+
+CREATE FUNCTION sentinela_ocorrencias_manual.acoes(pagina jsonb) RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT pagina||jsonb_build_object('itens',coalesce(jsonb_agg(CASE WHEN o.id IS NULL THEN i.item ELSE
+   i.item||jsonb_build_object('acoes',jsonb_build_object('editar',o.consolidacao_status='em_revisao',
+     'inativar',o.consolidacao_status='em_revisao' OR session_user='sentinela_local_admin',
+     'consolidar',session_user='sentinela_local_admin' AND o.consolidacao_status='em_revisao'
+       AND sentinela_ocorrencias_manual.pendencias_publicacao(o.id)='[]'::jsonb)) END ORDER BY i.ord),'[]'))
+ FROM jsonb_array_elements(pagina->'itens') WITH ORDINALITY i(item,ord)
+ LEFT JOIN sentinela.ocorrencias o ON o.id=(i.item->>'id')::uuid AND o.ativo AND o.origem='manual'
+  AND o.fonte='SENTINELA_MANUAL' AND EXISTS (SELECT FROM sentinela_ocorrencias_manual.cadastros c WHERE c.ocorrencia_id=o.id)
+ WHERE session_user IN ('sentinela_local_admin','sentinela_local_operator')
+$$;
+
+CREATE OR REPLACE FUNCTION sentinela_ocorrencias_manual.detalhe(registro uuid) RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT jsonb_build_object('id',o.id,'identificacao',o.id::text,'fonte',o.fonte,'origem',o.origem,
+   'data',o.data_fato,'hora',o.horario_fato::text,'ra',r.nome,'local',o.local,'situacao',o.consolidacao_status,
+   'localizacaoStatus',o.localizacao_status,'localizacaoConfirmada',o.localizacao_status='validada','latitude',o.latitude,'longitude',o.longitude,
+   'unidadeApuracao',o.unidade_apuracao,'endereco',c.endereco,
+   'naturezas',coalesce((SELECT jsonb_agg(jsonb_build_object('nome',n.descricao_original,
+      'classificacao',a.classificacao_status,'crimeTentado',a.crime_tentado) ORDER BY n.descricao_original,a.id)
+     FROM sentinela.ocorrencia_naturezas a JOIN sentinela.naturezas_criminais n ON n.id=a.natureza_id
+     WHERE a.ocorrencia_id=o.id),'[]'::jsonb))
+   || CASE WHEN c.dados_crime='{}' THEN '{}'::jsonb ELSE jsonb_build_object('dadosCrime',c.dados_crime) END
+ FROM sentinela_ocorrencias_manual.cadastros c JOIN sentinela.ocorrencias o ON o.id=c.ocorrencia_id
+ LEFT JOIN sentinela.regioes_administrativas r ON r.id=o.ra_id
+ WHERE o.id=registro AND o.consolidacao_status='em_revisao';
+$$;
+
+-- 12. Ownership and execution rights.
+ALTER FUNCTION sentinela_ocorrencias_manual.autor(uuid,text) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.exigir_autor(uuid,text) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.verificar_evento(jsonb,jsonb) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.editar(jsonb,text,uuid) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.transicionar(jsonb,text,uuid) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.contexto(uuid) OWNER TO sentinela_manual_writer;
+ALTER FUNCTION sentinela_ocorrencias_manual.acoes(jsonb) OWNER TO sentinela_manual_writer;
+REVOKE ALL ON FUNCTION sentinela_ocorrencias_manual.autor(uuid,text),sentinela_ocorrencias_manual.exigir_autor(uuid,text),
+ sentinela_ocorrencias_manual.verificar_evento(jsonb,jsonb),sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid),
+ sentinela_ocorrencias_manual.editar(jsonb,text,uuid),sentinela_ocorrencias_manual.transicionar(jsonb,text,uuid),
+ sentinela_ocorrencias_manual.contexto(uuid),sentinela_ocorrencias_manual.acoes(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.autor(uuid,text),sentinela_ocorrencias_manual.verificar_evento(jsonb,jsonb),
+ sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid),sentinela_ocorrencias_manual.editar(jsonb,text,uuid),
+ sentinela_ocorrencias_manual.transicionar(jsonb,text,uuid),sentinela_ocorrencias_manual.contexto(uuid),
+ sentinela_ocorrencias_manual.acoes(jsonb) TO sentinela_local_admin,sentinela_local_operator;
+-- Trigger functions run as the writing role and call the author check.
+GRANT EXECUTE ON FUNCTION sentinela_ocorrencias_manual.autor(uuid,text) TO sentinela_manual_writer;
+
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+VALUES ('local-manual-0004','Cadastro, edição, inativação e publicação manuais com autoria institucional');
+
+DO $guard$
+BEGIN
+ IF (SELECT count(*) FROM sentinela_ocorrencias_manual.naturezas_uso_local)<>41
+  OR (SELECT count(*) FROM sentinela.regioes_administrativas)<>37
+  OR (SELECT count(*) FROM sentinela.naturezas_criminais WHERE fonte='PCDF')<>41
+  OR EXISTS (SELECT FROM sentinela.ocorrencias WHERE origem='manual')
+  OR has_function_privilege('sentinela_local_analyst','sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid)','EXECUTE')
+  OR has_function_privilege('sentinela_local_analyst','sentinela_ocorrencias_manual.transicionar(jsonb,text,uuid)','EXECUTE')
+  OR NOT has_function_privilege('sentinela_local_operator','sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text,uuid)','EXECUTE')
+  OR has_function_privilege('sentinela_local_admin','sentinela_ocorrencias_manual.cadastrar(jsonb,uuid,text)','EXECUTE')
+  OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela_ocorrencias_manual'::regnamespace AND relkind='r'
+      AND relrowsecurity AND relforcerowsecurity)<>5
+  OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace AND relkind='r'
+      AND relrowsecurity AND relforcerowsecurity)<>19
+  OR EXISTS (SELECT FROM pg_roles WHERE rolname LIKE 'sentinela\_%' AND (rolsuper OR rolbypassrls))
+ THEN RAISE EXCEPTION 'Verificação transacional do pacote manual falhou'; END IF;
+END $guard$;
+COMMIT;

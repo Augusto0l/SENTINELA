@@ -341,7 +341,7 @@ export function LegacyImportarDados() {
                   </thead>
                   <tbody>
                     {PREVIEW_ROWS.map((r, i) => (
-                      <tr key={i} style={{ background: i % 2 !== 0 ? "rgba(255,255,255,0.015)" : "transparent" }}>
+                      <tr key={i} style={{ background: i % 2 !== 0 ? "var(--theme-table-stripe, rgba(255,255,255,0.015))" : "transparent" }}>
                         <td style={cell}>{r.data}</td>
                         <td style={cell}>{r.horario}</td>
                         <td style={{ ...cell, color: T.text, fontWeight: 500 }}>{r.natureza}</td>

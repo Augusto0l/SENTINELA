@@ -70,8 +70,8 @@ export default function PersistentDetails({
             <ul>
               {o.naturezas.map((a) => (
                 <li key={a.id}>
-                  {a.natureza?.descricao ?? "Natureza indisponível"} ·{" "}
-                  {a.categoria?.nome ?? "Categoria não disponível"}
+                  {a.natureza?.descricao ?? "Natureza indisponível"}
+                  {a.natureza?.categoriaOriginal ? ` · Categoria de origem PCDF: ${a.natureza.categoriaOriginal}` : ""}
                   {a.crimeTentado ? " · Tentado" : ""}
                 </li>
               ))}

@@ -7,6 +7,9 @@ export interface AddressLocation {
   latitude: number
   longitude: number
   approximate: boolean
+  street?: string
+  district?: string
+  source?: "IPEDF"
 }
 
 export interface PostalAddress {
@@ -14,6 +17,20 @@ export interface PostalAddress {
   label: string
   street: string
   district: string
+}
+
+const postalCache = new Map<string, PostalAddress>()
+export async function lookupCep(cep: string, signal: AbortSignal): Promise<PostalAddress> {
+  const cached = postalCache.get(cep)
+  if (cached) return cached
+  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
+  })
+  if (!response.ok) throw new Error("Consulta de CEP indisponível. Tente novamente.")
+  const result = postalAddressFrom(await response.json())
+  if (postalCache.size >= 100) postalCache.delete(postalCache.keys().next().value!)
+  postalCache.set(cep, result)
+  return result
 }
 
 export function postalAddressFrom(
@@ -27,10 +44,7 @@ export function postalAddressFrom(
     throw new Error(
       "O CEP informado não pertence ao Distrito Federal. As coordenadas foram mantidas.",
     )
-  const field = (name: string) =>
-    typeof payload[name] === "string"
-      ? payload[name].trim().replace(/\s+/g, " ")
-      : ""
+  const field = (name: string) => addressText(payload[name])
   const street = field("logradouro")
   const district = field("bairro")
   const city = field("localidade")
@@ -44,6 +58,10 @@ export function postalAddressFrom(
       .filter(Boolean)
       .join(", "),
   }
+}
+
+function addressText(value: unknown) {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : ""
 }
 
 function normalizedReference(value: string) {
@@ -145,12 +163,18 @@ export function parseLocations(payload: unknown): AddressLocation[] {
       address?.state !== "Distrito Federal"
     )
       return []
+    const road = addressText(address.road)
+    const number = addressText(address.house_number)
+    const street = road && [road, number].filter(Boolean).join(", ")
+    const district = ["neighbourhood", "suburb", "city_district"].map(key => addressText(address[key])).find(Boolean)
     return [
       {
         id: String(row.place_id),
         label: row.display_name,
         latitude,
         longitude,
+        ...(street && { street: street.slice(0, 240) }),
+        ...(district && { district: district.slice(0, 100) }),
         approximate:
           !address.house_number ||
           !["house", "building"].includes(String(row.addresstype)),
