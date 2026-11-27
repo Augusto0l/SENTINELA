@@ -85,6 +85,7 @@ test("static route inventory allows only explicitly gated write handlers under a
     ["importacoes/pcdf/direta/route.ts", "POST"],
     ["importacoes/geral/route.ts", "POST"], ["importacoes/geral/revisao/[id]/route.ts", "PATCH"],
     ["central-revisao/[id]/route.ts", "PATCH"],
+    ["classificacao/route.ts", "POST"],
     ["usuarios/route.ts", ["POST", "PATCH", "DELETE"]],
   ])
   const writeOnly = new Set(["ocorrencias/[id]/inativacao/route.ts",
@@ -140,6 +141,14 @@ test("static route inventory allows only explicitly gated write handlers under a
       assert.match(hosted, /!mode\.write \|\| request\.headers\.get\("origin"\) !== mode\.origin/)
       assert.match(hosted, /hasPermission\(principal\.role, write \? "corrigir" : "consultar_central"\)/)
       assert.match(hosted, /withHostedOperationalDatabase\(principal, false,/)
+    }
+    else if (relative === "classificacao/route.ts") {
+      assert.match(source, /request\.headers\.get\("host"\) === new URL\(mode\.origin\)\.host/)
+      assert.match(source, /!mode \|\| request\.headers\.get\("origin"\) !== mode\.origin/)
+      const lib = await readFile(new URL("../src/lib/db/classificacao.ts", import.meta.url), "utf8")
+      assert.match(lib, /write && \(principal\.role !== "Administrador" \|\| !classificacaoWriteEnabled\(\)\)/)
+      assert.match(lib, /SENTINELA_SUPABASE_CLASSIFICACAO_WRITE === "1"/)
+      assert.match(lib, /attestHostedImportDatabase\(connection, principal, !write, true\)/)
     }
     else if (generalOperations.has(relative)) assert(source.includes(`return pcdfWorkspace(request, "${generalOperations.get(relative)}"`))
     else if (method) assert.match(source, relative.startsWith("ocorrencias/")

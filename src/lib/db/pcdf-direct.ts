@@ -20,6 +20,7 @@ import { attestHostedImportDatabase, getHostedImportPrincipal, hostedImportConne
 import { PcdfV2Error } from "@/data/pcdfV2";
 import { preparePcdfCsvDelivery, preparePcdfV2Delivery } from "./pcdf-v2-delivery";
 import { operationalActor } from "./operational-import-review";
+import { aplicarNaImportacao } from "./classificacao";
 
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" };
 const messages: Record<number, string> = {
@@ -229,8 +230,11 @@ async function intakeStandalone(client: Client, request: Request, previewOnly: b
     if (row?.data?.conflict === "proveniencia")
       throw new IntakeError(409, "proveniencia_ja_registrada", "Uma origem deste arquivo já pertence a outro lote e exige revisão.");
     const receipt = (historical ? historicalReceipt : directReceipt).parse(row?.data);
+    // Same transaction and verified session: the active homologated version classifies the new lot, or nothing changes.
+    const classificacao = receipt.lot ? await aplicarNaImportacao(client, receipt.lot) : undefined;
     await client.query("COMMIT");
-    return Response.json({ success: true, data: receipt }, { headers, status: receipt.replay ? 200 : 201 });
+    return Response.json({ success: true, data: classificacao ? { ...receipt, classificacao } : receipt },
+      { headers, status: receipt.replay ? 200 : 201 });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     throw error;

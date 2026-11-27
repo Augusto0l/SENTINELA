@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import NavigationIcon, { type NavigationIconName } from "@/components/NavigationIcon";
 import { useTheme } from "@/components/ThemeProvider";
 import LogoutForm from "@/components/auth/LogoutForm";
+import ClassificacaoPanel from "@/features/classificacao/ClassificacaoPanel";
 import Dialog, { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { Principal } from "@/lib/auth/policy";
 import styles from "./Configuracoes.module.css";
@@ -35,6 +36,7 @@ const tabs = [
   { key: "preferencias", label: "Preferências", icon: "sliders" },
   { key: "notificacoes", label: "Notificações", icon: "bell" },
   { key: "sessao", label: "Sessão", icon: "monitor" },
+  { key: "classificacao", label: "Classificação PCDF", icon: "layers" },
 ] as const;
 type Tab = (typeof tabs)[number]["key"];
 
@@ -281,6 +283,7 @@ export default function Configuracoes({ name, role, source, email, lastAccess, m
                   ]} />
                 </Panel>
               )}
+              {key === "classificacao" && <ClassificacaoPanel />}
             </>}
           </div>
         ))}
