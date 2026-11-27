@@ -211,7 +211,7 @@ try {
               const layer = page.getByTestId(mode === "Pontos" ? "occurrence-points" :
                 mode === "Clusters" ? "occurrence-clusters" : "crime-heatmap")
               await layer.waitFor({ state: "attached", timeout: 90000 })
-              if (mode === "Calor") assert.equal(await layer.getAttribute("data-point-count"), "0")
+              if (mode === "Calor" || mode === "Pontos") assert.equal(await layer.getAttribute("data-point-count"), "0")
               else assert.equal(await layer.locator(":scope > *").count(), 0)
             }
             if (independentReview) {
@@ -237,7 +237,7 @@ try {
               await page.getByRole("button", { name: mode, exact: true }).click()
               const layer = page.getByTestId(mode === "Pontos" ? "occurrence-points" : mode === "Clusters" ? "occurrence-clusters" : "crime-heatmap")
               await layer.waitFor({ state: "attached", timeout: 90000 })
-              if (mode === "Pontos") assert.equal(await layer.locator(":scope > *").count(), 1)
+              if (mode === "Pontos") await page.waitForFunction(() => document.querySelector('[data-testid="occurrence-points"]')?.getAttribute("data-point-count") === "1")
               else if (mode === "Clusters") assert.deepEqual(await layer.locator("text").allTextContents(), ["1"])
               else {
                 assert.equal(await layer.getAttribute("data-point-count"), "1")

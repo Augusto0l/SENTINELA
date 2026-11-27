@@ -151,7 +151,7 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
                 <button key={m} onClick={() => { setHover(null); setMapMode(m); }} aria-pressed={mapMode === m} style={{
                   background: mapMode === m ? "#2563eb" : "transparent",
                   border: mapMode === m ? "none" : "1px solid var(--theme-1e3a5f)",
-                  borderRadius: 5, color: mapMode === m ? "#fff" : "var(--theme-64748b)",
+                  borderRadius: 5, color: mapMode === m ? "#fff" : "var(--color-text-muted)",
                   fontSize: 11, fontWeight: mapMode === m ? 600 : 400,
                   padding: "4px 10px", cursor: "pointer",
                 }}>

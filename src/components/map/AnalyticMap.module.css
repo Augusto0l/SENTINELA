@@ -18,6 +18,50 @@
 }
 .legendSymbol { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; vertical-align: middle; border: 1px solid #c6ddff; }
 .pointSymbol { background: #ef4444; border-color: #fecaca; }
+.pointsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pointHalo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #7f1d1d;
+  pointer-events: none;
+}
+.pointGroupSymbol { background: #ef4444; border: 2px solid #fecaca; }
+.pointLegend {
+  position: absolute;
+  bottom: 16px;
+  left: 10px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+.pointLegend button, .pointChoices button { color: var(--map-ui-text, #e3efff); }
+.pointLegend button:focus-visible, .pointChoices button:focus-visible { outline: 2px solid var(--map-ui-accent, #93c5fd); outline-offset: 2px; }
+.pointLegend button { margin-top: 2px; min-height: 24px; text-decoration: underline; }
+.pointChoices {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 11;
+  width: min(310px, calc(100% - 62px));
+  max-height: calc(100% - 110px);
+  overflow: auto;
+  padding: 8px 12px;
+  border: 1px solid var(--map-ui-border, #354d69);
+  border-radius: 7px;
+  background: var(--map-ui-surface, #0b1829);
+  color: var(--map-ui-text, #e3efff);
+  font-size: 12px;
+}
+.pointChoicesHeading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pointChoices ol { margin: 4px 0; }
+.pointChoices li button { width: 100%; min-height: 28px; padding-inline: 3px; text-align: left; }
+.pointChoices button:hover { background: var(--map-ui-hover, #19324f); }
+.pointChoices button:disabled, .pointLegend button:disabled { opacity: .55; }
 .occurrenceTooltip {
   position: absolute;
   z-index: 1050;
@@ -100,7 +144,7 @@
 }
 .streetAttribution span { white-space: nowrap; }
 .streetAttribution a { text-decoration: underline; }
-:global(html[data-theme="claro"]) :is(.legend, .occurrenceTooltip, .streetControls, .streetAttribution) {
+:global(html[data-theme="claro"]) :is(.legend, .occurrenceTooltip, .streetControls, .streetAttribution, .pointChoices) {
   --map-ui-surface: var(--theme-map-control);
   --map-ui-border: var(--theme-1e3a5f);
   --map-ui-text: var(--theme-f1f5f9);

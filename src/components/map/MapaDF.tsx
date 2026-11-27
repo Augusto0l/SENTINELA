@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import MapClusterLayer from "@/components/map/MapClusterLayer";
+import PointCanvasLayer from "@/components/map/PointCanvasLayer";
 import SatelliteBoundary from "@/components/map/SatelliteBoundary";
 import StreetBasemap, { StreetAttribution } from "@/components/map/StreetBasemap";
 import {
@@ -19,7 +20,7 @@ import { renderDensityHeatmap, renderProjectedHeatmap } from "@/components/map/h
 import { clusterCell, frameDetail, pointRadius } from "@/components/map/mapSymbols";
 import { officialRaLines } from "@/components/map/raTooltip";
 import { useStreetNavigation } from "@/components/map/useStreetNavigation";
-import type { MapOccurrenceInteraction } from "@/components/map/MapOccurrenceTooltip";
+import type { MapOccurrenceInteraction, MarkerHover } from "@/components/map/MapOccurrenceTooltip";
 import type { PointPublicationStatus } from "@/contracts/persistent-analytics";
 import styles from "@/components/map/AnalyticMap.module.css";
 
@@ -145,6 +146,11 @@ export default function MapaDF({
   const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(" ").map(Number);
   const onOccurrenceHover = occurrenceInteraction?.onHover;
   const onOccurrenceOpen = occurrenceInteraction?.onOpen;
+  const canvasPoints = mapMode === "points" && streetBasemap && analyticMap;
+  const hoverCanvasPoint = useCallback((marker: MarkerHover | null) => {
+    setHoveredOcc(marker?.point ?? null);
+    onOccurrenceHover?.(marker);
+  }, [onOccurrenceHover]);
   const openOccurrence = useCallback((point: MapOccurrence) => {
     if (onOccurrenceOpen) onOccurrenceOpen(point);
     else setOpenedPoint(point);
@@ -160,7 +166,7 @@ export default function MapaDF({
 
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || (!dashboard && mapMode !== "points" && mapMode !== "clusters")) return;
+    if (!svg || canvasPoints || (!dashboard && mapMode !== "points" && mapMode !== "clusters")) return;
     const update = () => {
       const matrix = streetBasemap ? null : svg.getScreenCTM();
       const scale = streetBasemap ? Math.min(svg.clientWidth / width, svg.clientHeight / height)
@@ -171,7 +177,7 @@ export default function MapaDF({
     const observer = new ResizeObserver(update);
     observer.observe(svg);
     return () => { cancelAnimationFrame(frame); observer.disconnect(); };
-  }, [dashboard, mapMode, viewBox, streetBasemap, width, height]);
+  }, [canvasPoints, dashboard, mapMode, viewBox, streetBasemap, width, height]);
 
   const values = regions.map((ra) => occurrencesByRa[ra.code] ?? 0);
   const minValue = Math.min(...values);
@@ -426,7 +432,7 @@ export default function MapaDF({
         )}
 
         {/* Points mode */}
-        {mapMode === "points" && (
+        {mapMode === "points" && !canvasPoints && (
           <g data-testid="occurrence-points">
             {visibleOccs.map((p) => (
               <g key={p.id} role={p.occurrenceId ? "button" : undefined} tabIndex={p.occurrenceId ? 0 : undefined}
@@ -501,6 +507,8 @@ export default function MapaDF({
           </g>
         )}
       </svg>
+      {canvasPoints && <PointCanvasLayer points={visibleOccs} svgRef={svgRef} fittedWidth={width}
+        onHover={hoverCanvasPoint} onOpen={openOccurrence} />}
 
       {streetBasemap && <>
         <StreetAttribution />
@@ -512,7 +520,7 @@ export default function MapaDF({
       </>}
 
       {/* Legend */}
-      {(!selectedRA || mapMode === "points") && analyticMap && (
+      {(!selectedRA || mapMode === "points") && analyticMap && !canvasPoints && (
         <div className={styles.legend} style={{ position: "absolute", bottom: dashboard ? 12 : 14, left: dashboard ? undefined : 16, right: dashboard ? 12 : undefined, pointerEvents: "none", borderRadius: 7, padding: "8px 10px", fontSize: 10 }}>
           {mapMode === "heat" ? <>
             {dashboard && <div>Densidade de ocorrências</div>}

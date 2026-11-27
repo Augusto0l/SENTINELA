@@ -70,7 +70,9 @@ try {
     for (const mode of ["Pontos", "Clusters"]) {
       await page.getByRole("button", { name: mode, exact: true }).click();
       const layer = page.getByTestId(mode === "Pontos" ? "occurrence-points" : "occurrence-clusters");
-      assert.equal(await layer.locator("circle").count(), 0);
+      if (await layer.evaluate(element => element instanceof HTMLCanvasElement)) {
+        assert.equal(await layer.getAttribute("data-point-count"), "0");
+      } else assert.equal(await layer.locator("circle").count(), 0);
     }
     await page.getByRole("button", { name: route === "/dashboard" ? "Mapa de calor" : "Calor", exact: true }).click();
     await clear();
