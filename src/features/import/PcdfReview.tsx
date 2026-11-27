@@ -15,11 +15,12 @@ const issueList = z.array(pcdfIssue)
 const types: Record<z.infer<typeof pcdfIssue>["type"], string> = { identificacao: "Identificação",
   datas_horarios: "Datas e horários", classificacao: "Classificação", endereco_ra: "Endereço e RA",
   coordenadas: "Coordenadas", informacoes_policiais: "Informações policiais", proveniencia: "Proveniência" }
-const labels = { aberta: "Aberta", resolvida: "Resolvida", encerrada_sem_solucao: "Encerrada sem solução" }
+const labels = { aberta: "Aberta", em_analise: "Em análise", resolvida: "Resolvida", encerrada_sem_solucao: "Encerrada sem solução" }
 const priority = { alta: "Alta", media: "Média", baixa: "Baixa" }
+const origins = { pcdf: "PCDF", geral: "Importação geral", manual: "Cadastro manual", outra: "Outra" }
 
-export default function PcdfReview({ canCorrect, paginated = false, endpoint = pcdfReviewPath, alternate }: {
-  canCorrect: boolean; paginated?: boolean; endpoint?: string; alternate?: { href: string; label: string }
+export default function PcdfReview({ canCorrect, hosted = false, paginated = false, endpoint = pcdfReviewPath, alternate }: {
+  canCorrect: boolean; hosted?: boolean; paginated?: boolean; endpoint?: string; alternate?: { href: string; label: string }
 }) {
   const [query, setQuery] = useState(paginated ? "status=aberta&pagina=1" : "status=aberta")
   const { current, reload } = usePcdfQuery(endpoint + "?" + query, paginated ? pcdfReviewPage : issueList)
@@ -64,7 +65,7 @@ export default function PcdfReview({ canCorrect, paginated = false, endpoint = p
         body: JSON.stringify({ decisao: decision, justificativa: values.get("justificativa"),
           versaoEsperada: selected.version, ...(decision === "resolvida" && { valor: value }) }),
       })
-      setSelected({ ...receipt, lotId: selected.lotId })
+      setSelected({ ...receipt, lotId: receipt.lotId ?? selected.lotId })
       setFeedback({ text: "Decisão registrada no histórico." })
       reload()
     } catch (error) {
@@ -78,7 +79,7 @@ export default function PcdfReview({ canCorrect, paginated = false, endpoint = p
   }
 
   return <div className={screen.screen}>
-    <Header title="Central de Revisão" subtitle={endpoint === pcdfReviewPath ? "Pendências PCDF sintéticas" : "Pendências de importação geral"} />
+    <Header title="Central de Revisão" subtitle={hosted ? undefined : endpoint === pcdfReviewPath ? "Pendências PCDF sintéticas" : "Pendências de importação geral"} />
     <div className={screen.content}>
       <section className={styles.workspace}>
         {alternate && <Link href={alternate.href}>{alternate.label}</Link>}
@@ -97,18 +98,23 @@ export default function PcdfReview({ canCorrect, paginated = false, endpoint = p
               {pcdfPriorities.map(key => <option key={key} value={key}>{priority[key]}</option>)}
             </select></label>
             <label>Situação<select name="status" defaultValue="aberta"><option value="">Todas</option>
-              {Object.entries(labels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              {Object.entries(labels).filter(([key]) => hosted || key !== "em_analise")
+                .map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </select></label>
+            {hosted && <label>Origem<select name="origem"><option value="">Todas</option>
+              {Object.entries(origins).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select></label>}
           </fieldset>
           <Button type="submit">Aplicar filtros</Button>
         </form>
         {!current && <p role="status">Carregando pendências…</p>}
         {current?.error && <p role="alert">{current.error} <Button variant="outline" onClick={reload}>Tentar novamente</Button></p>}
+        {page?.counts && <p role="status">{page.counts.active} em aberto ou análise · {page.counts.resolved} resolvidas · {page.counts.closed} encerradas</p>}
         {issues?.length === 0 && <p>Nenhuma pendência no recorte.</p>}
         {!paginated && issues?.length === 100 && <p>Até 100 resultados, priorizados. Refine os filtros para reduzir a lista.</p>}
         {issues?.map(issue => <article className={styles.identity} key={issue.id}>
           <h3>{types[issue.type]} · {issue.field}</h3>
-          <p>{priority[issue.priority]} · {labels[issue.status]}</p>
+          <p>{priority[issue.priority]} · {labels[issue.status]}{issue.origin && <> · {origins[issue.origin]}</>}</p>
           <Button variant="outline" onClick={() => {
             setSelected(issue)
             setDecision(issue.canResolve ? "resolvida" : "encerrada_sem_solucao")
@@ -133,15 +139,16 @@ export default function PcdfReview({ canCorrect, paginated = false, endpoint = p
             <div><dt>Versão</dt><dd>{selected.version}</dd></div>
             {selected.occurrenceId && <div><dt>Ocorrência consolidada</dt><dd>{selected.occurrenceId}</dd></div>}
             {selected.lotId && <div><dt>Lote</dt><dd>{selected.lotId}</dd></div>}
+            {selected.ordinal && <div><dt>Linha do lote</dt><dd>{selected.ordinal}</dd></div>}
           </dl>
-          {selected.status === "aberta" && !selected.canResolve && <p>Correção indisponível para esta pendência.</p>}
+          {(selected.status === "aberta" || hosted && selected.status === "em_analise") && !selected.canResolve && <p>Correção indisponível para esta pendência.</p>}
           {selected.history && <>
             <h3>Histórico</h3>
             <p>{selected.history.reason}</p>
-            <p>{selected.history.before || "Ausente"} → {selected.history.after || "Ausente"}</p>
+            {(!hosted || selected.status === "resolvida") && <p>{selected.history.before || "Ausente"} → {selected.history.after || "Ausente"}</p>}
             <p>{new Date(selected.history.at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {selected.history.author}</p>
           </>}
-          {canCorrect && selected.status === "aberta" && <form onSubmit={change}>
+          {canCorrect && (selected.status === "aberta" || hosted && selected.status === "em_analise") && <form onSubmit={change}>
             <fieldset disabled={busy || stale}>
               <label>Decisão<select value={decision} onChange={event => setDecision(event.target.value as typeof decision)}>
                 {selected.canResolve && <option value="resolvida">Corrigir valor</option>}

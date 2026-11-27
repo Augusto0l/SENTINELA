@@ -70,7 +70,7 @@ export function createImportWorkerProcessor() {
         throw new Error("Selecione uma planilha com registros.")
       return reply({
         type: "analysis",
-        analysis: analyzeImport(table, message.mapping),
+        analysis: analyzeImport(table, message.mapping, Boolean(persistentName)),
       })
     } catch (error) {
       return reply({

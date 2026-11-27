@@ -61,6 +61,7 @@ export default function PersistentPcdf({ persistent = false, xlsxEnabled = false
     <div className={screen.content}>
       <section className={styles.workspace}>
         {generalAvailable && <Link href="/importar">Voltar à importação geral</Link>}
+        {!generalAvailable && <Link href="/importar?origem=pcdf-v2">Abrir prévia local de pacote PCDF v2</Link>}
         <h2>Receber {formats} sintético</h2>
         <p>Use a fixture PCDF de 34 colunas. O arquivo e os valores de origem ficam {persistent ? "na homologação local" : "no cluster descartável"}.
           {xlsxEnabled && " No XLSX, use uma aba e preencha os campos originais como texto para preservar os zeros."}</p>

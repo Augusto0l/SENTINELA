@@ -5,7 +5,7 @@ import { z } from "zod"
 import { OFFICIAL_PCDF_BLOCK } from "@/data/importSource"
 import { generalImportPath } from "@/contracts/general-import"
 
-const envelope = z.strictObject({ success: z.literal(true), scope: z.enum(["sandbox-synthetic-only","homologacao-persistente-sintetica","importacao-local"]), data: z.unknown() })
+const envelope = z.strictObject({ success: z.literal(true), scope: z.enum(["sandbox-synthetic-only","homologacao-persistente-sintetica","importacao-local","importacao-supabase"]), data: z.unknown() })
 
 const errors: Record<number, string> = {
   400: "Confira os dados enviados.", 401: "Sessão expirada. Entre novamente.",

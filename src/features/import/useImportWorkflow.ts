@@ -2,22 +2,24 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
-import { directCsvLimit, directManifestLimit, type directPreview, type directReceipt } from "@/contracts/pcdf-direct";
+import { directCsvLimit, directManifestLimit, type directCsvPreview, type directPreview, type directReceipt } from "@/contracts/pcdf-direct";
 import { generalFormats, generalImportPath, generalReceipt, generalUploadHeader, generalUploadLimit } from "@/contracts/general-import";
 import { validateImportFiles } from "@/data/importFile";
-import { isInstitutionalPcdf } from "@/data/importSource";
+import { isInstitutionalPcdf, OFFICIAL_PCDF_BLOCK } from "@/data/importSource";
+import { detectPcdfCsv, selectPcdfV2Files } from "@/data/pcdfV2";
 import { autoMapImport, importMappingErrors, simulateImportConfirmation } from "@/data/importValidation";
 import { IMPORT_FIELDS, type CsvDelimiter, type ImportAnalysis, type ImportMapping, type ImportResult, type ImportTable,
   type ImportWorkerRequest } from "@/data/importTypes";
 import { createImportWorkerClient, type ImportWorkerClient } from "./importWorkerClient";
 import { requestPcdf } from "./pcdf-client";
-import { confirmPcdf, previewPcdf } from "./pcdf-intake-client";
+import { confirmPcdf, confirmPcdfCsv, previewPcdf, previewPcdfCsv } from "./pcdf-intake-client";
 import { summarizePcdfWarnings } from "./PcdfRecords";
 
 type TableMetadata = Omit<ImportTable, "rows"> & { rowCount: number };
 export type Step = 1 | 2 | 3 | 4;
 const emptyMapping = () => Object.fromEntries(IMPORT_FIELDS.map(field => [field, -1])) as ImportMapping;
 type Receipt = { pcdf: z.infer<typeof directReceipt> } | { general: z.infer<typeof generalReceipt> };
+type Preview = (z.infer<typeof directPreview> & { standalone?: never }) | z.infer<typeof directCsvPreview>;
 const message = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 
 export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInput }: {
@@ -27,8 +29,11 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
   const [reached, setReached] = useState<Step>(1);
   const [file, setFile] = useState<File>();
   const [pcdf, setPcdf] = useState(false);
+  const [pcdfV2, setPcdfV2] = useState(false);
+  const [pcdfV2Parts, setPcdfV2Parts] = useState<File[]>([]);
+  const [standalone, setStandalone] = useState(false);
   const [manifest, setManifest] = useState<File>();
-  const [preview, setPreview] = useState<z.infer<typeof directPreview>>();
+  const [preview, setPreview] = useState<Preview>();
   const [pcdfValidated, setPcdfValidated] = useState(false);
   const [warningGroup, setWarningGroup] = useState("");
   const [table, setTable] = useState<TableMetadata>();
@@ -64,6 +69,9 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
     pcdfRequest.current?.abort();
     setFile(undefined);
     setPcdf(false);
+    setPcdfV2(false);
+    setPcdfV2Parts([]);
+    setStandalone(false);
     setManifest(undefined);
     setPreview(undefined);
     setPcdfValidated(false);
@@ -95,7 +103,7 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
     client.current.send(request, label);
   }
 
-  async function validatePcdf(chosen: File, technicalManifest?: File) {
+  async function validatePcdf(chosen: File, technicalManifest?: File, csvOnly = standalone) {
     pcdfRequest.current?.abort();
     setManifest(technicalManifest);
     setPcdfValidated(false);
@@ -111,10 +119,17 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
     pcdfRequest.current = controller;
     setBusy("Validando o layout e a integridade do CSV PCDF…");
     try {
-      const parsed = await previewPcdf(chosen, technicalManifest, controller.signal);
-      if (controller.signal.aborted) return;
-      setPreview(parsed);
-      setPcdfValidated(true);
+      if (csvOnly) {
+        const parsed = await previewPcdfCsv(chosen, controller.signal);
+        if (controller.signal.aborted) return;
+        setPreview(parsed);
+        setPcdfValidated(parsed.standalone.invalid === 0);
+      } else {
+        const parsed = await previewPcdf(chosen, technicalManifest, controller.signal);
+        if (controller.signal.aborted) return;
+        setPreview(parsed);
+        setPcdfValidated(true);
+      }
     } catch (failure) {
       if (!controller.signal.aborted) setError(message(failure, "Falha na validação do CSV PCDF."));
     } finally {
@@ -122,25 +137,56 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
     }
   }
 
-  async function selectFiles(files: File[], selectedDelimiter?: CsvDelimiter) {
-    if (!allowed || saving.current) return;
+  async function selectFiles(files: File[], selectedDelimiter?: CsvDelimiter, packageOnly = false) {
+    if ((!allowed && !combinedPcdf) || saving.current) return;
     reset();
     setDelimiter(selectedDelimiter);
-    const invalid = validateImportFiles(files);
+    const grouped = packageOnly || files.length > 1;
+    let parts: ReturnType<typeof selectPcdfV2Files> | undefined;
+    if (grouped) {
+      try { parts = selectPcdfV2Files(files); }
+      catch (failure) { fail(message(failure, "Não foi possível identificar os arquivos do pacote.")); return; }
+    }
+    const chosen = parts?.csv ?? files[0];
+    const invalid = validateImportFiles(chosen ? [chosen] : []);
     if (invalid) { setError(invalid); return; }
-    const chosen = files[0];
     setFile(chosen);
     go(2);
-    if (combinedPcdf && chosen.name.toLowerCase().endsWith(".csv")) {
+    if (chosen.name.toLowerCase().endsWith(".csv")) {
       const current = selection.current;
       setBusy("Identificando o formato do CSV…");
       try {
-        const header = (await chosen.slice(0, 16384).text()).split(/\r?\n/, 1)[0];
+        const format = await detectPcdfCsv(chosen);
         if (selection.current !== current) return;
-        if (isInstitutionalPcdf(chosen.name, header.split(/[;,\t]/))) {
+        if (format.version === "2.0") {
+          if (!grouped && persistent && combinedPcdf) {
+            setStandalone(true);
+            setPcdf(true);
+            if (!allowed) { fail("Conecte o PostgreSQL local para validar o CSV PCDF v2.0."); return; }
+            if (chosen.size > directCsvLimit) { fail("O CSV PCDF excede 16 MiB."); return; }
+            await validatePcdf(chosen, undefined, true);
+            return;
+          }
+          setPcdfV2(true);
+          setPcdfV2Parts(parts?.attachments ?? []);
+          setBusy("");
+          return;
+        }
+        if (grouped) {
+          fail("O CSV da seleção precisa ter o cabeçalho PCDF v2.0 com as 26 colunas na ordem do contrato.");
+          return;
+        }
+        if (format.version === "1.0") {
+          if (!combinedPcdf) { fail(OFFICIAL_PCDF_BLOCK); return; }
+          if (!allowed) { fail("O receptor local é necessário para validar o PCDF v1.0."); return; }
           setPcdf(true);
           if (chosen.size > directCsvLimit) { fail("O CSV PCDF excede 16 MiB."); return; }
           await validatePcdf(chosen);
+          return;
+        }
+        if (isInstitutionalPcdf(chosen.name, format.columns)) {
+          fail(combinedPcdf ? "Cabeçalho PCDF incompatível. Confira a ordem dos 34 campos do v1.0 ou dos 26 campos do v2.0."
+            : OFFICIAL_PCDF_BLOCK);
           return;
         }
       } catch {
@@ -148,6 +194,7 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
         return;
       }
     }
+    if (!allowed) { fail("O receptor local é necessário para o importador geral."); return; }
     if (persistent && chosen.size > generalUploadLimit) { fail("O arquivo geral excede 8 MiB."); return; }
     client.current ??= createImportWorkerClient({
       createWorker: () => new Worker(new URL("./import.worker.ts", import.meta.url)),
@@ -182,8 +229,8 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
   const mappingErrors = table?.headers.length ? importMappingErrors(table.headers, mapping) : [];
   const warnings = useMemo(() => preview ? summarizePcdfWarnings(preview.headers, preview.records) : undefined, [preview]);
   const pcdfIssues = useMemo(() => preview?.records.reduce((total, row) => total + row.issues.length, 0) ?? 0, [preview]);
-  const canConfirm = pcdf ? pcdfValidated && !!preview
-    : !!analysis && !analysis.mappingErrors.length && (persistent ? analysis.counts.total > 0 : analysis.counts.valid + analysis.counts.pending > 0);
+  const canConfirm = !pcdfV2 && (pcdf ? pcdfValidated && !!preview
+    : !!analysis && !analysis.mappingErrors.length && (persistent ? analysis.counts.total > 0 : analysis.counts.valid + analysis.counts.pending > 0));
 
   async function confirm() {
     if (!allowed || !file || !canConfirm || saving.current || receipt || result) return;
@@ -197,7 +244,7 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
     setError("");
     try {
       if (pcdf && preview) {
-        setReceipt({ pcdf: await confirmPcdf(file, preview, manifest) });
+        setReceipt({ pcdf: standalone ? await confirmPcdfCsv(file, preview.sha256) : await confirmPcdf(file, preview, manifest) });
       } else if (table) {
         uploadKey.current ??= crypto.randomUUID();
         const data = await requestPcdf(generalImportPath, generalReceipt, { method: "POST", body: file, headers: {
@@ -218,7 +265,8 @@ export function useImportWorkflow({ persistent, combinedPcdf, allowed, clearInpu
   }
 
   return {
-    step, reached, go, file, pcdf, manifest, preview, pcdfValidated, warningGroup, setWarningGroup, warnings,
+    step, reached, go, file, pcdf, pcdfV2, pcdfV2Parts, standalone, manifest, preview, pcdfValidated, warningGroup, setWarningGroup, warnings,
+    invalidatePcdfV2: () => setReached(2),
     validatePcdf, pcdfIssues, table, mapping, mappingErrors, chooseSheet, analysis, invalidateMapping,
     changeMapping: (field: keyof ImportMapping, index: number) => { invalidateMapping(); setMapping({ ...mapping, [field]: index }); },
     validateGeneral: () => send({ type: "validate", mapping }, "Validando os registros…"),

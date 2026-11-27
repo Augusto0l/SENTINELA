@@ -5,6 +5,8 @@ import type { z } from "zod";
 import Header from "@/components/Header";
 import Button from "@/components/ui/button";
 import { directDetail, directHistory, directPreview, directReceipt } from "@/contracts/pcdf-direct";
+import { detectPcdfCsv, selectPcdfV2Files } from "@/data/pcdfV2";
+import PcdfV2Preview from "./PcdfV2Preview";
 import styles from "./ImportWorkflow.module.css";
 import { callDirectPcdf as call, confirmPcdf, previewPcdf } from "./pcdf-intake-client";
 import { Pager } from "./ImportUi";
@@ -26,18 +28,26 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [review, setReview] = useState(false);
+  const [v2, setV2] = useState<File>();
+  const [v2Parts, setV2Parts] = useState<File[]>([]);
+  const [reviewV2, setReviewV2] = useState(false);
+  const currentV2 = v2 === csv ? v2 : undefined;
 
   useEffect(() => {
     if (!file) return;
     const controller = new AbortController();
-    void previewPcdf(file, undefined, controller.signal)
-      .then(data => { if (!controller.signal.aborted) setPreview(data); },
-        failure => { if (!controller.signal.aborted) setError(failure.message); })
+    void detectPcdfCsv(file).then(async format => {
+      if (controller.signal.aborted) return;
+      if (format.version === "2.0") { setV2(file); return; }
+      if (format.version !== "1.0") throw new Error("Cabeçalho PCDF incompatível com o v1.0 e o v2.0.");
+      const data = await previewPcdf(file, undefined, controller.signal);
+      if (!controller.signal.aborted) setPreview(data);
+    }).catch(failure => { if (!controller.signal.aborted) setError(failure.message); })
       .finally(() => { if (!controller.signal.aborted) setBusy(undefined); });
     return () => controller.abort();
   }, [file]);
 
-  async function validate(file: File | undefined, technicalManifest: File | undefined) {
+  async function validate(file: File | undefined, technicalManifest: File | undefined, grouped?: File[]) {
     setPreview(undefined);
     setReceipt(undefined);
     setReview(false);
@@ -45,13 +55,24 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
     setPage(1);
     if (!file) return;
     setBusy("validar");
-    try { setPreview(await previewPcdf(file, technicalManifest)); }
+    try {
+      const format = await detectPcdfCsv(file);
+      if (format.version === "2.0") {
+        setV2(file);
+        setV2Parts(grouped ?? []);
+        setReviewV2(false);
+        return;
+      }
+      if (grouped) throw new Error("O CSV da seleção precisa ter o cabeçalho PCDF v2.0 com as 26 colunas na ordem do contrato.");
+      if (format.version !== "1.0") throw new Error("Cabeçalho PCDF incompatível com o v1.0 e o v2.0.");
+      setPreview(await previewPcdf(file, technicalManifest));
+    }
     catch (failure) { setError((failure as Error).message); }
     finally { setBusy(undefined); }
   }
 
   async function confirm() {
-    if (!csv || !preview || busy || !review) return;
+    if (!csv || !preview || busy || !review || currentV2) return;
     setBusy("confirmar");
     onSaving?.(true);
     setError("");
@@ -69,16 +90,38 @@ export default function DirectPcdf({ file, onSaving, onComplete }: EmbeddedPcdf 
 
   const offset = (page - 1) * pageSize;
   const pages = preview ? Math.ceil(preview.records.length / pageSize) : 0;
-  const contents = <>
+  const contents = currentV2 ? <section className={styles.card} aria-label="Validação do pacote PCDF v2">
+    <PcdfV2Preview csv={currentV2} initialAttachments={v2Parts} reviewing={reviewV2}
+      onInvalidate={() => setReviewV2(false)} onReview={() => setReviewV2(true)} onBack={() => setReviewV2(false)} />
+    {!file && <Button variant="ghost" onClick={() => {
+      setV2(undefined);
+      setV2Parts([]);
+      setCsv(undefined);
+      setManifest(undefined);
+    }}>Remover seleção</Button>}
+  </section> : <>
         <section className={styles.card} aria-labelledby="pcdf-upload">
           <h2 id="pcdf-upload">{file ? "Validação do CSV PCDF" : "Arquivo mensal"}</h2>
-          <p>Os dados recebidos serão armazenados em origem e staging para revisão.</p>
+          <p>O CSV PCDF v1 pode ser confirmado em staging. Para a prévia PCDF v2, selecione juntos os seis arquivos da competência.</p>
           <div className={styles.mapping}>
             {!file && <label>Arquivo CSV mensal
               <input type="file" accept=".csv,text/csv" disabled={!!busy} onChange={event => {
                 const file = event.target.files?.[0];
                 setCsv(file);
                 void validate(file, manifest);
+              }} />
+            </label>}
+            {!file && <label className={styles.attachmentPicker}>Pacote mensal PCDF v2
+              <input type="file" multiple accept=".csv,.json,.jsonl,.txt,.md" disabled={!!busy} onChange={event => {
+                const files = Array.from(event.currentTarget.files ?? []);
+                event.currentTarget.value = "";
+                if (!files.length) return;
+                try {
+                  const { csv, attachments } = selectPcdfV2Files(files);
+                  setCsv(csv);
+                  setManifest(undefined);
+                  void validate(csv, undefined, attachments);
+                } catch (failure) { setError((failure as Error).message); }
               }} />
             </label>}
             <label>Manifesto técnico JSON (opcional)
@@ -164,12 +207,12 @@ export function StoredPcdfRows({ run }: { run: string }) {
       failure => { if (!controller.signal.aborted) setResult({ page, error: failure.message }); });
     return () => controller.abort();
   }, [page, run]);
-  if (result?.page !== page) return <p role="status">Consultando registros gravados?</p>;
+  if (result?.page !== page) return <p role="status">Consultando registros gravados…</p>;
   if (!result.data) return <p role="alert">{result.error}</p>;
   return <>
     <PcdfRecords headers={result.data.headers} label="Registros PCDF gravados"
       rows={result.data.rows.map(row => ({ ...row, issues: row.issues.map(({ field, rule }) => [field, rule]) }))} />
-    <Pager page={page} total={result.data.total} onChange={setPage} label="Pagina??o de registros gravados" />
+    <Pager page={page} total={result.data.total} onChange={setPage} label="Paginação de registros gravados" />
   </>;
 }
 

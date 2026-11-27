@@ -30,8 +30,10 @@ export function Pager({ page, total, onChange, label = "Paginação da prévia" 
   </nav>;
 }
 
-export function ImportDialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return <Dialog title={title} onClose={onClose} drawer style={{ width: "min(680px, 100vw)" }}>
+export function ImportDialog({ title, onClose, children, wide = false }: {
+  title: string; onClose: () => void; children: ReactNode; wide?: boolean;
+}) {
+  return <Dialog title={title} onClose={onClose} drawer style={{ width: wide ? "min(1100px, 100vw)" : "min(680px, 100vw)" }}>
     <div className={styles.drawer}>
       <div className={styles.drawerHeader}><h2>{title}</h2>
         <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>

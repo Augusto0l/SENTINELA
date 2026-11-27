@@ -1,5 +1,6 @@
-import { directPcdfPath, directPreview, directReceipt } from "@/contracts/pcdf-direct";
+import { directCsvPreview, directPcdfPath, directPreview, directReceipt } from "@/contracts/pcdf-direct";
 import type { z } from "zod";
+import { PcdfHttpError } from "./pcdf-client";
 
 const diagnostics: Record<string, string> = {
   nome_competencia_invalido: "Use o nome original pcdf_naturezas_AAAA-MM.csv.",
@@ -18,20 +19,24 @@ const diagnostics: Record<string, string> = {
 
 export async function callDirectPcdf<T>(schema: z.ZodType<T>, query = "", body?: FormData, signal?: AbortSignal): Promise<T> {
   const response = await fetch(directPcdfPath + query, {
-    cache: "no-store", signal, ...(body && { method: "POST", body }),
+    cache: "no-store", credentials: "same-origin", signal, ...(body && { method: "POST", body }),
   }).catch(error => {
     if (signal?.aborted && error instanceof Error && error.name === "AbortError") throw error;
-    throw new Error("Backend de importação indisponível.");
+    throw new PcdfHttpError(503, "Não foi possível conectar ao serviço de importação. Verifique a conexão e tente novamente.");
   });
   const result = await response.json().catch(() => null);
-  if (response.status === 401) throw new Error("Sessão expirada. Entre novamente.");
-  if (response.status === 403) throw new Error("Importação não autorizada para este perfil ou ambiente.");
-  if (!result) throw new Error("Backend de importação indisponível.");
-  if (!response.ok || result.success !== true) {
-    const detail = result.error?.diagnostic;
-    throw new Error(diagnostics[detail] ?? result.error?.message ?? "Receptor PCDF local indisponível.");
+  if (response.status === 401) throw new PcdfHttpError(401, "Sessão expirada. Entre novamente.");
+  if (response.status === 403) throw new PcdfHttpError(403, result?.error?.diagnostic === "autorizacao_institucional_ausente"
+    ? "Gravação bloqueada: este Administrador não tem autorização institucional ativa no PostgreSQL. Solicite a liberação ao responsável pela manutenção. A prévia continua disponível."
+    : "Importação não autorizada para este perfil ou origem.");
+  if (!response.ok) {
+    const detail = result?.error?.diagnostic;
+    const message = typeof result?.error?.message === "string" ? result.error.message : "Receptor PCDF local indisponível.";
+    throw new PcdfHttpError(response.status, diagnostics[detail] ?? message);
   }
-  return schema.parse(result.data);
+  const data = schema.safeParse(result?.success === true ? result.data : undefined);
+  if (!data.success) throw new PcdfHttpError(502, "Resposta inesperada do receptor PCDF.");
+  return data.data;
 }
 
 function payload(csv: File, manifest?: File) {
@@ -50,4 +55,15 @@ export function confirmPcdf(csv: File, preview: Pick<z.infer<typeof directPrevie
   body.set("sha256", preview.sha256);
   if (preview.manifestSha) body.set("manifestSha", preview.manifestSha);
   return callDirectPcdf(directReceipt, "?etapa=confirmar", body);
+}
+
+const standalone = "&versao=2.0&modalidade=csv";
+export function previewPcdfCsv(csv: File, signal: AbortSignal) {
+  return callDirectPcdf(directCsvPreview, "?etapa=validar" + standalone, payload(csv), signal);
+}
+
+export function confirmPcdfCsv(csv: File, sha256: string) {
+  const body = payload(csv);
+  body.set("sha256", sha256);
+  return callDirectPcdf(directReceipt, "?etapa=confirmar" + standalone, body);
 }
