@@ -49,11 +49,15 @@ export const historicalMonth = z.strictObject({
   unique: count.nullable(), links: count.nullable(), review: count.nullable(), issues: count.nullable(),
 });
 export const historicalMonthCount = 68;
+const historicalAccess = {
+  canValidate: z.boolean().optional(),
+  block: z.enum(["profile", "inventory", "january", "configuration", "recovery"]).optional(),
+};
 export const completeHistoricalStatus = z.strictObject({
-  items: z.array(historicalMonth).length(historicalMonthCount), canApprove: z.boolean(),
+  ...historicalAccess, items: z.array(historicalMonth).length(historicalMonthCount), canApprove: z.boolean(),
 });
 export const historicalStatus = z.union([completeHistoricalStatus, z.strictObject({
-  items: z.array(historicalMonth).max(historicalMonthCount - 1), canApprove: z.literal(false),
+  ...historicalAccess, items: z.array(historicalMonth).max(historicalMonthCount - 1), canApprove: z.literal(false),
 })]);
 export const historicalPreview = historicalMonth.extend({
   accepted: count, rejected: count, diagnostics: count,

@@ -173,18 +173,32 @@ async function confirmSyntheticV2(client: Client, request: Request, account: str
   return Response.json({ success: true, data: result }, { headers, status: result.replay ? 200 : 201 });
 }
 
+async function historicalRecoveryReady(client: Client, subject: string) {
+  const { rows: [capability] } = await client.query(`SELECT coalesce(has_function_privilege(
+    to_regprocedure('sentinela_pcdf_historico.pode_confirmar(uuid)'),'EXECUTE'),false) AS installed`);
+  if (!capability?.installed) return false;
+  const { rows: [result] } = await client.query(
+    "SELECT sentinela_pcdf_historico.pode_confirmar($1) AS allowed", [subject],
+  );
+  return result?.allowed === true;
+}
+
 async function intakeStandalone(client: Client, request: Request, previewOnly: boolean,
-  actor: NonNullable<ReturnType<typeof operationalActor>>, historical = false) {
+  actor: NonNullable<ReturnType<typeof operationalActor>>, historical: boolean, hosted: boolean) {
   const { rows: [access] } = await client.query(
     `SELECT sentinela_gestao_autorizacao.capacidade($1,$2) AS authorized,
-      to_regprocedure('sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea)') IS NOT NULL AS installed,
+      to_regprocedure(CASE WHEN $3 THEN 'sentinela_pcdf_historico.receive(uuid,uuid,text,jsonb,bytea)'
+        ELSE 'sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea)' END) IS NOT NULL AS installed,
       to_regprocedure('sentinela_pcdf_local.efetivos_csv_v1(jsonb,date)') IS NOT NULL AS independent`,
-    [actor.subject, actor.account],
+    [actor.subject, actor.account, historical],
   );
-  // capacidade() is the institutional write authorization. The standalone preview only parses the file over a
-  // read-only connection, so it needs the Administrador identity already checked by the caller, not the write window.
-  // Confirmation and the historical modality still require it.
-  if (!access?.authorized && (!previewOnly || historical)) throw new IntakeError(403, "autorizacao_institucional_ausente");
+  if (historical && hosted) {
+    if (!previewOnly && !await historicalRecoveryReady(client, actor.subject))
+      throw new IntakeError(503, "recuperacao_historica_indisponivel",
+        "A recuperação da fila mensal ainda precisa ser habilitada no PostgreSQL.");
+  } else if (!access?.authorized && (!previewOnly || historical)) {
+    throw new IntakeError(403, "autorizacao_institucional_ausente");
+  }
   if (!access.installed) throw new IntakeError(503, undefined, "O receptor de CSV PCDF v2 ainda não está instalado no PostgreSQL.");
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data;")) throw new IntakeError(415);
   const form = await boundedForm(request, directCsvLimit + 16384);
@@ -270,7 +284,8 @@ export async function directPcdf(request: Request) {
     const localActor = !hosted && standalone && (integratedSupabaseMode() || (mainMode && process.env.SENTINELA_OPERATIONAL_CLONE === "1"))
       ? operationalActor(principal) : null;
     if (standalone && (!hosted && !localActor || hosted && principal.role !== "Administrador")) throw new IntakeError(403);
-    if (hosted && write && step !== "validar" && !hosted.write) throw new IntakeError(403);
+    if (hosted && write && step !== "validar" && !(historical ? hosted.historicalWrite : hosted.write))
+      throw new IntakeError(403, "importacao_desabilitada");
     if (v2 && !standalone && !syntheticPcdfV2Enabled()) throw new IntakeError(403);
     if (!hosted && write && !standalone && step !== "validar" && (principal.source !== "local" || !principal.localAccountId))
       throw new IntakeError(403);
@@ -296,15 +311,23 @@ export async function directPcdf(request: Request) {
         "A fila histórica aguarda a instalação autorizada no PostgreSQL.");
       if (!write) {
         const { rows: [result] } = await client.query("SELECT sentinela_pcdf_historico.status() AS data");
-        const items = hosted ? result?.data ?? [] : result?.data;
-        const complete = Array.isArray(items) && items.length === historicalMonthCount;
-        const approval = hosted ? complete && hosted.write && hostedActor : operationalActor(principal);
+        if (hosted) {
+          const items = z.array(historicalMonth).parse(result?.data ?? []);
+          const block = !hostedActor ? "profile"
+            : items.length !== historicalMonthCount ? "inventory"
+            : items.find(item => item.month === "2021-01")?.state !== "done" ? "january"
+            : !hosted.historicalWrite ? "configuration"
+            : await historicalRecoveryReady(client, hostedActor.subject) ? undefined : "recovery";
+          return Response.json({ success: true, data: historicalStatus.parse({
+            items, canApprove: !block, canValidate: Boolean(hostedActor && items.length), ...(block && { block }),
+          }) }, { headers });
+        }
+        const approval = operationalActor(principal);
         const permitted = approval && (await client.query(
           "SELECT sentinela_gestao_autorizacao.capacidade($1,$2) AS allowed", [approval.subject, approval.account],
         )).rows[0]?.allowed === true;
-        const status = hosted ? historicalStatus : completeHistoricalStatus;
-        return Response.json({ success: true, data: status.parse({
-          items, canApprove: Boolean(permitted),
+        return Response.json({ success: true, data: completeHistoricalStatus.parse({
+          items: result?.data, canApprove: Boolean(permitted),
         }) }, { headers });
       }
     }
@@ -325,7 +348,7 @@ export async function directPcdf(request: Request) {
 
     if (standalone && actor) {
       committing = step === "confirmar";
-      return await intakeStandalone(client, request, !committing, actor, historical);
+      return await intakeStandalone(client, request, !committing, actor, historical, Boolean(hosted));
     }
     if (v2 && principal.localAccountId) return await confirmSyntheticV2(client, request, principal.localAccountId);
     const preview = step === "validar";

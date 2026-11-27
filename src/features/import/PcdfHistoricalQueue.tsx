@@ -23,6 +23,13 @@ type Entry = { id: string; name: string; month?: string; file?: File; status: St
   preview?: Preview; result?: Month; error?: string };
 const format = (value: number | null | undefined) => value == null ? "—" : value.toLocaleString("pt-BR");
 const terminal = new Set<Status>(["done", "imported", "review", "error"]);
+const blockMessages = {
+  profile: "Somente Administrador pode validar arquivos e confirmar a importação.",
+  inventory: "A confirmação aguarda o inventário completo no PostgreSQL.",
+  january: "A confirmação aguarda a conferência do recibo original de janeiro de 2021.",
+  configuration: "A gravação está desativada neste ambiente. A validação continua disponível.",
+  recovery: "A confirmação aguarda a liberação vinculada a um backup verificável.",
+};
 
 export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => void }) {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -32,13 +39,15 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
   const [paused, setPaused] = useState(false);
   const stop = useRef(false);
   const input = useRef<HTMLInputElement>(null);
+  const processing = useRef(false);
+  const canValidate = catalog?.canValidate ?? catalog?.canApprove;
 
   useEffect(() => {
     const controller = new AbortController();
     void callDirectPcdf(historicalStatus, query, undefined, controller.signal).then(data => {
       if (controller.signal.aborted) return;
       setCatalog(data);
-      if (!data.canApprove) return;
+      if (!(data.canValidate ?? data.canApprove)) return;
       let saved: Record<string, unknown> = {};
       try { saved = JSON.parse(localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey) ?? "{}") ?? {}; }
       catch { /* The server still retains committed history. */ }
@@ -55,17 +64,22 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
   }, []);
 
   useEffect(() => {
-    if (!catalog?.canApprove) return;
+    if (!canValidate || !entries.length) return;
     const saved = Object.fromEntries(entries.flatMap(entry => entry.month ? [[entry.month, entry.status]] : []));
     try {
       localStorage.setItem(storageKey, JSON.stringify(saved));
       sessionStorage.removeItem(storageKey);
     }
     catch { /* The server still retains committed history. */ }
-  }, [catalog, entries]);
+  }, [canValidate, entries]);
 
   function select(files: File[]) {
-    if (!files.length || mode) return;
+    if (!files.length || processing.current) return;
+    const names = new Set(files.map(file => file.name));
+    if (names.size !== files.length) {
+      setMessage("Selecione apenas um arquivo por competência.");
+      return;
+    }
     const selected = files.map(file => ({
       id: crypto.randomUUID(), name: file.name, month: canonicalName.exec(file.name)?.[1], file, status: "waiting" as const,
     }));
@@ -82,10 +96,11 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
   }
 
   async function processQueue(kind: "check" | "import") {
-    if (mode || !catalog?.canApprove) return;
+    if (processing.current || !(kind === "check" ? canValidate : catalog?.canApprove)) return;
     const work = entries.filter(entry => entry.file && (kind === "import" ? entry.status === "ready"
       : ["waiting", "error", "interrupted"].includes(entry.status)));
     if (!work.length) return;
+    processing.current = true;
     stop.current = false;
     setPaused(false);
     setMode(kind);
@@ -94,11 +109,8 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
       ? [entry.preview.sha256] : []));
     let changed = false;
     try {
-      for (const [index, entry] of work.entries()) {
-        if (stop.current) {
-          for (const remaining of work.slice(index)) change(remaining.id, { status: "interrupted" });
-          break;
-        }
+      for (const entry of work) {
+        if (stop.current) break;
         change(entry.id, { status: kind === "check" ? "validating" : "importing", error: undefined });
         try {
           if (!entry.month) throw new Error("Use o nome original pcdf_naturezas_AAAA-MM.csv.");
@@ -124,13 +136,17 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
           }
         } catch (failure) {
           const status = failure instanceof PcdfHttpError ? failure.status : undefined;
-          change(entry.id, { status: status === 409 || status === 422 ? "review" : status === 503 ||
-            status === 401 || status === 403 ? "interrupted" : "error", error: (failure as Error).message });
-          if (status === 401 || status === 403) { stop.current = true; setMessage((failure as Error).message); }
+          const error = (failure as Error).message;
+          change(entry.id, { status: status === 409 || status === 422 ? "review"
+            : kind === "import" || status === 503 || status === 401 || status === 403 ? "interrupted" : "error", error });
+          if (kind === "import" || status === 401 || status === 403) {
+            stop.current = true;
+            setMessage(kind === "import" ? `${error} Fila pausada. Confira o recibo antes de retomar.` : error);
+          }
         }
       }
       if (kind === "import") {
-        const data = await callDirectPcdf(historicalStatus, query);
+        const data = await callDirectPcdf(historicalStatus, query, undefined, AbortSignal.timeout(30000));
         setCatalog(data);
         setEntries(current => current.map(row => {
           if (row.status !== "interrupted" || !row.preview) return row;
@@ -141,6 +157,7 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
     } catch (failure) { setMessage((failure as Error).message); }
     finally {
       if (changed) onComplete();
+      processing.current = false;
       setMode(undefined);
     }
   }
@@ -155,11 +172,9 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
     {message && <p role="alert" className={styles.feedbackError}>{message}</p>}
     {!catalog && !message && <p role="status">Consultando competências no PostgreSQL…</p>}
     {catalog && <>
-      <p role="status">{catalog.items.length < historicalMonthCount
-        ? `${catalog.items.length} de ${historicalMonthCount} competências cadastradas. ${completed.length} com consolidação confirmada na fila histórica. A aprovação está bloqueada enquanto o inventário estiver incompleto.`
-        : <>{completed.length} de {historicalMonthCount} competências consolidadas.
-          {!catalog.canApprove && " A aprovação exige Administrador com autorização institucional ativa."}</>}</p>
-      {catalog.canApprove && <>
+      <p role="status">{catalog.items.length} de {historicalMonthCount} competências cadastradas.
+        {" "}{completed.length} consolidadas. {catalog.block && blockMessages[catalog.block]}</p>
+      {canValidate && <>
         <input ref={input} type="file" hidden accept=".csv,text/csv" multiple onChange={event => {
           select(Array.from(event.currentTarget.files ?? [])); event.currentTarget.value = "";
         }} />
@@ -167,11 +182,13 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
           <Button disabled={!!mode} onClick={() => input.current?.click()}>Selecionar CSVs mensais PCDF</Button>
           <Button variant="outline" disabled={!!mode || !entries.some(entry => entry.file &&
             ["waiting", "error", "interrupted"].includes(entry.status))} onClick={() => void processQueue("check")}>Validar seleção</Button>
-          <Button disabled={!!mode || !ready} onClick={() => void processQueue("import")}>Aprovar e importar ({ready})</Button>
+          <Button disabled={!!mode || !catalog.canApprove || !ready || entries.some(entry => entry.status === "interrupted" && entry.preview)}
+            onClick={() => void processQueue("import")}>Confirmar importação{ready > 1 && ` (${ready})`}</Button>
           {mode && <Button variant="outline" disabled={paused} onClick={() => {
             stop.current = true; setPaused(true);
           }}>Interromper após o arquivo atual</Button>}
           {!mode && entries.length > 0 && <Button variant="ghost" onClick={() => {
+            try { localStorage.removeItem(storageKey); sessionStorage.removeItem(storageKey); } catch { /* Optional checkpoint. */ }
             setEntries([]); setMessage("");
           }}>Cancelar seleção pendente</Button>}
         </div>
@@ -205,7 +222,7 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
       </>}
       <details><summary>{catalog.items.length === historicalMonthCount ? `Consultar as ${historicalMonthCount} competências` : "Consultar competências cadastradas"}</summary>
         <ul>{catalog.items.map(item => <li key={item.month}>
-          {item.month} · {item.state === "done" ? `Consolidada · ${format(item.unique)} ocorrências · lote ${item.lot}`
+          {item.month} · {item.state === "done" ? `Consolidada · ${format(item.records)} linhas · ${format(item.unique)} ocorrências · ${format(item.links)} vínculos · lote ${item.lot}`
             : item.state === "staged" ? "Recebida em staging" : item.state === "conflict" ? "Requer revisão" : "Ainda sem importação"}
           {!item.complete && ` · cobertura parcial até ${item.through}`}
         </li>)}</ul>
