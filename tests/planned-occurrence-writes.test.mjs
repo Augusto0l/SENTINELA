@@ -127,12 +127,12 @@ test("static route inventory allows only explicitly gated write handlers under a
     else if (relative === "usuarios/route.ts") {
       assert.match(source, /const mode = institutionalDatabaseMode\(\)/)
       assert.match(source, /request\.headers\.get\("host"\) !== new URL\(mode\.origin\)\.host/)
-      assert.match(source, /request\.method !== "GET" && request\.headers\.get\("origin"\) !== mode\.origin/)
+      assert.match(source, /!reading && request\.headers\.get\("origin"\) !== mode\.origin/)
       assert.match(source, /principal\.role !== "Administrador" \|\| principal\.source !== "supabase"/)
-      assert.match(source, /request\.method !== "GET" && hostedOperationalMode\(\)\?\.write === false/)
+      assert.match(source, /!reading && !institutionalUsersWriteEnabled\(\)/)
       assert.equal((source.match(/await authorize\(request\)/g) ?? []).length, 4)
       assert.match(source, /institutionalEdit\.safeParse\(body\.data\)/)
-      assert.match(source, /await institutionalUsers\(principal, edit\.data\)/)
+      assert.match(source, /await updateInstitutionalUser\(principal, edit\.data\)/)
     }
     else if (relative === "central-revisao/[id]/route.ts") {
       assert.match(source, /if \(hostedOperationalMode\(\)\) return hostedReview\(request, id\)/)

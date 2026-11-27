@@ -9,7 +9,7 @@ const management = "/api/v1/ocorrencias/gestao"
 const users = "/api/v1/usuarios"
 const analytics = "/api/v1/analytics/persistente?scope=pcdf"
 
-await withHostedImportEnvironment(async ({ origin, project, actors, sql, withActor, failNextAuthDeletion }) => {
+await withHostedImportEnvironment(async ({ origin, project, actors, sql, withActor, loseNextCreationResponse }) => {
   const browser = await chromium.launch({ channel: "msedge", headless: true })
   const ra = randomUUID()
   const nature = randomUUID()
@@ -123,27 +123,147 @@ await withHostedImportEnvironment(async ({ origin, project, actors, sql, withAct
     const list = await call(admin, users)
     assert.deepEqual(new Set(list.map(record => record.id)), new Set(actors.map(actor => actor.id)))
     const operatorRecord = list.find(record => record.id === actors[1].id)
+    const adminRecord = list.find(record => record.id === actors[0].id)
     const change = { id: operatorRecord.id, version: operatorRecord.version, name: "Operador de ensaio", email: "", orgao: "Ensaio" }
-    assert.equal((await call(admin, users, 200, write("PATCH", change))).name, change.name)
+    const userTarget = record => ({ id: record.id, version: record.version })
+    const edited = await call(admin, users, 200, write("PATCH", change))
+    assert.equal(edited.name, change.name)
     await call(admin, users, 409, write("PATCH", change))
-    const account = { name: "Conta provisória de ensaio", email: "ensaio.sentinela.synthetic@gmail.com", perfil: "Analista",
-      orgao: "Ensaio", password: "Senha-Sintetica-7632!" }
-    const created = await call(admin, users, 201, write("POST", account))
-    assert.equal(created.ativo, true)
+    const account = { name: "Conta provisória de ensaio", email: "ensaio.sentinela@example.test", perfil: "Analista",
+      orgao: "Ensaio", password: "Senha-Sintetica-7632!", ativo: false }
+    const create = (data = account, key = randomUUID()) => write("POST", data, { "Idempotency-Key": key })
+    const anonymous = await browser.newContext({ ignoreHTTPSErrors: true })
+    for (const [client, denied] of [[anonymous.request, 401], [operator, 403], [analyst, 403]]) {
+      await call(client, users, denied)
+      await call(client, users, denied, create())
+      await call(client, users, denied, write("PATCH", change))
+      await call(client, users, denied, write("DELETE", { ...userTarget(edited), email: edited.loginEmail }))
+    }
+    await anonymous.close()
+    await call(admin, users, 422, create({ ...account, password: "curta" }))
+    await call(admin, users, 422, create({ ...account, email: "inválido" }))
+    await call(admin, users, 422, write("POST", account))
+    await call(admin, users, 403, write("POST", account, { Origin: "https://outra.example", "Idempotency-Key": randomUUID() }))
+
+    await sql(`CREATE TRIGGER fixture_reject_user_audit BEFORE INSERT ON sentinela.eventos_auditoria
+        FOR EACH ROW WHEN (NEW.acao='usuarios.criar_institucional') EXECUTE FUNCTION public.fixture_reject_audit()`)
+    const requestId = randomUUID()
+    await call(admin, users, 503, create(account, requestId))
+    assert.equal(await sql("SELECT count(*)::int AS data FROM auth.users WHERE email=$1", [account.email]), 0)
+    await sql("DROP TRIGGER fixture_reject_user_audit ON sentinela.eventos_auditoria")
+    loseNextCreationResponse()
+    const created = await call(admin, users, 201, create(account, requestId))
+    assert.equal(created.ativo, false)
+    assert.equal(created.firstAccessPending, true)
     assert.equal(await sql("SELECT raw_app_meta_data->>'sentinela_onboarding' AS data FROM auth.users WHERE id=$1", [created.id]), "password")
+    assert.equal((await call(admin, users, 201, create(account, requestId))).id, created.id)
+    await call(admin, users, 409, create({ ...account, email: account.email.toUpperCase() }))
+    const racing = { ...account, email: "concorrencia@example.test", perfil: "Administrador", ativo: true }
+    const race = await Promise.all([create(racing), create(racing)].map(options => admin.fetch(origin + users, options)))
+    assert.deepEqual(race.map(response => response.status()).sort(), [201, 409])
+    assert.equal(await sql("SELECT count(*)::int AS data FROM auth.users WHERE email=$1", [racing.email]), 1)
+    await call(admin, users, 409, write("PATCH", { ...userTarget(adminRecord), perfil: "Operador" }))
+    await call(admin, users, 409, write("PATCH", { ...userTarget(adminRecord), ativo: false }))
+    await call(admin, users, 403, write("DELETE", { ...userTarget(adminRecord), email: adminRecord.loginEmail }))
+    await assert.rejects(sql("UPDATE sentinela.usuarios SET ativo=false WHERE id=$1", [adminRecord.id]), { code: "23514" })
+
+    const provisioned = await browser.newContext({ ignoreHTTPSErrors: true })
+    const login = async password => {
+      const response = await provisioned.request.post(origin + "/auth/login", { headers: { Origin: origin },
+        form: { email: account.email, password }, maxRedirects: 0 })
+      assert.equal(response.status(), 303, await response.text())
+      return new URL(response.headers().location).pathname
+    }
+    assert.equal(await login(account.password), "/atualizar-senha")
+    await call(provisioned.request, users, 403)
+    const password = "Senha-Primeiro-Acesso!42"
+    const firstAccess = await provisioned.request.post(origin + "/auth/senha", { headers: { Origin: origin },
+      form: { password, confirmation: password }, maxRedirects: 0 })
+    assert.equal(new URL(firstAccess.headers().location).pathname, "/login")
+    assert.equal(await login(password), "/acesso-pendente")
+    const promoted = await call(admin, users, 200, write("PATCH", { ...userTarget(created), perfil: "Operador" }))
+    const activated = await call(admin, users, 200, write("PATCH", { ...userTarget(promoted), ativo: true }))
+    assert.equal(activated.ativo, true)
+    assert.equal(activated.firstAccessPending, false)
+    assert.equal(await login(password), "/dashboard")
+    await call(provisioned.request, users, 403)
+    const deactivated = await call(admin, users, 200, write("PATCH", { ...userTarget(activated), ativo: false }))
+    assert.equal(deactivated.ativo, false)
+    await call(provisioned.request, query + "?view=resumo", 401)
+    await provisioned.close()
+
     assert.equal((await call(admin, users + "?exclusao=" + created.id)).email, account.email)
-    const deletion = write("DELETE", { id: created.id, email: account.email })
-    failNextAuthDeletion()
-    await call(admin, users, 503, deletion)
-    assert.equal((await call(admin, users)).find(record => record.id === created.id).deletionPending, true)
+    const deletion = write("DELETE", { ...userTarget(deactivated), email: account.email })
+    await call(admin, users, 422, write("DELETE", { ...userTarget(deactivated), email: "outro@example.test" }))
+    await call(admin, users, 409, write("DELETE", { ...userTarget(activated), email: account.email }))
     await call(admin, users, 204, deletion)
-    assert.equal(await sql("SELECT count(*)::int AS data FROM auth.users WHERE id=$1", [created.id]), 0)
-    assert.equal(await sql("SELECT count(*)::int AS data FROM sentinela.usuarios WHERE id=$1 AND NOT ativo AND auth_user_id IS NULL", [created.id]), 1)
-    console.log("OK usuários, cadastro com primeiro acesso e recuperação da exclusão com Auth simulado")
+    await call(admin, users, 204, deletion)
+    assert.equal(await sql("SELECT count(*)::int AS data FROM auth.users WHERE id=$1", [created.id]), 1)
+    assert.equal(await sql("SELECT count(*)::int AS data FROM sentinela.usuarios WHERE id=$1 AND NOT ativo AND auth_user_id=$1 AND arquivado_em IS NOT NULL", [created.id]), 1)
+    assert.equal(await sql("SELECT count(*)::int AS data FROM sentinela.eventos_auditoria WHERE depois->>'alvo'=$1", [created.id]), 5)
+    assert(!(await call(admin, users)).some(record => record.id === created.id))
+    console.log("OK gestão de usuários, perfis, sessão, exclusão lógica, rollback, concorrência e auditoria com Auth simulado")
+
+    const usersPage = await adminContext.newPage()
+    await usersPage.goto(origin + "/usuarios")
+    const uiAccount = { ...account, email: "interface@example.test", name: "Usuário da interface" }
+    for (const [width, theme] of [[1440, "claro"], [390, "escuro"], [320, "claro"]]) {
+      await usersPage.setViewportSize({ width, height: 844 })
+      await usersPage.evaluate(theme => localStorage.setItem("sentinela-theme", theme), theme)
+      await usersPage.reload()
+      await usersPage.waitForFunction(theme => document.documentElement.dataset.theme === theme, theme)
+      await usersPage.getByRole("button", { name: "Novo usuário" }).click()
+      const form = usersPage.getByRole("dialog", { name: "Novo usuário" })
+      await form.waitFor()
+      const bounds = await form.boundingBox()
+      assert(bounds.x >= 0 && bounds.x + bounds.width <= width && bounds.y >= 0 && bounds.y + bounds.height <= 844)
+      if (width !== 390) {
+        await usersPage.keyboard.press("Escape")
+        await form.waitFor({ state: "hidden" })
+        continue
+      }
+      await form.getByLabel("Nome completo").fill(uiAccount.name)
+      await form.getByLabel("E-mail de acesso").fill(uiAccount.email)
+      await form.getByLabel("Perfil", { exact: true }).selectOption(uiAccount.perfil)
+      await form.getByLabel("Status inicial").selectOption("false")
+      await form.getByLabel("Senha inicial individual").fill(uiAccount.password)
+      await form.getByRole("button", { name: "Criar usuário" }).click()
+      await form.waitFor({ state: "hidden" })
+      await usersPage.getByRole("status").filter({ hasText: "Usuário cadastrado como inativo." }).waitFor()
+      await usersPage.reload()
+      await usersPage.getByText(uiAccount.email, { exact: true }).waitFor()
+    }
+    const storedKey = process.env.SENTINELA_USERS_AUTH_KEY
+    process.env.SENTINELA_USERS_AUTH_KEY = ""
+    await usersPage.reload()
+    assert(await usersPage.getByRole("button", { name: "Novo usuário" }).isDisabled())
+    const userRow = usersPage.getByRole("row").filter({ hasText: uiAccount.email })
+    await userRow.getByRole("button").click()
+    await usersPage.getByRole("button", { name: "Visualizar usuário", exact: true }).waitFor()
+    await usersPage.getByRole("button", { name: "Editar usuário", exact: true }).waitFor()
+    await usersPage.getByRole("button", { name: "Alterar perfil e permissões", exact: true }).waitFor()
+    await usersPage.getByRole("button", { name: "Ativar usuário", exact: true }).click()
+    await usersPage.getByRole("dialog", { name: "Ativar usuário" }).getByRole("button", { name: "Ativar usuário" }).click()
+    await usersPage.getByRole("status").filter({ hasText: "Usuário ativado." }).waitFor()
+    await userRow.getByRole("button").click()
+    await usersPage.getByRole("button", { name: "Excluir usuário", exact: true }).click()
+    const confirmation = usersPage.getByRole("dialog", { name: "Excluir usuário" })
+    const confirmButton = confirmation.getByRole("button", { name: "Excluir usuário", exact: true })
+    assert(await confirmButton.isDisabled())
+    await confirmation.getByLabel("Digite o e-mail de acesso para confirmar").fill(uiAccount.email)
+    await confirmButton.click()
+    await userRow.waitFor({ state: "hidden" })
+    process.env.SENTINELA_USERS_AUTH_KEY = storedKey
+    console.log("OK interface a 320, 390 e 1440 px nos temas claro e escuro, confirmação e recarga")
 
     process.env.SENTINELA_SUPABASE_OPERATIONAL_WRITE = "0"
     assert.equal((await call(operator, manual)).cadastroDisponivel, false)
     await call(operator, manual, 403, post(payload, randomUUID()))
+    await call(admin, users, 409, write("PATCH", change))
+    await call(admin, users, 204, write("DELETE", { ...userTarget(edited), email: edited.loginEmail }))
+    assert.equal(await sql("SELECT usuario_id AS data FROM sentinela.eventos_auditoria WHERE id=$1", [updated.auditoria]), edited.id)
+    await call(operator, query + "?view=resumo", 401)
+    process.env.SENTINELA_SUPABASE_USERS_WRITE = "0"
     await call(admin, users, 403, write("PATCH", change))
     await call(admin, users)
     const ca = process.env.SENTINELA_SUPABASE_IMPORT_CA
@@ -160,7 +280,7 @@ await withHostedImportEnvironment(async ({ origin, project, actors, sql, withAct
   } finally {
     await browser.close()
   }
-}, { operational: true }).catch(error => {
+}, { operational: true, review: true, users: true, reverseUsers: process.argv.includes("--rollback-users") }).catch(error => {
   console.error(error)
   process.exitCode = 1
 })

@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import Dialog from "../components/ui/dialog";
 import { useDemoToast } from "../components/DemoProvider";
 import NavigationIcon from "@/components/NavigationIcon";
-import { institutionalCreate, institutionalDeletionTarget, institutionalUser, type InstitutionalUser } from "@/contracts/institutional-users";
+import { institutionalCreate, institutionalDeletionTarget, institutionalUser, type InstitutionalCreate, type InstitutionalUser } from "@/contracts/institutional-users";
 import { ROLES, hasPermission, type Permission } from "@/lib/auth/policy";
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -24,6 +24,8 @@ interface User {
   cadastro: string;
   version?: string;
   deletionPending?: boolean;
+  loginEmail?: string | null;
+  firstAccessPending?: boolean;
   activity?: { time: string; desc: string }[];
 }
 
@@ -220,8 +222,9 @@ function KpiCard({ label, value, color }: { label: string; value: number; color?
 }
 
 // ─── Inline field label ────────────────────────────────────────────────────────
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{children}</div>;
+function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  const Tag = htmlFor ? "label" : "div";
+  return <Tag htmlFor={htmlFor} style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{children}</Tag>;
 }
 
 // ─── Action menu ──────────────────────────────────────────────────────────────
@@ -230,9 +233,9 @@ function ActionMenu({
 }: {
   user: User;
   onView: () => void;
-  onEdit: () => void;
-  onNewProfile: () => void;
-  onToggleStatus: () => void;
+  onEdit?: () => void;
+  onNewProfile?: () => void;
+  onToggleStatus?: () => void;
   onDelete?: () => void;
   onClose: () => void;
   anchor: HTMLButtonElement;
@@ -252,10 +255,10 @@ function ActionMenu({
 
   const items = [
     { label: "Visualizar usuário",         icon: "👁", action: onView },
-    { label: "Editar usuário",             icon: "✏", action: onEdit },
-    ...(!user.version ? [{ label: "Alterar perfil e permissões", icon: "🔑", action: onNewProfile }] : []),
+    ...(onEdit ? [{ label: "Editar usuário", icon: "✏", action: onEdit }] : []),
+    ...(onNewProfile ? [{ label: "Alterar perfil e permissões", icon: "🔑", action: onNewProfile }] : []),
     { label: "Visualizar atividades",      icon: "📋", action: onView },
-    ...(!user.version ? [{ label: user.status === "Ativo" ? "Desativar usuário" : "Ativar usuário",
+    ...(onToggleStatus ? [{ label: user.status === "Ativo" ? "Desativar usuário" : "Ativar usuário",
       icon: user.status === "Ativo" ? "⊘" : "✓",
       action: onToggleStatus,
       danger: user.status === "Ativo",
@@ -318,13 +321,13 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: User; onClose: ()
   }, [user.id]);
 
   async function remove() {
-    if (!matches || inFlight.current) return;
+    if (!target || !matches || inFlight.current) return;
     inFlight.current = true;
     setSaving(true);
     setError("");
     try {
       const response = await fetch("/api/v1/usuarios", { method: "DELETE", credentials: "same-origin",
-        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, email }) });
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, version: target.version, email }) });
       if (response.status !== 204) {
         const result = await response.json().catch(() => null);
         throw new Error(result?.error ?? "Não foi possível concluir a exclusão. Tente novamente.");
@@ -343,7 +346,7 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: User; onClose: ()
         <p>{target?.email ?? user.email}</p>
         <PerfilBadge p={target?.perfil ?? user.perfil} />
       </div>
-      <p>A exclusão da conta é permanente. Os registros históricos serão preservados.</p>
+      <p>A exclusão lógica bloqueia o acesso ao SENTINELA e retira a conta da listagem. A identidade e o histórico serão preservados.</p>
       {!target && !error && <p role="status">Verificando a conta institucional…</p>}
       {target && <div>
         <label htmlFor="delete-user-email">Digite o e-mail de acesso para confirmar</label>
@@ -364,7 +367,7 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: User; onClose: ()
 
 // ─── Detail drawer ────────────────────────────────────────────────────────────
 function DetailDrawer({ user, onClose, onChangeProfile }: {
-  user: User; onClose: () => void; onChangeProfile: () => void;
+  user: User; onClose: () => void; onChangeProfile?: () => void;
 }) {
   const perms = user.version ? ALL_PERMS.filter(label => {
     const permission = institutionalPermissions[label];
@@ -404,6 +407,8 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
           {/* Info rows */}
           <div style={{ background: "var(--theme-0d1728)", border: "1px solid var(--theme-1a3050)", borderRadius: 9, overflow: "hidden" }}>
             {[
+              ...(user.loginEmail ? [{ label: "E-mail de acesso", value: user.loginEmail }] : []),
+              ...(user.version && user.email ? [{ label: "E-mail de contato", value: user.email }] : []),
               { label: "Órgão / Unidade",  value: user.orgao },
               { label: "Data de cadastro", value: user.cadastro },
               { label: "Último acesso",    value: user.ultimoAcesso },
@@ -426,7 +431,7 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
               marginBottom: 10,
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>Permissões</div>
-              {!user.version && <button
+              {onChangeProfile && <button
                 onClick={onChangeProfile}
                 style={{
                   background: "none", border: "1px solid var(--theme-1e3a5f)", borderRadius: 6,
@@ -501,33 +506,36 @@ function DetailDrawer({ user, onClose, onChangeProfile }: {
 // ─── New user modal ────────────────────────────────────────────────────────────
 function NewUserModal({ onClose, onSave, editing }: {
   onClose: () => void;
-  onSave: (u: Pick<User, "name" | "email" | "orgao" | "perfil"> & { password: string }) => Promise<void>;
+  onSave: (u: InstitutionalCreate, requestId: string) => Promise<void>;
   editing?: User;
 }) {
   const [nome, setNome]     = useState(editing?.name ?? "");
   const [email, setEmail]   = useState(editing?.email ?? "");
   const [orgao, setOrgao]   = useState(editing?.orgao ?? "");
   const [perfil, setPerfil] = useState<Perfil | "">(editing?.perfil ?? "");
+  const [ativo, setAtivo] = useState(true);
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const inFlight = useRef(false);
+  const requestId = useRef("");
   const [error, setError] = useState("");
 
   async function handleSave() {
     if (inFlight.current) return;
     if (!perfil || !nome.trim() || ((email.trim() || !editing) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))) {
-      setError(editing ? "Informe um nome e confira o e-mail de contato." : "Informe o nome completo, o e-mail Gmail e o perfil.");
+      setError(editing ? "Informe um nome e confira o e-mail de contato." : "Informe o nome completo, o e-mail e o perfil.");
       return;
     }
-    const value = { name: nome, email, orgao, perfil, password };
+    const value = { name: nome, email, orgao, perfil, password, ativo };
     if (!editing && !institutionalCreate.safeParse(value).success) {
-      setError("Confira o endereço Gmail e os requisitos da senha inicial."); return;
+      setError("Confira o e-mail e os requisitos da senha inicial."); return;
     }
     inFlight.current = true;
     setSaving(true);
     setError("");
     try {
-      await onSave(value);
+      requestId.current ||= crypto.randomUUID();
+      await onSave(value, requestId.current);
       setPassword("");
       onClose();
     } catch (failure) {
@@ -536,55 +544,65 @@ function NewUserModal({ onClose, onSave, editing }: {
   }
 
   return (
-    <Dialog title={editing ? "Editar usuário" : "Novo usuário"} onClose={saving ? () => {} : onClose}>
-      <form onSubmit={event => { event.preventDefault(); void handleSave(); }}>
+    <Dialog title={editing ? "Editar usuário" : "Novo usuário"} onClose={() => { if (!inFlight.current) onClose(); }}>
+      <form onChange={() => { requestId.current = ""; }} onSubmit={event => { event.preventDefault(); void handleSave(); }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--theme-f1f5f9)" }}>{editing ? "Editar usuário" : "Novo usuário"}</div>
           <button type="button" disabled={saving} aria-label="Fechar diálogo" onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 20px" }}>
-          {editing ? "O e-mail de contato pertence ao cadastro local. Perfil, status e login são consultados sem edição nesta tela."
-            : "Use uma senha inicial individual. O usuário deverá alterá-la no primeiro acesso."}
+          {editing ? "O e-mail de contato é usado no cadastro. O e-mail de acesso é gerenciado no Supabase Auth."
+            : "Verifique o e-mail do titular e entregue a senha inicial por um canal seguro. O usuário deverá alterá-la no primeiro acesso."}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <FieldLabel>Nome completo</FieldLabel>
-            <input aria-label="Nome completo" required disabled={saving} maxLength={160} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
+            <FieldLabel htmlFor="user-full-name">Nome completo</FieldLabel>
+            <input id="user-full-name" required disabled={saving} maxLength={160} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
-            <FieldLabel>{editing ? "E-mail de contato" : "E-mail Gmail"}</FieldLabel>
-            <input type="email" aria-label={editing ? "E-mail de contato" : "E-mail Gmail"} required={!editing} disabled={saving}
-              maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={editing ? "email@sentinela.gov.br" : "nome@gmail.com"} style={inputStyle}
+            <FieldLabel htmlFor="user-email">{editing ? "E-mail de contato" : "E-mail de acesso"}</FieldLabel>
+            <input id="user-email" type="email" required={!editing} disabled={saving}
+              maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@instituicao.gov.br" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
           <div>
-            <FieldLabel>Órgão / Unidade</FieldLabel>
-            <input aria-label="Órgão ou unidade" disabled={saving} maxLength={160} value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
+            <FieldLabel htmlFor="user-orgao">Órgão / Unidade</FieldLabel>
+            <input id="user-orgao" disabled={saving} maxLength={160} value={orgao} onChange={(e) => setOrgao(e.target.value)} placeholder="Ex: Unidade Operacional" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--theme-1e3a5f)")} />
           </div>
-          <div>
-            <FieldLabel>Perfil</FieldLabel>
-            <select required disabled={saving || Boolean(editing)} aria-label="Perfil" value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil | "")}
-              style={{ ...selectStyle, width: "100%" }}>
-              {!editing && <option value="">Selecione o perfil</option>}
-              {ROLES.map(role => <option key={role} style={{ background: "var(--theme-0d1728)" }}>{role}</option>)}
-            </select>
-          </div>
-          {!editing && <div>
-            <FieldLabel>Senha inicial individual</FieldLabel>
-            <input type="password" aria-label="Senha inicial individual" aria-describedby="institutional-password-hint"
-              required disabled={saving} minLength={16} maxLength={72} autoComplete="new-password" value={password}
-              onChange={event => setPassword(event.target.value)} style={inputStyle}
-              onFocus={event => { event.currentTarget.style.borderColor = "#2563eb"; }}
-              onBlur={event => { event.currentTarget.style.borderColor = "var(--theme-1e3a5f)"; }} />
-            <small id="institutional-password-hint">Mínimo de 16 caracteres, com letras maiúsculas, minúsculas, número e símbolo.</small>
-          </div>}
+          {!editing && <>
+            <div>
+              <FieldLabel htmlFor="user-role">Perfil</FieldLabel>
+              <select id="user-role" required disabled={saving} value={perfil} onChange={e => setPerfil(e.target.value as Perfil | "")}
+                style={{ ...selectStyle, width: "100%" }}>
+                <option value="">Selecione o perfil</option>
+                {ROLES.map(role => <option key={role}>{role}</option>)}
+              </select>
+            </div>
+            <div>
+              <FieldLabel htmlFor="user-initial-status">Status inicial</FieldLabel>
+              <select id="user-initial-status" disabled={saving} value={String(ativo)} onChange={e => setAtivo(e.target.value === "true")}
+                style={{ ...selectStyle, width: "100%" }}>
+                <option value="true">Ativo</option>
+                <option value="false">Inativo</option>
+              </select>
+            </div>
+            <div>
+              <FieldLabel htmlFor="user-initial-password">Senha inicial individual</FieldLabel>
+              <input id="user-initial-password" type="password" aria-describedby="institutional-password-hint"
+                required disabled={saving} minLength={16} maxLength={72} autoComplete="new-password" value={password}
+                onChange={event => setPassword(event.target.value)} style={inputStyle}
+                onFocus={event => { event.currentTarget.style.borderColor = "#2563eb"; }}
+                onBlur={event => { event.currentTarget.style.borderColor = "var(--theme-1e3a5f)"; }} />
+              <small id="institutional-password-hint">Mínimo de 16 caracteres, com letras maiúsculas, minúsculas, número e símbolo.</small>
+            </div>
+          </>}
         </div>
 
         {error && <p role="alert" style={{ color: "var(--theme-fca5a5)", marginTop: 12 }}>{error}</p>}
@@ -702,9 +720,62 @@ function ChangeProfileModal({ user, onClose, onSave }: {
   );
 }
 
+type AccessChange = { perfil: Perfil } | { ativo: boolean };
+
+function UserAccessModal({ user, kind, onClose, onSave }: {
+  user: User; kind: "perfil" | "status"; onClose: () => void; onSave: (change: AccessChange) => Promise<void>;
+}) {
+  const [perfil, setPerfil] = useState(user.perfil);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const inFlight = useRef(false);
+  const ativo = user.status === "Inativo";
+  const title = kind === "perfil" ? "Alterar perfil" : ativo ? "Ativar usuário" : "Desativar usuário";
+
+  async function save() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(kind === "perfil" ? { perfil } : { ativo });
+      onClose();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Não foi possível alterar o acesso.");
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
+    }
+  }
+
+  return <Dialog title={title} onClose={() => { if (!inFlight.current) onClose(); }}>
+    <form onSubmit={event => { event.preventDefault(); void save(); }} style={{ display: "grid", gap: 14 }}>
+      <h2 style={{ fontWeight: 700 }}>{title}</h2>
+      <p>{user.name}</p>
+      {kind === "perfil" ? <div>
+        <FieldLabel htmlFor="user-new-role">Novo perfil</FieldLabel>
+        <select id="user-new-role" value={perfil} disabled={saving} style={{ ...selectStyle, width: "100%" }}
+          onChange={event => setPerfil(event.target.value as Perfil)}>
+          {ROLES.map(role => <option key={role}>{role}</option>)}
+        </select>
+      </div> : <p>{ativo ? "O usuário poderá acessar o SENTINELA após concluir o primeiro acesso."
+        : "O acesso ao SENTINELA será bloqueado para esta conta."}</p>}
+      {error && <p role="alert" style={{ color: "var(--theme-f87171)" }}>{error}</p>}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 }}>
+        <button type="button" disabled={saving} onClick={onClose} style={{ padding: "8px 12px" }}>Cancelar</button>
+        <button type="submit" disabled={saving || (kind === "perfil" && perfil === user.perfil)}
+          style={{ borderRadius: 7, background: "#2563eb", color: "#fff", padding: "8px 12px" }}>
+          {saving ? "Salvando…" : kind === "perfil" ? "Salvar perfil" : title}
+        </button>
+      </div>
+    </form>
+  </Dialog>;
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function Usuarios({ institutional = false, records, unavailable = false, canCreate = false, administratorId }: {
-  institutional?: boolean; records?: InstitutionalUser[]; unavailable?: boolean; canCreate?: boolean; administratorId?: string;
+export default function Usuarios({ institutional = false, records, unavailable = false, canCreate = false, canManage = false, canEdit = false, administratorId }: {
+  institutional?: boolean; records?: InstitutionalUser[]; unavailable?: boolean; canCreate?: boolean;
+  canManage?: boolean; canEdit?: boolean; administratorId?: string;
 } = {}) {
   const notify = useDemoToast();
   const [users, setUsers]             = useState<User[]>(() => institutional ? (records ?? []).map(fromRecord) : INITIAL_USERS);
@@ -721,11 +792,12 @@ export default function Usuarios({ institutional = false, records, unavailable =
   const searchInput = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState("");
   const [changeProfileFor, setChangeProfileFor] = useState<User | null>(null);
+  const [changeAccessFor, setChangeAccessFor] = useState<{ user: User; kind: "perfil" | "status" } | null>(null);
 
   const filtered = users.filter((u) => {
     if (search) {
       const q = search.toLowerCase();
-      if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+      if (![u.name, u.email, u.loginEmail].some(value => value?.toLowerCase().includes(q))) return false;
     }
     if (filterPerfil && u.perfil !== filterPerfil) return false;
     if (filterStatus && u.status !== filterStatus) return false;
@@ -747,15 +819,23 @@ export default function Usuarios({ institutional = false, records, unavailable =
     }
   }
 
-  async function handleNewUser(data: Parameters<typeof institutionalCreate.parse>[0]) {
+  function syncRecord(record: InstitutionalUser) {
+    const user = fromRecord(record);
+    setUsers(previous => [...previous.filter(item => item.id !== user.id), user].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+    setDetailUser(previous => previous?.id === user.id ? user : previous);
+  }
+
+  async function handleNewUser(data: InstitutionalCreate, requestId: string) {
     setSaved("");
     const response = await fetch("/api/v1/usuarios", { method: "POST", credentials: "same-origin",
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify(institutionalCreate.parse(data)) });
+      headers: { "Content-Type": "application/json", "Idempotency-Key": requestId },
+      body: JSON.stringify(institutionalCreate.parse(data)) });
     const result = await response.json().catch(() => null);
     if (!response.ok) throw new Error(result?.error ?? "Não foi possível concluir o cadastro.");
-    const user = fromRecord(institutionalUser.parse(result?.data));
-    setUsers(previous => [...previous.filter(item => item.id !== user.id), user].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
-    setSaved("Usuário cadastrado. A troca de senha é obrigatória no primeiro acesso.");
+    const record = institutionalUser.parse(result?.data);
+    syncRecord(record);
+    setSaved(record.ativo ? "Usuário cadastrado. A troca de senha é obrigatória no primeiro acesso."
+      : "Usuário cadastrado como inativo.");
   }
 
   function handleChangeProfile(userId: User["id"], newPerfil: Perfil) {
@@ -764,15 +844,23 @@ export default function Usuarios({ institutional = false, records, unavailable =
     if (detailUser?.id === userId) setDetailUser((d) => d ? { ...d, perfil: newPerfil } : d);
   }
 
-  async function saveInstitutional(user: User, { name, email, orgao }: Pick<User, "name" | "email" | "orgao">) {
+  async function saveInstitutional(user: User, changes: Pick<User, "name" | "email" | "orgao"> | AccessChange, message: string) {
+    setSaved("");
     const response = await fetch("/api/v1/usuarios", { method: "PATCH", credentials: "same-origin",
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, version: user.version, name, email, orgao }) });
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, version: user.version, ...changes }) });
     const result = await response.json().catch(() => null);
     if (!response.ok) throw new Error(result?.error ?? "Não foi possível salvar o cadastro.");
-    const persisted = fromRecord(institutionalUser.parse(result?.data));
-    setUsers(previous => previous.map(item => item.id === user.id ? persisted : item));
-    setDetailUser(previous => previous?.id === user.id ? persisted : previous);
-    setSaved("Cadastro institucional salvo.");
+    const record = institutionalUser.parse(result?.data);
+    syncRecord(record);
+    setSaved(message);
+    if (record.id === administratorId && (!record.ativo || record.perfil !== "Administrador"))
+      window.location.assign(record.ativo ? "/dashboard" : "/acesso-pendente");
+  }
+
+  function openProfile(user: User) {
+    setDetailUser(null);
+    if (institutional) setChangeAccessFor({ user, kind: "perfil" });
+    else setChangeProfileFor(user);
   }
 
   return (
@@ -780,7 +868,7 @@ export default function Usuarios({ institutional = false, records, unavailable =
       <Header title="Usuários" subtitle="Gerenciamento de usuários e permissões" />
       <p role={unavailable ? "alert" : "note"} style={{ padding: "8px 26px" }}>{unavailable
         ? "A consulta ao cadastro institucional está indisponível."
-        : institutional ? "Cadastro institucional. Perfil e status são definidos pela autenticação institucional."
+        : institutional ? (canManage ? "Cadastro institucional" : "Cadastro institucional em modo de consulta.")
         : "Prévia demonstrativa com usuários fictícios. Nenhuma ação desta tela cria contas ou altera os logins locais."}</p>
       {saved && <p role="status" style={{ padding: "0 26px", color: "var(--theme-22c55e)" }}>{saved}</p>}
 
@@ -874,7 +962,7 @@ export default function Usuarios({ institutional = false, records, unavailable =
                         <Avatar name={u.name} size={34} />
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--theme-f1f5f9)" }}>{u.name}</div>
-                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>{u.email}</div>
+                          <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>{u.loginEmail ?? u.email}</div>
                         </div>
                       </div>
                     </td>
@@ -882,6 +970,7 @@ export default function Usuarios({ institutional = false, records, unavailable =
                     <td style={cell}><PerfilBadge p={u.perfil} /></td>
                     <td style={cell}><StatusBadge s={u.status} />
                       {u.deletionPending && <small>Exclusão pendente</small>}
+                      {u.firstAccessPending && <small style={{ display: "block" }}>Primeiro acesso pendente</small>}
                     </td>
                     <td style={{ ...cell, color: "var(--color-text-muted)", fontSize: 12 }}>{u.ultimoAcesso}</td>
                     {/* Actions */}
@@ -911,10 +1000,11 @@ export default function Usuarios({ institutional = false, records, unavailable =
                             anchor={menuAnchor}
                             position={menuPosition}
                             onView={() => setDetailUser(u)}
-                            onEdit={() => institutional ? setEditUser(u) : setDetailUser(u)}
-                            onNewProfile={() => setChangeProfileFor(u)}
-                            onToggleStatus={() => handleToggleStatus(u.id)}
-                            onDelete={institutional && canCreate && administratorId !== u.id ? () => setDeleteUser(u) : undefined}
+                            onEdit={!institutional || canEdit ? () => institutional ? setEditUser(u) : setDetailUser(u) : undefined}
+                            onNewProfile={!institutional || canManage ? () => openProfile(u) : undefined}
+                            onToggleStatus={!institutional || canManage ? () => institutional
+                              ? setChangeAccessFor({ user: u, kind: "status" }) : handleToggleStatus(u.id) : undefined}
+                            onDelete={canManage ? () => setDeleteUser(u) : undefined}
                             onClose={() => setOpenMenu(null)}
                           />
                         )}
@@ -948,9 +1038,13 @@ export default function Usuarios({ institutional = false, records, unavailable =
         <DetailDrawer
           user={detailUser}
           onClose={() => setDetailUser(null)}
-          onChangeProfile={() => setChangeProfileFor(detailUser)}
+          onChangeProfile={!institutional || canManage ? () => openProfile(detailUser) : undefined}
         />
       )}
+      {changeAccessFor && <UserAccessModal user={changeAccessFor.user} kind={changeAccessFor.kind}
+        onClose={() => setChangeAccessFor(null)}
+        onSave={change => saveInstitutional(changeAccessFor.user, change,
+          "perfil" in change ? "Perfil atualizado." : change.ativo ? "Usuário ativado." : "Usuário desativado.")} />}
 
       {changeProfileFor && (
         <ChangeProfileModal
@@ -967,11 +1061,11 @@ export default function Usuarios({ institutional = false, records, unavailable =
         />
       )}
       {editUser && <NewUserModal editing={editUser} onClose={() => setEditUser(null)}
-        onSave={value => saveInstitutional(editUser, value)} />}
+        onSave={({ name, email, orgao }) => saveInstitutional(editUser, { name, email, orgao }, "Cadastro institucional salvo.")} />}
       {deleteUser && <DeleteUserModal user={deleteUser} onClose={() => setDeleteUser(null)} onDeleted={() => {
         setUsers(previous => previous.filter(user => user.id !== deleteUser.id));
         setDeleteUser(null);
-        setSaved("Usuário excluído.");
+        setSaved("Usuário excluído da listagem. O histórico foi preservado.");
         requestAnimationFrame(() => searchInput.current?.focus());
       }} />}
     </div>

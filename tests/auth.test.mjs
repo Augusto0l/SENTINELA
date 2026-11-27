@@ -115,12 +115,20 @@ test("primeiro acesso intercepta o login e mantém a autorização bloqueada ant
   assert.equal(target(await authPost("senha", request("senha", fields), origin, incomplete)), "/acesso-pendente")
 })
 
-test("cadastro institucional normaliza Gmail e rejeita senha fraca, perfil arbitrário e ausência de nome", async () => {
-  const { institutionalCreate } = await import("../src/contracts/institutional-users.ts")
-  const input = { name: "Pessoa de teste", email: " Teste+qa@GMAIL.COM ", perfil: "Operador", password: "Fixture!long-A7-Test" }
-  assert.equal(institutionalCreate.parse(input).email, "teste+qa@gmail.com")
-  for (const invalid of [{ password: "123456" }, { perfil: "root" }, { email: "teste@example.test" }, { name: " " }])
+test("cadastro institucional valida e-mail, senha, perfil, nome e status inicial", async () => {
+  const { institutionalCreate, institutionalDelete, institutionalEdit } = await import("../src/contracts/institutional-users.ts")
+  const input = { name: "Pessoa de teste", email: " Teste+qa@EXAMPLE.TEST ", perfil: "Operador", password: "Fixture!long-A7-Test" }
+  assert.equal(institutionalCreate.parse(input).email, "teste+qa@example.test")
+  assert.equal(institutionalCreate.parse(input).ativo, true)
+  assert.equal(institutionalCreate.parse({ ...input, ativo: false }).ativo, false)
+  for (const invalid of [{ password: "123456" }, { perfil: "root" }, { email: "teste@inválido" }, { name: " " }, { ativo: "false" }])
     assert.equal(institutionalCreate.safeParse({ ...input, ...invalid }).success, false)
+  const target = { id: "68ad2bb1-9840-43cc-bf27-95b12e29c581", version: "a".repeat(64) }
+  assert(institutionalEdit.safeParse({ ...target, perfil: "Analista" }).success)
+  assert(institutionalEdit.safeParse({ ...target, ativo: false }).success)
+  assert(!institutionalEdit.safeParse({ ...target, perfil: "Administrador", ativo: true }).success)
+  assert(!institutionalDelete.safeParse(target).success)
+  assert(institutionalDelete.safeParse({ ...target, email: "teste@example.test" }).success)
 })
 test("permissões dos três perfis, rotas e escopo de dados permanecem restritos", () => {
   for (const role of ROLES) {

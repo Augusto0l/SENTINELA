@@ -28,6 +28,10 @@ export function institutionalDatabaseMode(env = process.env) {
   return hostedOperationalMode(env) ?? integratedSupabaseMode(env);
 }
 
+export function institutionalUsersWriteEnabled(env = process.env) {
+  return Boolean(hostedOperationalMode(env) && env.SENTINELA_SUPABASE_USERS_WRITE === "1");
+}
+
 function supabaseLauncherSelected(env: NodeJS.ProcessEnv) {
   return env.SENTINELA_AUTH_PROVIDER === "supabase" && env.SENTINELA_INTEGRATED_SUPABASE === "1"
     && env.SENTINELA_APP_ORIGIN === mainImportOrigin && !env.SENTINELA_OPERATIONAL_CLONE
