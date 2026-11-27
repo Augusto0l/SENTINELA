@@ -19,12 +19,11 @@ import { renderDensityHeatmap, renderProjectedHeatmap } from "@/components/map/h
 import { clusterCell, frameDetail, pointRadius } from "@/components/map/mapSymbols";
 import { officialRaLines } from "@/components/map/raTooltip";
 import { useStreetNavigation } from "@/components/map/useStreetNavigation";
-import type { ManualMapPoint } from "@/lib/db/manual-map";
 import type { MapOccurrenceInteraction } from "@/components/map/MapOccurrenceTooltip";
 import styles from "@/components/map/AnalyticMap.module.css";
 
 export type MapMode = "heat" | "points" | "clusters" | "satellite";
-export type MapOccurrence = MockOccurrence & { occurrenceId?: string };
+export type MapOccurrence = MockOccurrence & { occurrenceId?: string; underReview?: boolean };
 
 const MapOccurrenceDetail = dynamic(() => import("@/features/occurrences/OccurrenceWorkspace")
   .then(module => module.ConsolidatedDetail), { ssr: false });
@@ -66,8 +65,7 @@ type Props = {
   streetBasemap?: boolean;
   satelliteOccurrences?: { visible: boolean; onChange: (visible: boolean) => void };
   occurrenceInteraction?: MapOccurrenceInteraction;
-  manualPoints?: readonly ManualMapPoint[];
-  focusedOccurrence?: string;
+  focusedPoint?: MapOccurrence;
 };
 
 function colorFor(value: number, min: number, max: number) {
@@ -115,8 +113,7 @@ export default function MapaDF({
   streetBasemap = false,
   satelliteOccurrences,
   occurrenceInteraction,
-  manualPoints,
-  focusedOccurrence,
+  focusedPoint,
 }: Props) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; width: number } | null>(null);
@@ -155,7 +152,7 @@ export default function MapaDF({
     setTooltipPos(null);
     onOccurrenceHover?.(null);
   }, [onOccurrenceHover]);
-  const navigation = useStreetNavigation(svgRef, streetBasemap && mapMode !== "satellite", fittedViewBox, clearHover);
+  const navigation = useStreetNavigation(svgRef, streetBasemap && mapMode !== "satellite", fittedViewBox, clearHover, focusedPoint);
   const symbolLength = (value: number) => `calc(${value}px * var(--street-fit-ratio, 1))`;
 
   useEffect(() => {
@@ -181,9 +178,11 @@ export default function MapaDF({
     if (!selectedRaCode) return mockOccurrences;
     return mockOccurrences.filter((o) => o.raCode === selectedRaCode);
   }, [mockOccurrences, selectedRaCode]);
+  const pointOccurrences = mapMode === "points" && focusedPoint
+    ? [...visibleOccs.filter(point => point.occurrenceId !== focusedPoint.occurrenceId), focusedPoint] : visibleOccs;
   const canOpenPoint = mapMode === "points" || (mapMode === "satellite" && satelliteOccurrences?.visible);
   const activePoint = canOpenPoint && openedPoint
-    ? visibleOccs.find(point => point.occurrenceId === openedPoint.occurrenceId) : undefined;
+    ? pointOccurrences.find(point => point.occurrenceId === openedPoint.occurrenceId) : undefined;
   if (openedPoint && !activePoint) setOpenedPoint(undefined);
 
   // The point-in-region test depends only on the official geometry. Keeping it per `regions` (not per mode)
@@ -428,9 +427,9 @@ export default function MapaDF({
         {/* Points mode */}
         {mapMode === "points" && (
           <g data-testid="occurrence-points">
-            {visibleOccs.map((p) => (
+            {pointOccurrences.map((p) => (
               <g key={p.id} role={p.occurrenceId ? "button" : undefined} tabIndex={p.occurrenceId ? 0 : undefined}
-                aria-label={p.occurrenceId ? `Detalhes da ocorrência em ${p.raName}` : undefined}
+                aria-label={p.occurrenceId ? `${p.underReview ? "Ocorrência em revisão" : "Detalhes da ocorrência"} em ${p.raName}` : undefined}
                 onClick={p.occurrenceId ? () => openOccurrence(p) : undefined}
                 onKeyDown={p.occurrenceId ? event => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -450,10 +449,13 @@ export default function MapaDF({
                   cx={p.x}
                   cy={p.y}
                   r={pointRadius(symbolScale, detail)}
+                  data-testid="occurrence-marker"
+                  data-occurrence={p.occurrenceId}
+                  data-selected={p === focusedPoint || undefined}
                   fill="#ef4444"
                   opacity={0.95}
-                  stroke="#fecaca"
-                  strokeOpacity={0.65}
+                  stroke={p === focusedPoint ? "#93c5fd" : "#fecaca"}
+                  strokeOpacity={p === focusedPoint ? 1 : 0.65}
                   strokeWidth={0.6}
                   vectorEffect="non-scaling-stroke"
                   style={{ cursor: "pointer", r: streetBasemap ? symbolLength(pointRadius(symbolScale, detail)) : undefined }}
@@ -483,20 +485,6 @@ export default function MapaDF({
             <circle cx={pinX} cy={pinY} r={3} fill="#fff" />
           </g>
         )}
-
-        {manualPoints?.filter(point => !selectedRA || point.raCode === selectedRA.code).map(point => {
-          const { x, y } = projectLonLat(point.longitude, point.latitude);
-          const review = point.status === "em_revisao";
-          const label = review ? "Ocorrência manual em revisão" : "Ocorrência manual consolidada";
-          const isFocused = point.id === focusedOccurrence;
-          return <a key={point.id} href={`/ocorrencias?${review ? "manual" : "ocorrencia"}=${point.id}`} aria-label={label}>
-            <circle cx={x} cy={y} r={isFocused ? 8 : 5} fill={review ? "#fbbf24" : "#60a5fa"}
-              stroke={isFocused ? "#fff" : "#422006"} strokeWidth={2} vectorEffect="non-scaling-stroke"
-              data-testid="manual-map-marker" data-occurrence={point.id}>
-              <title>{label}</title>
-            </circle>
-          </a>;
-        })}
 
         {/* Legacy occurrencePoints */}
         {showPoints && occurrencePoints.length > 0 && mapMode !== "points" && mapMode !== "clusters" && (

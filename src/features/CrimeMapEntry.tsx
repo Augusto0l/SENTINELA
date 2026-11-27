@@ -9,8 +9,8 @@ const CrimeMap = dynamic(() => import("./CrimeMap"), { ssr: false, loading: () =
 
 export default function CrimeMapEntry(props: {
   initialRaCode?: string; initialFilters?: AnalyticSelection; persistent?: boolean;
-  manualPoints?: ManualMapPoint[] | null; focusedOccurrence?: string;
+  focusedPoint?: ManualMapPoint | null;
 }) {
-  const { initialRaCode, initialFilters, persistent, focusedOccurrence } = props;
-  return <CrimeMap key={JSON.stringify([initialRaCode, initialFilters, persistent, focusedOccurrence])} {...props} />;
+  const { initialRaCode, initialFilters, persistent, focusedPoint } = props;
+  return <CrimeMap key={JSON.stringify([initialRaCode, initialFilters, persistent, focusedPoint?.id])} {...props} />;
 }

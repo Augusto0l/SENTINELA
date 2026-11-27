@@ -13,14 +13,16 @@ const manualMapPoint = z.strictObject({
 })
 export type ManualMapPoint = z.infer<typeof manualMapPoint>
 
-export function readManualMapPoints(principal: OperationalPrincipal, focus: string | null) {
-  if (!hostedOperationalMode() || principal.source !== "supabase"
-    || (principal.role !== "Administrador" && principal.role !== "Operador")) return Promise.resolve([])
+export function readManualMapPoint(principal: OperationalPrincipal, focus?: string) {
+  if (!focus || !hostedOperationalMode() || principal.source !== "supabase"
+    || (principal.role !== "Administrador" && principal.role !== "Operador")) return Promise.resolve(null)
   return withOperationalDatabase(principal, true, async client => {
     const { rows: [check] } = await client.query(`SELECT coalesce(has_function_privilege(
       to_regprocedure('sentinela_ocorrencias_manual.pontos_mapa(uuid)'), 'EXECUTE'), false) AS installed`)
-    if (!check?.installed) return []
-    const { rows: [row] } = await client.query("SELECT sentinela_ocorrencias_manual.pontos_mapa($1) AS data", [focus])
-    return z.array(manualMapPoint).max(250).parse(row?.data)
+    if (!check?.installed) return null
+    const { rows: [row] } = await client.query(`SELECT p AS data
+      FROM jsonb_array_elements(sentinela_ocorrencias_manual.pontos_mapa($1::uuid)) p
+      WHERE p->>'id'=$1::text`, [focus])
+    return row ? manualMapPoint.parse(row.data) : null
   })
 }

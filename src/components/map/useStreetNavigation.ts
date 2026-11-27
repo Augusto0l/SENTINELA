@@ -1,12 +1,15 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { moveMapFrame, parseMapFrame, type MapFrame, type ScreenPoint } from "@/components/map/streetViewport";
+import { focusMapFrame, moveMapFrame, parseMapFrame, type MapFrame, type ScreenPoint } from "@/components/map/streetViewport";
 
 const DISTANCE_THRESHOLD = 5;
 const distance = (a: ScreenPoint, b: ScreenPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 const midpoint = (a: ScreenPoint, b: ScreenPoint) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, enabled: boolean, fittedViewBox: string, onMove: () => void) {
-  const saved = useRef<{ fit: string; frame: MapFrame } | null>(null);
+export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, enabled: boolean, fittedViewBox: string,
+  onMove: () => void, focus?: ScreenPoint) {
+  const focusX = focus?.x;
+  const focusY = focus?.y;
+  const saved = useRef<{ fit: string; focusX?: number; focusY?: number; frame: MapFrame } | null>(null);
   const controls = useRef<{ zoom: (factor: number) => void; reset: () => void } | null>(null);
   const [level, setLevel] = useState<{ fit: string; value: number }>();
 
@@ -15,7 +18,15 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
     if (!enabled || !element) return;
     const svg = element;
     const fit = parseMapFrame(fittedViewBox);
-    let current = saved.current?.fit === fittedViewBox ? saved.current.frame : fit;
+    const point = focusX === undefined || focusY === undefined ? undefined : { x: focusX, y: focusY };
+    const viewport = () => {
+      const { width, height } = svg.getBoundingClientRect();
+      return { width, height };
+    };
+    const home = () => point ? focusMapFrame(fit, viewport(), point) : fit;
+    const previous = saved.current;
+    let current = previous?.fit === fittedViewBox && previous.focusX === focusX && previous.focusY === focusY
+      ? previous.frame : home();
     let target = current;
     let animation = 0;
     let lastTime = 0;
@@ -25,10 +36,6 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
     let start: ScreenPoint | undefined;
     const pointers = new Map<number, ScreenPoint>();
 
-    const viewport = () => {
-      const { width, height } = svg.getBoundingClientRect();
-      return { width, height };
-    };
     const local = (event: MouseEvent) => {
       const bounds = svg.getBoundingClientRect();
       return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
@@ -40,7 +47,7 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
 
     function apply(frame: MapFrame) {
       current = frame;
-      saved.current = { fit: fittedViewBox, frame };
+      saved.current = { fit: fittedViewBox, focusX, focusY, frame };
       const viewBox = `${frame.x} ${frame.y} ${frame.width} ${frame.height}`;
       if (svg.getAttribute("viewBox") !== viewBox) svg.setAttribute("viewBox", viewBox);
       const ratio = frame.width / fit.width;
@@ -97,9 +104,9 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
       if (!animation) animation = requestAnimationFrame(draw);
     }
 
-    function zoom(factor: number, point = center()) {
+    function zoom(factor: number, anchor = center()) {
       if (pointers.size) return;
-      target = moveMapFrame(target, fit, viewport(), point, point, factor);
+      target = moveMapFrame(target, fit, viewport(), anchor, anchor, factor, point);
       if (target.width === current.width && target.x === current.x && target.y === current.y) return;
       beginMovement();
       schedule();
@@ -136,19 +143,19 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
     function onPointerMove(event: PointerEvent) {
       const previous = pointers.get(event.pointerId);
       if (!previous) return;
-      const point = local(event);
-      pointers.set(event.pointerId, point);
+      const next = local(event);
+      pointers.set(event.pointerId, next);
       if (!gesture) {
-        if (!start || distance(start, point) < DISTANCE_THRESHOLD) return;
+        if (!start || distance(start, next) < DISTANCE_THRESHOLD) return;
         capturePointers();
       }
       event.preventDefault();
       const other = [...pointers].find(([id]) => id !== event.pointerId)?.[1];
       if (other) {
-        const ratio = distance(point, other) / Math.max(1, distance(previous, other));
-        target = moveMapFrame(target, fit, viewport(), midpoint(previous, other), midpoint(point, other), Math.max(.1, ratio));
+        const ratio = distance(next, other) / Math.max(1, distance(previous, other));
+        target = moveMapFrame(target, fit, viewport(), midpoint(previous, other), midpoint(next, other), Math.max(.1, ratio), point);
       } else {
-        target = moveMapFrame(target, fit, viewport(), previous, point);
+        target = moveMapFrame(target, fit, viewport(), previous, next, 1, point);
       }
       schedule();
     }
@@ -174,16 +181,16 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
 
     function reset() {
       stopAnimation();
-      target = fit;
-      apply(fit);
+      target = home();
+      apply(target);
       onMove();
     }
 
     function constrainToViewport() {
       const size = viewport();
-      const point = { x: size.width / 2, y: size.height / 2 };
-      const adjusted = moveMapFrame(current, fit, size, point, point);
-      target = moveMapFrame(target, fit, size, point, point);
+      const anchor = { x: size.width / 2, y: size.height / 2 };
+      const adjusted = moveMapFrame(current, fit, size, anchor, anchor, 1, point);
+      target = moveMapFrame(target, fit, size, anchor, anchor, 1, point);
       apply(adjusted);
     }
 
@@ -210,7 +217,7 @@ export function useStreetNavigation(svgRef: RefObject<SVGSVGElement | null>, ena
       svg.removeEventListener("lostpointercapture", onLostCapture);
       svg.removeEventListener("click", onClick, true);
     };
-  }, [enabled, fittedViewBox, onMove, svgRef]);
+  }, [enabled, fittedViewBox, focusX, focusY, onMove, svgRef]);
 
   return {
     zoom: (factor: number) => controls.current?.zoom(factor),
