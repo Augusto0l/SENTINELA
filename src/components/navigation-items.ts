@@ -14,7 +14,6 @@ export const navigationGroups: { label: string; items: { key: string; label: str
       { key: "occurrences", label: "Ocorrências", icon: "records" },
       { key: "new", label: "Nova Ocorrência", icon: "plus" },
       { key: "import", label: "Importar Dados", icon: "upload" },
-      { key: "review", label: "Central de Revisão", icon: "records" },
     ],
   },
   {
