@@ -1,0 +1,384 @@
+-- local-pcdf-naturezas-operacional-v1
+-- Destino fixo. Executar somente com o registro institucional e a janela abertos.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL search_path=pg_catalog,pg_temp;
+SET LOCAL lock_timeout='5s';
+SET LOCAL TIME ZONE 'America/Sao_Paulo';
+SET LOCAL sentinela.catalogo_expected_uuid TO 'c04244a6-bc8d-4491-98bc-9af8a268d30c';
+SET LOCAL sentinela.catalogo_expected_system TO '7710764288366362848';
+SET LOCAL sentinela.catalogo_revisao TO :'revisao';
+SET LOCAL sentinela.catalogo_backup TO :'backup_sha';
+SET LOCAL sentinela.catalogo_fingerprints TO :'fingerprints';
+SET LOCAL sentinela.catalogo_janela_inicio TO :'janela_inicio';
+SET LOCAL sentinela.catalogo_janela_fim TO :'janela_fim';
+
+DO $destino$
+BEGIN
+  IF current_database()<>'sentinela_pcdf_local'
+    OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+    OR inet_server_port() IS DISTINCT FROM 55484
+    OR pg_is_in_recovery() OR current_setting('transaction_read_only')<>'off'
+    OR session_user<>'postgres' OR current_user<>session_user
+    OR NOT EXISTS (SELECT FROM pg_roles WHERE rolname=session_user AND rolsuper)
+    OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.catalogo_expected_uuid')
+    OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.catalogo_expected_system')
+    OR current_setting('server_version_num')<>'170011'
+    OR (SELECT extversion FROM pg_extension WHERE extname='postgis') IS DISTINCT FROM '3.6.2'
+  THEN RAISE EXCEPTION 'Destino operacional ou executor divergente'; END IF;
+END
+$destino$;
+
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+
+CREATE FUNCTION pg_temp.conferir_janela() RETURNS void LANGUAGE plpgsql AS $janela$
+DECLARE
+  inicio text := current_setting('sentinela.catalogo_janela_inicio');
+  fim text := current_setting('sentinela.catalogo_janela_fim');
+BEGIN
+  IF inicio !~ '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d-03:00$'
+    OR fim !~ '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d-03:00$'
+    OR NOT (clock_timestamp() >= inicio::timestamptz AND clock_timestamp() < fim::timestamptz)
+  THEN RAISE EXCEPTION 'Janela de manuten??o inv?lida ou fora do hor?rio autorizado'; END IF;
+
+  PERFORM pg_stat_clear_snapshot();
+  IF (SELECT array_agg(rolname::text ORDER BY rolname) FROM pg_roles WHERE rolcanlogin
+      AND has_database_privilege(oid,current_database(),'CONNECT'))
+     IS DISTINCT FROM ARRAY['postgres','sentinela_local_analyst']
+    OR NOT EXISTS (SELECT FROM pg_roles WHERE rolname='sentinela_local_analyst'
+                   AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole AND NOT rolreplication)
+    OR EXISTS (SELECT FROM pg_roles WHERE rolname<>'sentinela_local_analyst'
+               AND pg_has_role('sentinela_local_analyst',oid,'MEMBER'))
+    OR EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p')
+      AND (n.nspname='sentinela' OR starts_with(n.nspname,'sentinela_'))
+      AND (has_table_privilege('sentinela_local_analyst',c.oid,'INSERT,UPDATE,DELETE,TRUNCATE')
+        OR has_any_column_privilege('sentinela_local_analyst',c.oid,'INSERT,UPDATE')))
+    OR EXISTS (SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE p.prosecdef AND p.provolatile='v' AND (n.nspname='sentinela' OR starts_with(n.nspname,'sentinela_'))
+        AND has_schema_privilege('sentinela_local_analyst',n.oid,'USAGE')
+        AND has_function_privilege('sentinela_local_analyst',p.oid,'EXECUTE'))
+    OR EXISTS (SELECT FROM pg_stat_activity WHERE datname=current_database()
+      AND pid<>pg_backend_pid() AND backend_type='client backend' AND usename IS DISTINCT FROM 'sentinela_local_analyst')
+    OR EXISTS (SELECT FROM pg_prepared_xacts WHERE database=current_database())
+  THEN RAISE EXCEPTION 'Escritas operacionais precisam estar bloqueadas e as sess?es incompat?veis encerradas'; END IF;
+END
+$janela$;
+SELECT pg_temp.conferir_janela();
+
+SET LOCAL sentinela.catalogo_lote TO :'lote';
+SET LOCAL sentinela.catalogo_responsavel TO :'responsavel';
+SET LOCAL sentinela.catalogo_aprovacao TO :'aprovacao';
+
+DO $preflight$
+BEGIN
+  IF current_setting('sentinela.catalogo_lote') <> '84908630-bd04-4a03-923d-616649c8de74'
+    OR current_setting('sentinela.catalogo_revisao') <> '634f7f20897453028d0551c68d26778e69a7a772bdf2485fad39ba2ffff3600b'
+    OR (sentinela_gestao.impacto(current_setting('sentinela.catalogo_lote')::uuid,NULL)->>'revisao')
+       IS DISTINCT FROM current_setting('sentinela.catalogo_revisao')
+    OR current_setting('sentinela.catalogo_backup') !~ '^[0-9a-f]{64}$'
+    OR length(btrim(current_setting('sentinela.catalogo_aprovacao'))) NOT BETWEEN 5 AND 240
+    OR NOT EXISTS (SELECT FROM sentinela.usuarios u JOIN sentinela.perfil_permissoes p USING (perfil)
+      WHERE u.id=current_setting('sentinela.catalogo_responsavel')::uuid
+        AND u.id='29e7ec39-192b-4790-9180-3df950969bfc'
+        AND u.auth_user_id='00859431-29c9-499f-b64a-cbed32f03742'
+        AND u.ativo AND u.perfil='Administrador' AND p.acao='administrar')
+    OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+      AND relkind='r' AND relrowsecurity AND relforcerowsecurity) <> 19
+    OR EXISTS (SELECT FROM pg_constraint p JOIN pg_namespace n ON n.oid=p.connamespace
+      WHERE (n.nspname='sentinela' OR starts_with(n.nspname,'sentinela_')) AND p.contype='f' AND NOT p.convalidated)
+    OR to_regclass('sentinela_ocorrencias_analytics.ocorrencia_naturezas') IS NULL
+    OR to_regprocedure('sentinela_ocorrencias_local.identidade()') IS NULL
+  THEN RAISE EXCEPTION 'Pr?-condi??es de lote, aprova??o, integridade ou RLS divergentes'; END IF;
+END
+$preflight$;
+
+-- Assim como a restaura??o, a confer?ncia compara conte?do completo e IDs de 27 tabelas.
+CREATE FUNCTION pg_temp.impressao() RETURNS TABLE(tabela text, assinatura text) LANGUAGE plpgsql AS $hash$
+DECLARE
+  alvo record;
+BEGIN
+  FOR alvo IN SELECT n.nspname,c.relname
+    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE c.relkind IN ('r','p') AND (n.nspname IN ('extensions','sentinela') OR starts_with(n.nspname,'sentinela_'))
+    ORDER BY n.nspname,c.relname
+  LOOP
+    tabela := alvo.nspname||'.'||alvo.relname;
+    EXECUTE format($sql$SELECT count(*) || '|' || encode(sha256(convert_to(coalesce(string_agg(h,'' ORDER BY h),''),'UTF8')),'hex')
+      FROM (SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') h FROM %I.%I t) s$sql$,
+      alvo.nspname,alvo.relname) INTO assinatura;
+    RETURN NEXT;
+  END LOOP;
+END
+$hash$;
+
+-- Lock de tabela complementar para barrar DML fora das rotas que usam o lock de recep??o.
+SELECT format('LOCK TABLE %I.%I IN SHARE ROW EXCLUSIVE MODE',n.nspname,c.relname)
+FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE c.relkind IN ('r','p') AND (n.nspname='sentinela' OR starts_with(n.nspname,'sentinela_'))
+ORDER BY n.nspname,c.relname \gexec
+
+-- Os fingerprints do backup usam a zona America/Sao_Paulo definida no in?cio.
+CREATE TEMP TABLE pcdf_antes ON COMMIT DROP AS SELECT * FROM pg_temp.impressao();
+DO $backup$
+BEGIN
+  IF (SELECT count(*) FROM pcdf_antes) <> 27
+    OR (SELECT jsonb_agg(tabela||'|'||assinatura ORDER BY tabela COLLATE "C") FROM pcdf_antes)
+       IS DISTINCT FROM (SELECT jsonb_agg(value ORDER BY value COLLATE "C")
+         FROM jsonb_array_elements_text(current_setting('sentinela.catalogo_fingerprints')::jsonb))
+    OR (SELECT count(*) FROM sentinela.naturezas_criminais) <> 0
+    OR (SELECT count(*) FROM sentinela.linhas_staging) <> 6393
+    OR (SELECT count(DISTINCT campos_csv->>'ocorrencia_chave') FROM sentinela.linhas_staging) <> 6091
+    OR (SELECT count(*) FROM sentinela.pendencias_revisao) <> 26714
+    OR (SELECT count(*) FROM sentinela.eventos_auditoria) <> 4
+    OR EXISTS (SELECT FROM sentinela.ocorrencias)
+    OR EXISTS (SELECT FROM sentinela.ocorrencia_naturezas)
+  THEN RAISE EXCEPTION 'Conte?do operacional diverge do backup restaurado ou dos totais homologados'; END IF;
+END
+$backup$;
+
+-- In?cio do corpo homologado.
+CREATE TEMP TABLE descricoes_pcdf (descricao text COLLATE "C" PRIMARY KEY) ON COMMIT DROP;
+INSERT INTO descricoes_pcdf SELECT value FROM jsonb_array_elements_text(:'naturezas'::jsonb);
+DO $catalog$
+BEGIN
+ IF (SELECT count(*) FROM descricoes_pcdf) <> 41 OR
+    (SELECT encode(sha256(convert_to(string_agg(descricao, chr(10) ORDER BY descricao),'UTF8')),'hex')
+     FROM descricoes_pcdf) <> '477052df139158399e91e1f47056859b0ae8fbbfc15730febe667903185dd073'
+ THEN RAISE EXCEPTION 'O catálogo diverge das descrições exatas conferidas no XML'; END IF;
+END
+$catalog$;
+
+SELECT format('CREATE FUNCTION sentinela.descricao_pcdf(text) RETURNS boolean LANGUAGE sql IMMUTABLE STRICT
+  PARALLEL SAFE SET search_path=pg_catalog AS %L',
+  format('SELECT $1 COLLATE "C" = ANY(%L::text[])',array_agg(descricao ORDER BY descricao)))
+FROM descricoes_pcdf \gexec
+
+INSERT INTO sentinela.naturezas_criminais(fonte,descricao_original,categoria_pcdf_original)
+ SELECT 'PCDF',descricao,NULL FROM descricoes_pcdf
+ON CONFLICT (fonte,descricao_original,categoria_pcdf_original) DO NOTHING;
+
+-- Retain institutional source checks for imports and immutable provenance for existing links.
+CREATE OR REPLACE FUNCTION sentinela.validar_associacao_mapeada() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $trg$
+BEGIN
+ IF TG_OP='UPDATE' AND (NEW.linha_origem_id IS DISTINCT FROM OLD.linha_origem_id
+   OR NEW.origem IS DISTINCT FROM OLD.origem) THEN
+  RAISE EXCEPTION 'Proveniencia da associacao e imutavel.' USING ERRCODE='55000';
+ END IF;
+ IF NEW.mapeamento_id IS NOT NULL AND NOT EXISTS (
+   SELECT FROM sentinela.mapeamentos_natureza m JOIN sentinela.categorias_criminais c ON c.id=m.categoria_id
+   WHERE m.id=NEW.mapeamento_id AND m.natureza_id=NEW.natureza_id
+     AND m.status='homologado' AND c.status='homologada'
+     AND m.crime_tentado IS NOT DISTINCT FROM NEW.crime_tentado
+ ) THEN RAISE EXCEPTION 'Classificacao exige regra/categoria homologadas e tentativa correspondente.' USING ERRCODE='23514'; END IF;
+ IF NOT EXISTS (
+   SELECT FROM sentinela.ocorrencias o
+   JOIN sentinela.naturezas_criminais n ON n.id=NEW.natureza_id
+   WHERE o.id=NEW.ocorrencia_id AND o.origem=NEW.origem AND (
+     o.fonte=n.fonte OR (o.origem='manual' AND o.fonte='SENTINELA_MANUAL' AND
+       n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original)))
+ ) THEN RAISE EXCEPTION 'Origem/fonte da associacao deve corresponder a ocorrencia e natureza.' USING ERRCODE='23514'; END IF;
+ IF NEW.linha_origem_id IS NOT NULL AND NOT EXISTS (
+   SELECT FROM sentinela.linhas_origem l JOIN sentinela.extracoes_origem e ON e.id=l.extracao_id
+   JOIN sentinela.ocorrencias o ON o.id=NEW.ocorrencia_id
+   WHERE l.id=NEW.linha_origem_id AND e.fonte=o.fonte
+ ) THEN RAISE EXCEPTION 'Linha original pertence a outra fonte ou nao existe.' USING ERRCODE='23514'; END IF;
+ RETURN NEW;
+END
+$trg$;
+
+-- Only the source row of an already visible association is needed for its original category.
+CREATE POLICY pcdf_origem_associacao_visivel ON sentinela.linhas_origem FOR SELECT TO sentinela_ocorrencias_reader
+ USING (EXISTS (SELECT FROM sentinela.ocorrencia_naturezas a WHERE a.linha_origem_id=linhas_origem.id));
+
+SET LOCAL ROLE sentinela_ocorrencias_reader;
+CREATE OR REPLACE VIEW sentinela_ocorrencias_analytics.ocorrencia_naturezas WITH (security_barrier=true) AS
+ SELECT a.ocorrencia_id,a.natureza_id,a.mapeamento_id,
+   coalesce(l.natureza_padronizada_pcdf,n.categoria_pcdf_original) AS categoria_pcdf_original
+ FROM sentinela.ocorrencia_naturezas a
+ JOIN sentinela.naturezas_criminais n ON n.id=a.natureza_id
+ LEFT JOIN sentinela.linhas_origem l ON l.id=a.linha_origem_id;
+CREATE OR REPLACE VIEW sentinela_ocorrencias_analytics.naturezas_criminais WITH (security_barrier=true) AS
+ SELECT n.id,n.descricao_original,
+   n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original) AS catalogo_pcdf
+ FROM sentinela.naturezas_criminais n
+ WHERE (n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original))
+   OR EXISTS (SELECT FROM sentinela_ocorrencias_analytics.ocorrencia_naturezas a WHERE a.natureza_id=n.id);
+RESET ROLE;
+
+-- Technical intake receipts and audit retain their original counts and records.
+CREATE POLICY pendencias_natureza_original_leitura ON sentinela.pendencias_revisao AS RESTRICTIVE
+ FOR SELECT TO sentinela_ocorrencias_reader USING (NOT (
+   (campo='classificacao_status' AND regra IN ('classificacao_pendente','classificacao_nao_verificada'))
+   OR (campo='natureza_sentinela_codigo' AND regra IN ('mapeamento_a_homologar','classificacao_pendente'))
+   OR (campo='natureza_padronizada_pcdf' AND regra IN ('rotulo_criminal_pendente','categoria_fora_do_catalogo'))
+ ));
+
+-- Adapt the attested reader in place so saved UUID filters also cover historical aliases.
+DO $reader$
+DECLARE
+ lista text := pg_get_functiondef('sentinela_ocorrencias_local.lista(text,jsonb,integer,text,text)'::regprocedure);
+ resumo text := pg_get_functiondef('sentinela_ocorrencias_local.resumo()'::regprocedure);
+ filtro text := substring(lista FROM $old$a\.natureza_id[[:space:]]*=[[:space:]]*\(\$1->>'naturezaId'\)::uuid$old$);
+ opcoes text := substring(resumo FROM $old$FROM sentinela\.naturezas_criminais n[[:space:]]+WHERE EXISTS\(SELECT FROM sentinela\.ocorrencia_naturezas a WHERE a\.natureza_id=n\.id\)$old$);
+BEGIN
+ IF filtro IS NULL THEN RAISE EXCEPTION 'O filtro de natureza do leitor diverge da definição esperada'; END IF;
+ IF opcoes IS NULL THEN RAISE EXCEPTION 'O resumo de naturezas do leitor diverge da definição esperada'; END IF;
+ EXECUTE replace(lista,filtro,$new$(SELECT n.descricao_original COLLATE "C"
+   FROM sentinela.naturezas_criminais n WHERE n.id=a.natureza_id) =
+   (SELECT n.descricao_original COLLATE "C" FROM sentinela.naturezas_criminais n
+     WHERE n.id=($1->>'naturezaId')::uuid)$new$);
+ EXECUTE replace(resumo,opcoes,$new$FROM (
+   SELECT DISTINCT ON (n.descricao_original COLLATE "C") n.id,n.descricao_original
+   FROM sentinela.naturezas_criminais n
+   WHERE EXISTS (
+     SELECT FROM sentinela.ocorrencia_naturezas a JOIN sentinela.naturezas_criminais vinculada ON vinculada.id=a.natureza_id
+     WHERE vinculada.descricao_original COLLATE "C"=n.descricao_original COLLATE "C")
+   ORDER BY n.descricao_original COLLATE "C",
+     (n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original)) DESC,n.id
+ ) n$new$);
+END
+$reader$;
+
+DO $manual$
+BEGIN
+ IF to_regprocedure('sentinela_ocorrencias_manual.catalogo(text)') IS NOT NULL THEN
+   GRANT SELECT (categoria_pcdf_original) ON sentinela.naturezas_criminais TO sentinela_manual_writer;
+   ALTER POLICY manual_nature ON sentinela.naturezas_criminais TO sentinela_manual_writer
+     USING (fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original));
+   IF EXISTS (SELECT FROM pg_policy WHERE polrelid='sentinela.naturezas_criminais'::regclass
+     AND polname='gestao_catalogo_manual') THEN
+     GRANT SELECT (descricao_original,categoria_pcdf_original) ON sentinela.naturezas_criminais TO sentinela_gestao_owner;
+     ALTER POLICY gestao_catalogo_manual ON sentinela.naturezas_criminais
+       USING (fonte='SENTINELA_MANUAL' OR
+         (fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original)));
+   END IF;
+   EXECUTE $ddl$
+     CREATE OR REPLACE FUNCTION sentinela_ocorrencias_manual.catalogo(termo text) RETURNS jsonb
+     LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $body$
+       WITH filtro AS (SELECT coalesce(sentinela_ocorrencias_manual.normalizar_catalogo(termo),'') AS q)
+       SELECT jsonb_build_object(
+         'regioes',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'codigo',codigo_interno,'nome',nome,
+           'numeroAdministrativo',referencia_cartografica->'administrativeNumber')
+           ORDER BY sentinela_ocorrencias_manual.normalizar_catalogo(nome) COLLATE "C",id)
+           FROM sentinela.regioes_administrativas
+           WHERE q='' OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(nome),q)>0
+             OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(codigo_interno),q)>0
+             OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(codigo_oficial),q)>0
+             OR referencia_cartografica->>'administrativeNumber'=q),'[]'::jsonb),
+         'naturezas',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'descricao',descricao_original)
+           ORDER BY sentinela_ocorrencias_manual.normalizar_catalogo(descricao_original) COLLATE "C",id)
+           FROM sentinela.naturezas_criminais
+           WHERE fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original)
+             AND (q='' OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(descricao_original),q)>0)),'[]'::jsonb))
+       FROM filtro WHERE session_user IN ('sentinela_local_admin','sentinela_local_operator');
+     $body$
+   $ddl$;
+ END IF;
+END
+$manual$;
+
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+ VALUES ('local-pcdf-naturezas-0001','Catálogo das descrições originais da PCDF e categoria de origem independente');
+
+-- Include inside the attested catalog migration, before its final COMMIT.
+-- Reprocess the functional projection and record the exact cohort in append-only audit.
+SELECT set_config('sentinela.catalogo_lote', :'lote', true),
+       set_config('sentinela.catalogo_aprovacao', :'aprovacao', true),
+       set_config('sentinela.catalogo_responsavel', :'responsavel', true),
+       set_config('sentinela.catalogo_pendencias_sha', :'pendencias_sha', true);
+
+DO $reprocess$
+DECLARE
+  lote uuid := current_setting('sentinela.catalogo_lote')::uuid;
+  responsavel uuid := current_setting('sentinela.catalogo_responsavel')::uuid;
+  aprovacao text := current_setting('sentinela.catalogo_aprovacao');
+  escopo jsonb;
+  assinatura text;
+BEGIN
+  IF NOT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-pcdf-naturezas-0001')
+    OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.catalogo_expected_uuid')
+    OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.catalogo_expected_system')
+    OR length(btrim(aprovacao)) NOT BETWEEN 1 AND 240
+    OR NOT EXISTS (SELECT FROM sentinela.usuarios u WHERE u.id=responsavel AND u.ativo AND u.perfil='Administrador')
+  THEN RAISE EXCEPTION 'Migração atestada, aprovação e administrador ativo são obrigatórios'; END IF;
+
+  IF EXISTS (SELECT FROM sentinela.eventos_auditoria e WHERE e.acao='catalogo.pcdf.pendencias_reavaliadas'
+      AND e.depois->>'lote'=lote::text)
+  THEN RAISE EXCEPTION 'O lote já tem registro de reprocessamento do catálogo'; END IF;
+
+  IF NOT EXISTS (SELECT FROM sentinela.lotes_importacao l JOIN sentinela.extracoes_origem x ON x.id=l.extracao_id
+      WHERE l.id=lote AND l.competencia='2021-01-01' AND l.versao_contrato='2.0' AND x.fonte='PCDF')
+    OR (SELECT count(*) FROM sentinela.linhas_staging s WHERE s.lote_id=lote)<>6393
+    OR EXISTS (
+      SELECT FROM sentinela.linhas_staging s JOIN sentinela.linhas_origem o ON o.id=s.linha_origem_id
+      WHERE s.lote_id=lote AND (s.ocorrencia_id IS NOT NULL OR s.associacao_id IS NOT NULL
+        OR sentinela.descricao_pcdf(o.natureza_original) IS DISTINCT FROM true
+        OR o.natureza_original COLLATE "C" IS DISTINCT FROM (s.campos_csv->>'natureza_original') COLLATE "C"
+        OR EXISTS (SELECT FROM sentinela.linhas_staging outra
+          WHERE outra.linha_origem_id=s.linha_origem_id AND outra.lote_id<>lote)))
+  THEN RAISE EXCEPTION 'Lote, descrições originais ou vínculos divergentes do escopo aprovado'; END IF;
+
+  SELECT jsonb_agg(p.id ORDER BY p.id),
+     encode(sha256(convert_to(string_agg(p.id::text,',' ORDER BY p.id),'UTF8')),'hex')
+    INTO escopo,assinatura
+  FROM sentinela.pendencias_revisao p
+  WHERE p.tipo='classificacao' AND p.campo='classificacao_status' AND p.regra='classificacao_pendente'
+    AND p.status='aberta' AND p.efeito='bloqueia_consolidacao'
+    AND EXISTS(SELECT FROM sentinela.linhas_staging s WHERE s.lote_id=lote AND s.linha_origem_id=p.linha_origem_id);
+  IF jsonb_array_length(escopo) IS DISTINCT FROM 6393
+    OR assinatura IS DISTINCT FROM current_setting('sentinela.catalogo_pendencias_sha')
+    OR (SELECT count(*) FROM sentinela.pendencias_revisao p WHERE
+      (p.campo='classificacao_status' AND p.regra IN ('classificacao_pendente','classificacao_nao_verificada'))
+      OR (p.campo='natureza_sentinela_codigo' AND p.regra IN ('mapeamento_a_homologar','classificacao_pendente'))
+      OR (p.campo='natureza_padronizada_pcdf' AND p.regra IN ('rotulo_criminal_pendente','categoria_fora_do_catalogo'))) <> 6393
+  THEN RAISE EXCEPTION 'Conjunto exato de pendências diverge da prévia aprovada'; END IF;
+
+  INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,antes,depois,justificativa)
+  VALUES('servico','sentinela-catalogo-pcdf','catalogo.pcdf.pendencias_reavaliadas',
+    jsonb_build_object('pendenciasAbertasAfetadas',6393,'efeitoAnterior','bloqueia_consolidacao'),
+    jsonb_build_object('lote',lote,'pendencias',escopo,'sha256Pendencias',assinatura,
+      'projecao','obsoleta_por_catalogo_original','registroHistoricoPreservado',true,
+      'responsavelAprovacao',responsavel,'referenciaAprovacao',aprovacao),
+    'Reavaliação em lote da exigência legada de classificação após conferência literal do XML PCDF');
+END
+$reprocess$;
+
+-- Valida??o dentro da transa??o. Se falhar, o cliente encerra e o PostgreSQL reverte tudo.
+DO $aceite$
+DECLARE
+  alteradas text[];
+BEGIN
+  SELECT array_agg(coalesce(a.tabela,b.tabela) ORDER BY coalesce(a.tabela,b.tabela) COLLATE "C")
+  INTO alteradas FROM pg_temp.impressao() a FULL JOIN pcdf_antes b USING (tabela)
+  WHERE a.assinatura IS DISTINCT FROM b.assinatura;
+
+  IF alteradas IS DISTINCT FROM ARRAY['sentinela.eventos_auditoria','sentinela.naturezas_criminais','sentinela.schema_migrations']
+    OR (SELECT count(*) FROM sentinela.naturezas_criminais
+      WHERE fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original)) <> 41
+    OR (SELECT count(*) FROM sentinela.eventos_auditoria) <> 5
+    OR NOT EXISTS (SELECT FROM sentinela.eventos_auditoria e WHERE e.acao='catalogo.pcdf.pendencias_reavaliadas'
+      AND e.transacao_id IS NOT NULL AND e.depois->>'lote'=current_setting('sentinela.catalogo_lote')
+      AND e.depois->>'responsavelAprovacao'=current_setting('sentinela.catalogo_responsavel')
+      AND e.depois->>'referenciaAprovacao'=current_setting('sentinela.catalogo_aprovacao')
+      AND jsonb_array_length(e.depois->'pendencias')=6393
+      AND e.depois->>'sha256Pendencias'='732459aac962625f96d17d826f513b2502b6779b37d87d06a4384eff4ea566c9')
+    OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+      AND relkind='r' AND relrowsecurity AND relforcerowsecurity) <> 19
+  THEN RAISE EXCEPTION 'Altera??es, cat?logo, auditoria ou RLS fora dos crit?rios de aceite'; END IF;
+END
+$aceite$;
+
+SET SESSION AUTHORIZATION sentinela_local_admin;
+DO $gestao$
+DECLARE resumo jsonb := sentinela_ocorrencias_local.resumo();
+BEGIN
+  IF (resumo->>'recebidas')::int IS DISTINCT FROM 6393
+    OR (resumo->>'pendencias')::int IS DISTINCT FROM 20321
+    OR (resumo->>'consolidadas')::int IS DISTINCT FROM 0
+  THEN RAISE EXCEPTION 'Totais funcionais divergem do aceite'; END IF;
+END
+$gestao$;
+RESET SESSION AUTHORIZATION;
+SELECT pg_temp.conferir_janela();
+COMMIT;

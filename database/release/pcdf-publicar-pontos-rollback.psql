@@ -1,0 +1,54 @@
+-- SENTINELA · reversão de local-pcdf-pontos-0001: retira os pontos PCDF do mapa e restaura as views
+-- de map-confirmed-points.psql. Nenhuma ocorrência é alterada. Variáveis: cluster_uuid e system_id.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL search_path=pg_catalog,pg_temp;
+SELECT set_config('sentinela.geo_uuid',:'cluster_uuid',true) AS expected_cluster,
+       set_config('sentinela.geo_system',:'system_id',true) AS expected_system
+\gset
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+ OR inet_server_port() NOT IN (55484,55487) OR pg_is_in_recovery()
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.geo_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.geo_system')
+ OR to_regclass('sentinela_ocorrencias_analytics.pcdf_pontos') IS NULL
+ OR (SELECT count(*) FROM sentinela.schema_migrations WHERE versao='local-pcdf-pontos-0001' OR versao LIKE 'local-pcdf-pontos-0001-reinstalada-%')<>(SELECT count(*) FROM sentinela.schema_migrations WHERE versao LIKE 'local-pcdf-pontos-0001-revertida%')+1
+ THEN RAISE EXCEPTION 'Destino ou versão divergentes da reversão de pontos PCDF'; END IF;
+END $guard$;
+
+DROP VIEW sentinela_ocorrencias_analytics.pontos_confirmados;
+DROP VIEW sentinela_ocorrencias_analytics.pontos_pcdf_publicados;
+DROP TABLE sentinela_ocorrencias_analytics.pcdf_pontos;
+CREATE VIEW sentinela_ocorrencias_analytics.pontos_pcdf_publicados WITH (security_barrier=true) AS
+ SELECT NULL::uuid AS id,NULL::float8 AS latitude,NULL::float8 AS longitude WHERE false;
+CREATE VIEW sentinela_ocorrencias_analytics.pontos_confirmados WITH (security_barrier=true) AS
+ SELECT o.id,extensions.ST_Y(o.geometria) AS latitude,extensions.ST_X(o.geometria) AS longitude
+ FROM sentinela.ocorrencias o
+ WHERE o.ativo AND o.consolidacao_status='consolidada' AND o.origem='manual' AND o.fonte='SENTINELA_MANUAL'
+   AND o.localizacao_status='validada' AND o.referencia_espacial_confirmada='WGS84; IDE-DF-2026-11-13'
+   AND nullif(btrim(o.regra_transformacao),'') IS NOT NULL
+   AND o.geometria IS NOT NULL AND extensions.ST_SRID(o.geometria)=4326
+   AND extensions.ST_Y(o.geometria)=o.latitude AND extensions.ST_X(o.geometria)=o.longitude
+ UNION ALL
+ SELECT id,latitude,longitude FROM sentinela_ocorrencias_analytics.pontos_pcdf_publicados;
+ALTER VIEW sentinela_ocorrencias_analytics.pontos_pcdf_publicados OWNER TO sentinela_ocorrencias_reader;
+ALTER VIEW sentinela_ocorrencias_analytics.pontos_confirmados OWNER TO sentinela_ocorrencias_reader;
+GRANT SELECT ON sentinela_ocorrencias_analytics.pontos_confirmados
+ TO sentinela_local_admin,sentinela_local_operator,sentinela_local_analyst;
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+SELECT CASE WHEN n=0 THEN 'local-pcdf-pontos-0001-revertida' ELSE 'local-pcdf-pontos-0001-revertida-'||(n+1) END,
+ 'Pontos PCDF retirados do mapa; views de pontos confirmados restauradas'
+FROM (SELECT (SELECT count(*) FROM sentinela.schema_migrations WHERE versao LIKE 'local-pcdf-pontos-0001-revertida%') AS n) r;
+INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa)
+VALUES ('servico','sentinela-pcdf-geo','pcdf.publicacao_pontos.revertida','{}'::jsonb,'Reversão da publicação de pontos PCDF');
+DO $guard$
+BEGIN
+ IF (SELECT count(*) FROM sentinela_ocorrencias_analytics.pontos_pcdf_publicados)<>0
+  OR to_regclass('sentinela_ocorrencias_analytics.pcdf_pontos') IS NOT NULL
+  OR NOT has_table_privilege('sentinela_local_analyst','sentinela_ocorrencias_analytics.pontos_confirmados','SELECT')
+ THEN RAISE EXCEPTION 'Verificação da reversão de pontos PCDF falhou'; END IF;
+END $guard$;
+COMMIT;

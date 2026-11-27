@@ -1,0 +1,167 @@
+-- Clone qualification only. Pass expected_uuid, expected_system and naturezas (JSON array).
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL search_path=pg_catalog,pg_temp;
+SET LOCAL lock_timeout='5s';
+SELECT set_config('sentinela.catalogo_expected_uuid', :'expected_uuid', true),
+       set_config('sentinela.catalogo_expected_system', :'expected_system', true);
+DO $guard$
+BEGIN
+  IF current_database()<>'sentinela_pcdf_local'
+    OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+    OR inet_server_port() NOT IN (55487,55488)
+    OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.catalogo_expected_uuid')
+    OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.catalogo_expected_system')
+    OR current_setting('server_version_num') <> '170011'
+    OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+      AND relkind='r' AND relrowsecurity AND relforcerowsecurity) <> 19
+    OR to_regclass('sentinela_ocorrencias_analytics.ocorrencia_naturezas') IS NULL
+    OR to_regprocedure('sentinela_ocorrencias_local.identidade()') IS NULL
+  THEN RAISE EXCEPTION 'Clone PostgreSQL atestado e leitor integrado são obrigatórios'; END IF;
+END
+$guard$;
+
+CREATE TEMP TABLE descricoes_pcdf (descricao text COLLATE "C" PRIMARY KEY) ON COMMIT DROP;
+INSERT INTO descricoes_pcdf SELECT value FROM jsonb_array_elements_text(:'naturezas'::jsonb);
+DO $catalog$
+BEGIN
+ IF (SELECT count(*) FROM descricoes_pcdf) <> 41 OR
+    (SELECT encode(sha256(convert_to(string_agg(descricao, chr(10) ORDER BY descricao),'UTF8')),'hex')
+     FROM descricoes_pcdf) <> '477052df139158399e91e1f47056859b0ae8fbbfc15730febe667903185dd073'
+ THEN RAISE EXCEPTION 'O catálogo diverge das descrições exatas conferidas no XML'; END IF;
+END
+$catalog$;
+
+SELECT format('CREATE FUNCTION sentinela.descricao_pcdf(text) RETURNS boolean LANGUAGE sql IMMUTABLE STRICT
+  PARALLEL SAFE SET search_path=pg_catalog AS %L',
+  format('SELECT $1 COLLATE "C" = ANY(%L::text[])',array_agg(descricao ORDER BY descricao)))
+FROM descricoes_pcdf \gexec
+
+INSERT INTO sentinela.naturezas_criminais(fonte,descricao_original,categoria_pcdf_original)
+ SELECT 'PCDF',descricao,NULL FROM descricoes_pcdf
+ON CONFLICT (fonte,descricao_original,categoria_pcdf_original) DO NOTHING;
+
+-- Retain institutional source checks for imports and immutable provenance for existing links.
+CREATE OR REPLACE FUNCTION sentinela.validar_associacao_mapeada() RETURNS trigger
+LANGUAGE plpgsql SET search_path=pg_catalog AS $trg$
+BEGIN
+ IF TG_OP='UPDATE' AND (NEW.linha_origem_id IS DISTINCT FROM OLD.linha_origem_id
+   OR NEW.origem IS DISTINCT FROM OLD.origem) THEN
+  RAISE EXCEPTION 'Proveniencia da associacao e imutavel.' USING ERRCODE='55000';
+ END IF;
+ IF NEW.mapeamento_id IS NOT NULL AND NOT EXISTS (
+   SELECT FROM sentinela.mapeamentos_natureza m JOIN sentinela.categorias_criminais c ON c.id=m.categoria_id
+   WHERE m.id=NEW.mapeamento_id AND m.natureza_id=NEW.natureza_id
+     AND m.status='homologado' AND c.status='homologada'
+     AND m.crime_tentado IS NOT DISTINCT FROM NEW.crime_tentado
+ ) THEN RAISE EXCEPTION 'Classificacao exige regra/categoria homologadas e tentativa correspondente.' USING ERRCODE='23514'; END IF;
+ IF NOT EXISTS (
+   SELECT FROM sentinela.ocorrencias o
+   JOIN sentinela.naturezas_criminais n ON n.id=NEW.natureza_id
+   WHERE o.id=NEW.ocorrencia_id AND o.origem=NEW.origem AND (
+     o.fonte=n.fonte OR (o.origem='manual' AND o.fonte='SENTINELA_MANUAL' AND
+       n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original)))
+ ) THEN RAISE EXCEPTION 'Origem/fonte da associacao deve corresponder a ocorrencia e natureza.' USING ERRCODE='23514'; END IF;
+ IF NEW.linha_origem_id IS NOT NULL AND NOT EXISTS (
+   SELECT FROM sentinela.linhas_origem l JOIN sentinela.extracoes_origem e ON e.id=l.extracao_id
+   JOIN sentinela.ocorrencias o ON o.id=NEW.ocorrencia_id
+   WHERE l.id=NEW.linha_origem_id AND e.fonte=o.fonte
+ ) THEN RAISE EXCEPTION 'Linha original pertence a outra fonte ou nao existe.' USING ERRCODE='23514'; END IF;
+ RETURN NEW;
+END
+$trg$;
+
+-- Only the source row of an already visible association is needed for its original category.
+CREATE POLICY pcdf_origem_associacao_visivel ON sentinela.linhas_origem FOR SELECT TO sentinela_ocorrencias_reader
+ USING (EXISTS (SELECT FROM sentinela.ocorrencia_naturezas a WHERE a.linha_origem_id=linhas_origem.id));
+
+SET LOCAL ROLE sentinela_ocorrencias_reader;
+CREATE OR REPLACE VIEW sentinela_ocorrencias_analytics.ocorrencia_naturezas WITH (security_barrier=true) AS
+ SELECT a.ocorrencia_id,a.natureza_id,a.mapeamento_id,
+   coalesce(l.natureza_padronizada_pcdf,n.categoria_pcdf_original) AS categoria_pcdf_original
+ FROM sentinela.ocorrencia_naturezas a
+ JOIN sentinela.naturezas_criminais n ON n.id=a.natureza_id
+ LEFT JOIN sentinela.linhas_origem l ON l.id=a.linha_origem_id;
+CREATE OR REPLACE VIEW sentinela_ocorrencias_analytics.naturezas_criminais WITH (security_barrier=true) AS
+ SELECT n.id,n.descricao_original,
+   n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original) AS catalogo_pcdf
+ FROM sentinela.naturezas_criminais n
+ WHERE (n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original))
+   OR EXISTS (SELECT FROM sentinela_ocorrencias_analytics.ocorrencia_naturezas a WHERE a.natureza_id=n.id);
+RESET ROLE;
+
+-- Technical intake receipts and audit retain their original counts and records.
+CREATE POLICY pendencias_natureza_original_leitura ON sentinela.pendencias_revisao AS RESTRICTIVE
+ FOR SELECT TO sentinela_ocorrencias_reader USING (NOT (
+   (campo='classificacao_status' AND regra IN ('classificacao_pendente','classificacao_nao_verificada'))
+   OR (campo='natureza_sentinela_codigo' AND regra IN ('mapeamento_a_homologar','classificacao_pendente'))
+   OR (campo='natureza_padronizada_pcdf' AND regra IN ('rotulo_criminal_pendente','categoria_fora_do_catalogo'))
+ ));
+
+-- Adapt the attested reader in place so saved UUID filters also cover historical aliases.
+DO $reader$
+DECLARE
+ lista text := pg_get_functiondef('sentinela_ocorrencias_local.lista(text,jsonb,integer,text,text)'::regprocedure);
+ resumo text := pg_get_functiondef('sentinela_ocorrencias_local.resumo()'::regprocedure);
+ filtro text := substring(lista FROM $old$a\.natureza_id[[:space:]]*=[[:space:]]*\(\$1->>'naturezaId'\)::uuid$old$);
+ opcoes text := substring(resumo FROM $old$FROM sentinela\.naturezas_criminais n[[:space:]]+WHERE EXISTS\(SELECT FROM sentinela\.ocorrencia_naturezas a WHERE a\.natureza_id=n\.id\)$old$);
+BEGIN
+ IF filtro IS NULL THEN RAISE EXCEPTION 'O filtro de natureza do leitor diverge da definição esperada'; END IF;
+ IF opcoes IS NULL THEN RAISE EXCEPTION 'O resumo de naturezas do leitor diverge da definição esperada'; END IF;
+ EXECUTE replace(lista,filtro,$new$(SELECT n.descricao_original COLLATE "C"
+   FROM sentinela.naturezas_criminais n WHERE n.id=a.natureza_id) =
+   (SELECT n.descricao_original COLLATE "C" FROM sentinela.naturezas_criminais n
+     WHERE n.id=($1->>'naturezaId')::uuid)$new$);
+ EXECUTE replace(resumo,opcoes,$new$FROM (
+   SELECT DISTINCT ON (n.descricao_original COLLATE "C") n.id,n.descricao_original
+   FROM sentinela.naturezas_criminais n
+   WHERE EXISTS (
+     SELECT FROM sentinela.ocorrencia_naturezas a JOIN sentinela.naturezas_criminais vinculada ON vinculada.id=a.natureza_id
+     WHERE vinculada.descricao_original COLLATE "C"=n.descricao_original COLLATE "C")
+   ORDER BY n.descricao_original COLLATE "C",
+     (n.fonte='PCDF' AND n.categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(n.descricao_original)) DESC,n.id
+ ) n$new$);
+END
+$reader$;
+
+DO $manual$
+BEGIN
+ IF to_regprocedure('sentinela_ocorrencias_manual.catalogo(text)') IS NOT NULL THEN
+   GRANT SELECT (categoria_pcdf_original) ON sentinela.naturezas_criminais TO sentinela_manual_writer;
+   ALTER POLICY manual_nature ON sentinela.naturezas_criminais TO sentinela_manual_writer
+     USING (fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original));
+   IF EXISTS (SELECT FROM pg_policy WHERE polrelid='sentinela.naturezas_criminais'::regclass
+     AND polname='gestao_catalogo_manual') THEN
+     GRANT SELECT (descricao_original,categoria_pcdf_original) ON sentinela.naturezas_criminais TO sentinela_gestao_owner;
+     ALTER POLICY gestao_catalogo_manual ON sentinela.naturezas_criminais
+       USING (fonte='SENTINELA_MANUAL' OR
+         (fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original)));
+   END IF;
+   EXECUTE $ddl$
+     CREATE OR REPLACE FUNCTION sentinela_ocorrencias_manual.catalogo(termo text) RETURNS jsonb
+     LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $body$
+       WITH filtro AS (SELECT coalesce(sentinela_ocorrencias_manual.normalizar_catalogo(termo),'') AS q)
+       SELECT jsonb_build_object(
+         'regioes',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'codigo',codigo_interno,'nome',nome,
+           'numeroAdministrativo',referencia_cartografica->'administrativeNumber')
+           ORDER BY sentinela_ocorrencias_manual.normalizar_catalogo(nome) COLLATE "C",id)
+           FROM sentinela.regioes_administrativas
+           WHERE q='' OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(nome),q)>0
+             OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(codigo_interno),q)>0
+             OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(codigo_oficial),q)>0
+             OR referencia_cartografica->>'administrativeNumber'=q),'[]'::jsonb),
+         'naturezas',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'descricao',descricao_original)
+           ORDER BY sentinela_ocorrencias_manual.normalizar_catalogo(descricao_original) COLLATE "C",id)
+           FROM sentinela.naturezas_criminais
+           WHERE fonte='PCDF' AND categoria_pcdf_original IS NULL AND sentinela.descricao_pcdf(descricao_original)
+             AND (q='' OR strpos(sentinela_ocorrencias_manual.normalizar_catalogo(descricao_original),q)>0)),'[]'::jsonb))
+       FROM filtro WHERE session_user IN ('sentinela_local_admin','sentinela_local_operator');
+     $body$
+   $ddl$;
+ END IF;
+END
+$manual$;
+
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+ VALUES ('local-pcdf-naturezas-0001','Catálogo das descrições originais da PCDF e categoria de origem independente');
+COMMIT;

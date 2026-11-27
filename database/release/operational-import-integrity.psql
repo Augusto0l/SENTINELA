@@ -1,0 +1,33 @@
+CREATE FUNCTION sentinela_exclusao.vinculos_inesperados() RETURNS SETOF text
+LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ WITH esperadas(nome,tabela,colunas,alvo,chave) AS (VALUES
+  ('eventos_auditoria_correcao_id_fkey','eventos_auditoria','correcao_id','historico_correcoes','id'),
+  ('eventos_auditoria_execucao_id_fkey','eventos_auditoria','execucao_id','execucoes_importacao','id'),
+  ('eventos_auditoria_linha_origem_id_fkey','eventos_auditoria','linha_origem_id','linhas_origem','id'),
+  ('eventos_auditoria_pendencia_id_fkey','eventos_auditoria','pendencia_id','pendencias_revisao','id'),
+  ('execucoes_importacao_lote_id_extracao_id_fkey','execucoes_importacao','lote_id, extracao_id','lotes_importacao','id, extracao_id'),
+  ('historico_correcoes_pendencia_id_fkey','historico_correcoes','pendencia_id','pendencias_revisao','id'),
+  ('historico_correcoes_staging_id_fkey','historico_correcoes','staging_id','linhas_staging','id'),
+  ('linhas_origem_extracao_id_fkey','linhas_origem','extracao_id','extracoes_origem','id'),
+  ('linhas_staging_execucao_id_lote_id_extracao_id_fkey','linhas_staging','execucao_id, lote_id, extracao_id','execucoes_importacao','id, lote_id, extracao_id'),
+  ('linhas_staging_linha_origem_id_extracao_id_fkey','linhas_staging','linha_origem_id, extracao_id','linhas_origem','id, extracao_id'),
+  ('lotes_importacao_extracao_id_fkey','lotes_importacao','extracao_id','extracoes_origem','id'),
+  ('ocorrencia_naturezas_linha_origem_id_fkey','ocorrencia_naturezas','linha_origem_id','linhas_origem','id'),
+  ('pendencias_revisao_linha_origem_id_fkey','pendencias_revisao','linha_origem_id','linhas_origem','id')
+ ), atuais AS (
+  SELECT c.conname::text AS nome,c.conrelid,pg_get_constraintdef(c.oid) AS definicao
+  FROM pg_constraint c
+  WHERE c.contype='f' AND c.confrelid IN (
+    'sentinela.extracoes_origem'::regclass,'sentinela.lotes_importacao'::regclass,'sentinela.execucoes_importacao'::regclass,
+    'sentinela.linhas_origem'::regclass,'sentinela.linhas_staging'::regclass,'sentinela.pendencias_revisao'::regclass,
+    'sentinela.historico_correcoes'::regclass,'sentinela.eventos_auditoria'::regclass,
+    'sentinela_import_local.requests'::regclass)
+ ), contrato AS (
+  SELECT nome,format('sentinela.%I',tabela)::regclass::oid AS conrelid,
+    format('FOREIGN KEY (%s) REFERENCES sentinela.%I(%s)',colunas,alvo,chave) AS definicao
+  FROM esperadas
+ ), faltantes AS (SELECT * FROM contrato EXCEPT SELECT * FROM atuais),
+ excedentes AS (SELECT * FROM atuais EXCEPT SELECT * FROM contrato)
+ SELECT 'Ausente ou alterada: '||nome FROM faltantes
+ UNION ALL SELECT conrelid::regclass::text||'.'||nome FROM excedentes
+$$;

@@ -1,0 +1,127 @@
+-- Homologação exclusiva em clone. O histórico de recepção permanece intacto.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL search_path=pg_catalog,pg_temp;
+SET LOCAL lock_timeout='5s';
+SET LOCAL sentinela.pcdf_absence_uuid TO :'expected_uuid';
+SET LOCAL sentinela.pcdf_absence_system TO :'expected_system';
+SET LOCAL sentinela.pcdf_absence_sha TO :'expected_cohort';
+
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local'
+   OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1' OR inet_server_port() IS DISTINCT FROM 55487
+   OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.pcdf_absence_uuid')
+   OR current_setting('sentinela.sandbox_uuid',true)='c04244a6-bc8d-4491-98bc-9af8a268d30c'
+   OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.pcdf_absence_system')
+   OR current_setting('sentinela.pcdf_absence_system')='7710764288366362848'
+   OR current_setting('server_version_num')<>'170011'
+   OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+       AND relkind='r' AND relrowsecurity AND relforcerowsecurity)<>19
+   OR NOT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-pcdf-naturezas-0001')
+ THEN RAISE EXCEPTION 'Clone atestado com catalogo PCDF e RLS obrigatorio'; END IF;
+END
+$guard$;
+
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+SELECT EXISTS(SELECT FROM sentinela.schema_migrations WHERE versao='clone-pcdf-coordenadas-ausencia-0001') AS aplicado \gset
+\if :aplicado
+\else
+-- SECURITY INVOKER conserva o escopo do leitor e as políticas de staging já existentes.
+CREATE FUNCTION sentinela.pcdf_componente_ausente_v1(origem uuid,campo text,regra text,valor jsonb)
+RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER SET search_path=pg_catalog AS $body$
+ SELECT campo IN ('latitude_geo_original','longitude_geo_original','latitude_utm_original','longitude_utm_original')
+    AND regra IN ('ausente','nulo_declarado','vazio_semantico')
+    AND EXISTS (
+      SELECT FROM sentinela.linhas_staging s WHERE s.linha_origem_id=origem
+        AND s.lote_id='84908630-bd04-4a03-923d-616649c8de74'
+        AND s.ocorrencia_id IS NULL AND s.associacao_id IS NULL
+        AND s.campos_csv->campo IS NOT DISTINCT FROM valor
+        AND EXISTS (SELECT FROM jsonb_to_recordset(s.diagnosticos) d(field text,rule text,effect text)
+          WHERE d.field='coordenada_status' AND d.rule IN ('ausente','incompleta','invalida','referencia_pendente')
+            AND d.effect='bloqueia_dimensao')
+    )
+$body$;
+REVOKE ALL ON FUNCTION sentinela.pcdf_componente_ausente_v1(uuid,text,text,jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela.pcdf_componente_ausente_v1(uuid,text,text,jsonb) TO sentinela_ocorrencias_reader;
+
+DO $cohort$
+DECLARE
+ lote constant uuid := '84908630-bd04-4a03-923d-616649c8de74';
+ assinatura text;
+ ids jsonb;
+BEGIN
+ IF NOT EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.id=lote AND l.versao_contrato='2.0'
+    AND l.sha256_arquivo='91fa79f88988d1540e81f438e0fb470cea07a0809ac60387577fbdf0be9d6a00')
+   OR (sentinela_gestao.impacto(lote,NULL)->>'revisao') IS DISTINCT FROM
+     '634f7f20897453028d0551c68d26778e69a7a772bdf2485fad39ba2ffff3600b'
+   OR EXISTS (SELECT FROM sentinela.linhas_staging s JOIN sentinela.linhas_staging t USING (linha_origem_id)
+     WHERE s.lote_id=lote AND t.lote_id<>lote)
+ THEN RAISE EXCEPTION 'Lote, revisao ou escopo divergente'; END IF;
+
+ WITH alvos AS MATERIALIZED (
+   SELECT p.id,p.linha_origem_id FROM sentinela.pendencias_revisao p
+   WHERE p.tipo='coordenadas' AND p.versao_regra='pcdf-csv-avulso-v2' AND p.status='aberta'
+     AND p.ocorrencia_id IS NULL AND p.associacao_id IS NULL
+     AND p.efeito='bloqueia_dimensao' AND p.dimensao_afetada='coordenadas'
+     AND sentinela.pcdf_componente_ausente_v1(p.linha_origem_id,p.campo,p.regra,p.valor_original)
+ ), resumo AS (
+   SELECT a.id FROM alvos a WHERE EXISTS (
+     SELECT FROM sentinela.pendencias_revisao p WHERE p.linha_origem_id=a.linha_origem_id
+       AND p.versao_regra='pcdf-csv-avulso-v2' AND p.status='aberta' AND p.tipo='coordenadas'
+       AND p.campo='coordenada_status' AND p.regra IN ('ausente','incompleta','invalida','referencia_pendente')
+       AND p.efeito='bloqueia_dimensao' AND p.dimensao_afetada='coordenadas')
+ )
+ SELECT jsonb_agg(id ORDER BY id), encode(sha256(convert_to(string_agg(id::text,',' ORDER BY id),'UTF8')),'hex')
+ INTO ids,assinatura FROM resumo;
+
+ IF jsonb_array_length(ids) IS DISTINCT FROM 12230
+   OR assinatura IS DISTINCT FROM '410fc2a72c5e439a2798494dfa4bf0ae5d1a1c89023693d3777ec9086de51a0a'
+   OR assinatura IS DISTINCT FROM current_setting('sentinela.pcdf_absence_sha')
+ THEN RAISE EXCEPTION 'Assinatura da coorte de coordenadas divergente'; END IF;
+
+ INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,antes,depois,justificativa)
+ VALUES ('servico','sentinela-pcdf','pcdf.coordenadas.ausencias_informativas',
+  jsonb_build_object('pendenciasFuncionais',20321),
+  jsonb_build_object('lote',lote,'versao','clone-pcdf-coordenadas-ausencia-0001','pendencias',ids,
+                    'sha256Pendencias',assinatura,'pendenciasFuncionais',8091,'historicoPreservado',true),
+  'Componentes ausentes redundantes na revisão funcional; o estado geográfico permanece pendente');
+END
+$cohort$;
+
+CREATE POLICY pendencias_pcdf_componentes_ausentes_leitura ON sentinela.pendencias_revisao AS RESTRICTIVE
+ FOR SELECT TO sentinela_ocorrencias_reader USING (NOT (
+   tipo='coordenadas' AND versao_regra='pcdf-csv-avulso-v2' AND status='aberta'
+   AND ocorrencia_id IS NULL AND associacao_id IS NULL
+   AND efeito='bloqueia_dimensao' AND dimensao_afetada='coordenadas'
+   AND sentinela.pcdf_componente_ausente_v1(linha_origem_id,campo,regra,valor_original)
+ ));
+
+INSERT INTO sentinela.schema_migrations(versao,descricao)
+VALUES ('clone-pcdf-coordenadas-ausencia-0001','Projeção de ausências por componente PCDF em homologação');
+\endif
+
+DO $audit$
+BEGIN
+ IF (SELECT count(*) FROM sentinela.eventos_auditoria WHERE acao='pcdf.coordenadas.ausencias_informativas'
+     AND depois->>'lote'='84908630-bd04-4a03-923d-616649c8de74'
+     AND depois->>'sha256Pendencias'=current_setting('sentinela.pcdf_absence_sha')
+     AND jsonb_array_length(depois->'pendencias')=12230)<>1
+   OR (SELECT count(*) FROM sentinela.pendencias_revisao)<>26714
+   OR EXISTS (SELECT FROM sentinela.ocorrencias)
+ THEN RAISE EXCEPTION 'Auditoria, historico ou consolidacao fora do escopo'; END IF;
+END
+$audit$;
+
+SET SESSION AUTHORIZATION sentinela_local_admin;
+DO $reader$
+DECLARE leitura jsonb := sentinela_ocorrencias_local.resumo();
+BEGIN
+ IF (leitura->>'pendencias')::integer IS DISTINCT FROM 8091
+   OR (leitura->>'recebidas')::integer IS DISTINCT FROM 6393
+   OR (leitura->>'consolidadas')::integer IS DISTINCT FROM 0
+ THEN RAISE EXCEPTION 'Totais funcionais fora do escopo'; END IF;
+END
+$reader$;
+RESET SESSION AUTHORIZATION;
+COMMIT;

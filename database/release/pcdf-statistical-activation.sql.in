@@ -1,0 +1,107 @@
+-- Renderizar com render-pcdf-statistical-activation.py.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL search_path=pg_catalog,pg_temp;
+SET LOCAL lock_timeout='5s';
+SET LOCAL TIME ZONE 'America/Sao_Paulo';
+SET LOCAL sentinela.catalogo_janela_inicio TO :'janela_inicio';
+SET LOCAL sentinela.catalogo_janela_fim TO :'janela_fim';
+SET LOCAL sentinela.ativacao_responsavel TO :'responsavel';
+SET LOCAL sentinela.ativacao_aprovacao TO :'aprovacao';
+SET LOCAL sentinela.ativacao_backup TO :'backup_sha';
+SET LOCAL sentinela.ativacao_fingerprints TO :'fingerprints';
+SET LOCAL sentinela.pcdf_review_sha TO :'csv_sha';
+SET LOCAL sentinela.pcdf_absence_sha TO :'pendencias_sha';
+@DESTINATION_SETTINGS@
+
+DO $destino$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local'
+    OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+    OR @DESTINATION@
+    OR pg_is_in_recovery() OR current_setting('transaction_read_only')<>'off'
+    OR session_user<>'postgres' OR current_user<>session_user
+    OR NOT EXISTS (SELECT FROM pg_roles WHERE rolname=session_user AND rolsuper)
+    OR current_setting('server_version_num')<>'170011'
+    OR (SELECT extversion FROM pg_extension WHERE extname='postgis') IS DISTINCT FROM '3.6.2'
+ THEN RAISE EXCEPTION 'Destino ou executor divergente'; END IF;
+END
+$destino$;
+
+SELECT pg_advisory_xact_lock(hashtextextended('sentinela-pcdf-local-v1',0));
+@WINDOW@
+@LOCKS@
+CREATE TEMP TABLE pcdf_antes ON COMMIT DROP AS SELECT * FROM pg_temp.impressao();
+CREATE TEMP TABLE pcdf_backup ON COMMIT DROP AS
+SELECT split_part(value,'|',1) AS tabela, substring(value FROM strpos(value,'|')+1) AS assinatura
+FROM jsonb_array_elements_text(current_setting('sentinela.ativacao_fingerprints')::jsonb);
+CREATE TEMP TABLE pcdf_tabelas_alteradas(tabela text PRIMARY KEY) ON COMMIT DROP;
+INSERT INTO pcdf_tabelas_alteradas VALUES ('sentinela.ocorrencias'),('sentinela.ocorrencia_naturezas'),
+ ('sentinela.eventos_auditoria'),('sentinela.schema_migrations');
+
+SELECT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-pcdf-revisao-independente-0001') AS revisao_instalada \gset
+
+DO $preflight$
+DECLARE instalada boolean := EXISTS (SELECT FROM sentinela.schema_migrations
+ WHERE versao='local-pcdf-revisao-independente-0001');
+BEGIN
+ IF NOT EXISTS (SELECT FROM sentinela.usuarios u JOIN sentinela.perfil_permissoes p USING(perfil)
+    WHERE u.id=current_setting('sentinela.ativacao_responsavel')::uuid
+      AND u.ativo AND u.perfil='Administrador' AND p.acao='administrar')
+   OR length(btrim(current_setting('sentinela.ativacao_aprovacao'))) NOT BETWEEN 5 AND 240
+   OR current_setting('sentinela.ativacao_backup') !~ '^[0-9a-f]{64}$'
+   OR NOT EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao='local-pcdf-naturezas-0001')
+   OR EXISTS (SELECT FROM sentinela.schema_migrations WHERE versao IN
+      ('clone-pcdf-revisao-independente-0001','clone-pcdf-coordenadas-ausencia-0001'))
+   OR instalada IS DISTINCT FROM EXISTS (SELECT FROM sentinela.schema_migrations
+         WHERE versao='local-pcdf-coordenadas-ausencia-0001')
+   OR (SELECT count(*) FROM sentinela.naturezas_criminais WHERE fonte='PCDF' AND categoria_pcdf_original IS NULL)<>41
+   OR (SELECT count(*) FROM sentinela.linhas_staging)<>6393
+   OR (SELECT count(DISTINCT campos_csv->>'ocorrencia_chave') FROM sentinela.linhas_staging)<>6091
+   OR (SELECT count(*) FROM pg_class WHERE relnamespace='sentinela'::regnamespace
+       AND relkind='r' AND relrowsecurity AND relforcerowsecurity)<>19
+   OR EXISTS (SELECT FROM pg_constraint p JOIN pg_namespace n ON n.oid=p.connamespace
+      WHERE (n.nspname='sentinela' OR starts_with(n.nspname,'sentinela_')) AND p.contype='f' AND NOT p.convalidated)
+   OR (SELECT count(*) FROM pcdf_antes)<>27 OR (SELECT count(*) FROM pcdf_backup)<>27
+   OR (SELECT count(DISTINCT tabela) FROM pcdf_backup)<>27
+   OR EXISTS (SELECT FROM pcdf_antes a FULL JOIN pcdf_backup b USING(tabela)
+       WHERE a.assinatura IS DISTINCT FROM b.assinatura AND (NOT instalada OR NOT EXISTS
+          (SELECT FROM pcdf_tabelas_alteradas t WHERE t.tabela=coalesce(a.tabela,b.tabela))))
+ THEN RAISE EXCEPTION 'Aprovacao, backup, revisao ou pre-condicoes divergentes'; END IF;
+END
+$preflight$;
+
+\if :revisao_instalada
+\else
+@ABSENCE@
+\endif
+@REVIEW@
+
+DO $final$
+BEGIN
+ IF (SELECT count(*) FROM sentinela.ocorrencias WHERE data_fato >= DATE '2021-01-01' AND data_fato < DATE '2021-02-01')<>6090
+   OR (SELECT count(*) FROM sentinela.ocorrencias WHERE localizacao_status='referencia_pendente')<>5460
+   OR (SELECT count(*) FROM sentinela.ocorrencias WHERE localizacao_status='ausente')<>630
+   OR EXISTS (SELECT FROM sentinela.ocorrencias WHERE ra_id IS NOT NULL OR geometria IS NOT NULL
+       OR latitude IS NOT NULL OR longitude IS NOT NULL OR referencia_espacial_confirmada IS NOT NULL)
+   OR (SELECT count(*) FROM sentinela.linhas_staging s WHERE NOT EXISTS
+        (SELECT FROM sentinela.ocorrencia_naturezas v WHERE v.linha_origem_id=s.linha_origem_id))<>1
+   OR (SELECT count(*) FROM sentinela.eventos_auditoria WHERE acao IN
+       ('pcdf.revisao_independente','pcdf.coordenadas.ausencias_informativas')
+       AND depois->>'lote'='84908630-bd04-4a03-923d-616649c8de74'
+       AND depois->>'aprovacao'=current_setting('sentinela.ativacao_aprovacao')
+       AND depois->>'responsavel'=current_setting('sentinela.ativacao_responsavel')
+       AND depois->>'backupSha256'=current_setting('sentinela.ativacao_backup')
+       AND CASE acao WHEN 'pcdf.revisao_independente' THEN depois->>'sha256OrigensConsolidadas'=
+          '8afc31fb1c1b8f102ce575f34fd79990e15d6d1e978966f056a8174808a2f481'
+          ELSE depois->>'sha256Pendencias'=current_setting('sentinela.pcdf_absence_sha')
+            AND jsonb_array_length(depois->'pendencias')=12230 END)<>2
+   OR EXISTS (SELECT FROM pcdf_antes a FULL JOIN pg_temp.impressao() b USING(tabela)
+       WHERE a.assinatura IS DISTINCT FROM b.assinatura AND NOT EXISTS
+          (SELECT FROM pcdf_tabelas_alteradas t WHERE t.tabela=coalesce(a.tabela,b.tabela)))
+ THEN RAISE EXCEPTION 'Aceite estatistico, espacial, de auditoria ou de integridade divergente'; END IF;
+END
+$final$;
+
+SELECT pg_temp.conferir_janela();
+COMMIT;

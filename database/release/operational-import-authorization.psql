@@ -1,0 +1,91 @@
+CREATE ROLE sentinela_gestao_autoridade NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION;
+CREATE SCHEMA sentinela_gestao_autorizacao AUTHORIZATION sentinela_gestao_autoridade;
+REVOKE ALL ON SCHEMA sentinela_gestao_autorizacao FROM PUBLIC;
+GRANT USAGE ON SCHEMA sentinela TO sentinela_gestao_autoridade;
+GRANT SELECT (id,auth_user_id,perfil,ativo) ON sentinela.usuarios TO sentinela_gestao_autoridade;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_system() TO sentinela_gestao_autoridade;
+CREATE POLICY gestao_autoridade_usuarios ON sentinela.usuarios FOR SELECT TO sentinela_gestao_autoridade
+ USING (ativo AND perfil='Administrador' AND auth_user_id IS NOT NULL);
+
+SET LOCAL ROLE sentinela_gestao_autoridade;
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+CREATE TABLE sentinela_gestao_autorizacao.release (
+ singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+ versao text NOT NULL CHECK (versao='local-import-management-0001'),
+ artefato_sha256 text NOT NULL CHECK (artefato_sha256~'^[0-9a-f]{64}$'),
+ cluster_uuid uuid NOT NULL,
+ system_id text NOT NULL CHECK (system_id~'^[0-9]{15,22}$'),
+ porta integer NOT NULL,
+ aberta boolean NOT NULL DEFAULT false
+);
+INSERT INTO sentinela_gestao_autorizacao.release(versao,artefato_sha256,cluster_uuid,system_id,porta)
+ VALUES ('local-import-management-0001', current_setting('sentinela.release_artifact'), :'cluster_uuid', :'system_id', inet_server_port());
+CREATE TABLE sentinela_gestao_autorizacao.atores (
+ usuario uuid PRIMARY KEY,
+ identidade uuid NOT NULL UNIQUE,
+ conta text NOT NULL UNIQUE CHECK (conta~'^[a-f0-9]{64}$'),
+ validade timestamptz NOT NULL
+);
+CREATE TABLE sentinela_gestao_autorizacao.exclusoes (
+ lote uuid PRIMARY KEY,
+ usuario uuid NOT NULL,
+ revisao text NOT NULL CHECK (revisao~'^[a-f0-9]{64}$'),
+ aprovacao text NOT NULL CHECK (length(btrim(aprovacao)) BETWEEN 1 AND 240),
+ prova_restauracao text NOT NULL CHECK (length(btrim(prova_restauracao)) BETWEEN 1 AND 240),
+ validade timestamptz NOT NULL
+);
+ALTER TABLE sentinela_gestao_autorizacao.release ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_gestao_autorizacao.release FORCE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_gestao_autorizacao.atores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_gestao_autorizacao.atores FORCE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_gestao_autorizacao.exclusoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_gestao_autorizacao.exclusoes FORCE ROW LEVEL SECURITY;
+CREATE POLICY release_privada ON sentinela_gestao_autorizacao.release TO sentinela_gestao_autoridade USING (true) WITH CHECK (true);
+CREATE POLICY atores_privados ON sentinela_gestao_autorizacao.atores TO sentinela_gestao_autoridade USING (true) WITH CHECK (true);
+CREATE POLICY aprovacoes_privadas ON sentinela_gestao_autorizacao.exclusoes TO sentinela_gestao_autoridade USING (true) WITH CHECK (true);
+
+CREATE FUNCTION sentinela_gestao_autorizacao.capacidade(p_usuario uuid,p_conta text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT session_user='sentinela_local_admin'
+ AND current_database()='sentinela_pcdf_local'
+ AND inet_server_addr()=inet '127.0.0.1'
+ AND NOT pg_is_in_recovery()
+ AND EXISTS (
+   SELECT FROM sentinela_gestao_autorizacao.release r
+   JOIN sentinela_gestao_autorizacao.atores a ON a.usuario=p_usuario
+   JOIN sentinela.usuarios u ON u.id=a.usuario AND u.auth_user_id=a.identidade
+   WHERE r.aberta AND r.porta=inet_server_port()
+      AND r.cluster_uuid::text=current_setting('sentinela.sandbox_uuid',true)
+      AND r.system_id=(SELECT system_identifier::text FROM pg_control_system())
+      AND a.validade>statement_timestamp() AND a.conta=p_conta AND u.ativo AND u.perfil='Administrador'
+ )
+$$;
+
+CREATE FUNCTION sentinela_gestao_autorizacao.exigir(p_usuario uuid,p_conta text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+BEGIN
+ IF current_setting('transaction_read_only')<>'off' OR current_setting('transaction_isolation')<>'read committed'
+   THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+ PERFORM FROM sentinela_gestao_autorizacao.release FOR SHARE;
+ PERFORM FROM sentinela_gestao_autorizacao.atores WHERE usuario=p_usuario FOR SHARE;
+ IF sentinela_gestao_autorizacao.capacidade(p_usuario,p_conta) IS DISTINCT FROM true
+   THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+END $$;
+
+CREATE FUNCTION sentinela_gestao_autorizacao.lote_aprovado(p_lote uuid,p_usuario uuid,p_revisao text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT session_user='sentinela_local_admin' AND EXISTS (
+   SELECT FROM sentinela_gestao_autorizacao.exclusoes
+   WHERE lote=p_lote AND usuario=p_usuario AND revisao=p_revisao AND validade>statement_timestamp()
+ )
+$$;
+
+CREATE FUNCTION sentinela_gestao_autorizacao.consumir(p_lote uuid,p_usuario uuid,p_conta text,p_revisao text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+BEGIN
+ PERFORM sentinela_gestao_autorizacao.exigir(p_usuario,p_conta);
+ DELETE FROM sentinela_gestao_autorizacao.exclusoes
+ WHERE lote=p_lote AND usuario=p_usuario AND revisao=p_revisao AND validade>clock_timestamp();
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501'; END IF;
+END $$;
+RESET ROLE;

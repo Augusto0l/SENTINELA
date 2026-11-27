@@ -1,0 +1,59 @@
+\set ON_ERROR_STOP on
+BEGIN READ WRITE;
+SET LOCAL search_path=pg_catalog;
+SET LOCAL lock_timeout='5s';
+SELECT set_config('sentinela.users_uuid',:'sandbox_uuid',true),
+       set_config('sentinela.users_system',:'sandbox_systemid',true) \gset
+DO $$
+BEGIN
+ IF inet_server_addr() IS DISTINCT FROM inet '127.0.0.1' OR inet_server_port() IS DISTINCT FROM 55484
+ OR current_database()<>'sentinela_pcdf_local' OR pg_is_in_recovery()
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.users_uuid')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.users_system')
+ OR to_regprocedure('sentinela_pessoas.autorizar(uuid,uuid)') IS NULL
+ OR (SELECT count(*) FROM pg_class WHERE oid IN ('sentinela.usuarios'::regclass,
+   'sentinela.eventos_auditoria'::regclass,'sentinela_pessoas.contatos'::regclass)
+   AND relrowsecurity AND relforcerowsecurity)<>3
+ THEN RAISE EXCEPTION 'Destino institucional divergente'; END IF;
+END $$;
+
+GRANT INSERT (id,auth_user_id,nome_exibicao,perfil,ativo) ON sentinela.usuarios TO sentinela_pessoas_owner;
+CREATE POLICY pessoas_cadastro ON sentinela.usuarios FOR INSERT TO sentinela_pessoas_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND id=auth_user_id AND ativo);
+CREATE POLICY pessoas_cadastro_auditoria ON sentinela.eventos_auditoria FOR INSERT TO sentinela_pessoas_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND acao='usuarios.criar_institucional'
+   AND ator_tipo='servico' AND servico='sentinela-usuarios');
+
+CREATE FUNCTION sentinela_pessoas.criar(actor uuid, identidade uuid, alvo uuid, nome text, email text, perfil text, unidade text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE registro jsonb;
+BEGIN
+ PERFORM pg_advisory_xact_lock(743204,22);
+ PERFORM sentinela_pessoas.autorizar(actor,identidade);
+ IF alvo IS NULL OR NOT coalesce(length(btrim(nome)) BETWEEN 1 AND 160,false)
+ OR NOT coalesce(length(email)<=254 AND email=lower(email) AND email ~ '^[^[:space:]@]+@gmail\.com$',false)
+ OR NOT coalesce(perfil IN ('Administrador','Operador','Analista'),false)
+ THEN RAISE EXCEPTION 'Cadastro inválido' USING ERRCODE='22023'; END IF;
+
+ SELECT r INTO registro FROM sentinela_pessoas.registros(alvo) r;
+ IF FOUND THEN
+   IF registro->>'name'=nome AND registro->>'email'=email AND registro->>'perfil'=perfil
+     AND (registro->>'orgao') IS NOT DISTINCT FROM unidade
+     AND EXISTS(SELECT FROM sentinela.usuarios u WHERE u.id=alvo AND u.auth_user_id=alvo AND u.ativo)
+   THEN RETURN registro; END IF;
+   RAISE EXCEPTION 'Usuário já cadastrado' USING ERRCODE='23505';
+ END IF;
+ IF EXISTS(SELECT FROM sentinela_pessoas.contatos c WHERE lower(c.email)=criar.email)
+ THEN RAISE EXCEPTION 'E-mail já cadastrado' USING ERRCODE='23505'; END IF;
+
+ INSERT INTO sentinela.usuarios(id,auth_user_id,nome_exibicao,perfil,ativo) VALUES (alvo,alvo,nome,perfil,true);
+ INSERT INTO sentinela_pessoas.contatos(usuario,email,orgao) VALUES (alvo,email,unidade);
+ INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa)
+ VALUES ('servico','sentinela-usuarios','usuarios.criar_institucional',
+   jsonb_build_object('actor',actor,'alvo',alvo,'perfil',perfil),'Cadastro pela administração institucional');
+ RETURN (SELECT r FROM sentinela_pessoas.registros(alvo) r);
+END $$;
+ALTER FUNCTION sentinela_pessoas.criar(uuid,uuid,uuid,text,text,text,text) OWNER TO sentinela_pessoas_owner;
+REVOKE ALL ON FUNCTION sentinela_pessoas.criar(uuid,uuid,uuid,text,text,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION sentinela_pessoas.criar(uuid,uuid,uuid,text,text,text,text) TO sentinela_local_admin;
+COMMIT;

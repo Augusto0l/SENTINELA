@@ -12,6 +12,9 @@ SELECT 1 / coalesce((
     WHERE e.extname='postgis' AND e.extversion=:'postgis' AND n.nspname='extensions')
   AND NOT pg_is_in_recovery()
 )::integer,0);
+\if :{?expected_uuid}
+SELECT 1 / coalesce((nullif(current_setting('sentinela.sandbox_uuid',true),'')=:'expected_uuid')::integer,0);
+\endif
 
 SELECT jsonb_build_object(
   'versoes',(SELECT jsonb_agg(versao ORDER BY versao) FROM sentinela.schema_migrations),
@@ -25,6 +28,16 @@ SELECT jsonb_build_object(
   'linhasOriginais',(SELECT count(*) FROM sentinela.linhas_origem),
   'linhasStaging',(SELECT count(*) FROM sentinela.linhas_staging),
   'eventos',(SELECT count(*) FROM sentinela.eventos_auditoria),
+  'interfaces',jsonb_build_object(
+    'leituraAtestada',to_regprocedure('sentinela_ocorrencias_local.identidade()') IS NOT NULL,
+    'analytics',to_regclass('sentinela_ocorrencias_analytics.ocorrencias') IS NOT NULL,
+    'cadastroCompleto',to_regprocedure('sentinela_ocorrencias_manual.cadastrar_completo(jsonb,uuid,text)') IS NOT NULL,
+    'gestao',to_regprocedure('sentinela_gestao.mutar(jsonb,text)') IS NOT NULL,
+    'custodiaV2',to_regclass('sentinela_pcdf_local.entregas_pacote') IS NOT NULL),
+  'loginsLocais',(SELECT coalesce(jsonb_object_agg(rolname,jsonb_build_object('login',rolcanlogin,
+    'privilegiado',rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole OR rolreplication OR rolinherit,
+    'membro',EXISTS(SELECT FROM pg_auth_members m WHERE r.oid IN (m.roleid,m.member)))),'{}'::jsonb)
+    FROM pg_roles r WHERE rolname IN ('sentinela_local_admin','sentinela_local_operator','sentinela_local_analyst')),
   'readerPodeGravar',coalesce((SELECT r.rolsuper OR r.rolbypassrls OR r.rolcreaterole
     OR has_schema_privilege(r.oid,'sentinela','CREATE')
     OR EXISTS(SELECT FROM pg_class c WHERE c.relnamespace='sentinela'::regnamespace AND c.relkind='r'

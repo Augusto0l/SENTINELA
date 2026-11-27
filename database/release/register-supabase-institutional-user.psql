@@ -1,0 +1,94 @@
+\set ON_ERROR_STOP on
+\if :{?ativar_edicao}
+\else
+\set ativar_edicao off
+\endif
+\if :{?conta}
+\else
+\set conta ''
+\endif
+\if :{?prova_restauracao}
+\else
+\set prova_restauracao ''
+\endif
+BEGIN READ WRITE;
+SET LOCAL search_path=pg_catalog,pg_temp;
+SET LOCAL lock_timeout='5s';
+
+-- Provide the IDs and name verified by getUser() and meu_acesso(), and the actual approval reference.
+SET LOCAL sentinela.expected_uuid TO :'expected_uuid';
+SET LOCAL sentinela.expected_system TO :'expected_system';
+SET LOCAL sentinela.usuario TO :'usuario';
+SET LOCAL sentinela.identidade TO :'identidade';
+SET LOCAL sentinela.nome TO :'nome';
+SET LOCAL sentinela.aprovacao TO :'aprovacao';
+SET LOCAL sentinela.ativar_edicao TO :'ativar_edicao';
+SET LOCAL sentinela.conta TO :'conta';
+SET LOCAL sentinela.prova_restauracao TO :'prova_restauracao';
+
+DO $$
+DECLARE
+  usuario uuid := current_setting('sentinela.usuario')::uuid;
+  identidade uuid := current_setting('sentinela.identidade')::uuid;
+  nome text := btrim(current_setting('sentinela.nome'));
+  aprovacao text := btrim(current_setting('sentinela.aprovacao'));
+  conta text := current_setting('sentinela.conta');
+  prova text := current_setting('sentinela.prova_restauracao');
+  ativar boolean := current_setting('sentinela.ativar_edicao')::boolean;
+  ate timestamptz;
+  cadastrado sentinela.usuarios%ROWTYPE;
+BEGIN
+  IF current_database() <> 'sentinela_pcdf_local'
+    OR inet_server_addr() IS DISTINCT FROM inet '127.0.0.1'
+    OR inet_server_port() IS DISTINCT FROM 55484
+    OR pg_is_in_recovery()
+    OR current_setting('server_version_num') <> '170011'
+    OR (SELECT count(*) FROM pg_class WHERE oid IN ('sentinela.usuarios'::regclass, 'sentinela.eventos_auditoria'::regclass,
+      'sentinela_gestao_autorizacao.release'::regclass, 'sentinela_gestao_autorizacao.atores'::regclass,
+      'sentinela_gestao_autorizacao.exclusoes'::regclass) AND relrowsecurity AND relforcerowsecurity) <> 5
+    OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.expected_uuid')
+    OR NOT EXISTS (
+      SELECT FROM sentinela_gestao_autorizacao.release r
+      WHERE r.singleton AND r.porta=inet_server_port()
+        AND r.versao='local-import-management-0001'
+        AND r.cluster_uuid::text=current_setting('sentinela.expected_uuid')
+        AND r.system_id=current_setting('sentinela.expected_system')
+        AND r.system_id=(SELECT system_identifier::text FROM pg_control_system())
+    )
+    OR length(nome) NOT BETWEEN 1 AND 240 OR length(aprovacao) NOT BETWEEN 5 AND 240
+  THEN RAISE EXCEPTION 'Destino operacional atestado, identidade verificada e aprovação são obrigatórios';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(743204,22);
+  SELECT * INTO cadastrado FROM sentinela.usuarios u WHERE u.id=usuario FOR UPDATE;
+  IF FOUND THEN
+    IF cadastrado.auth_user_id IS DISTINCT FROM identidade OR NOT cadastrado.ativo OR cadastrado.perfil <> 'Administrador'
+    THEN RAISE EXCEPTION 'Identidade ou estado institucional divergente'; END IF;
+  ELSE
+    INSERT INTO sentinela.usuarios(id,auth_user_id,nome_exibicao,perfil,ativo)
+      VALUES (usuario,identidade,nome,'Administrador',true) RETURNING * INTO cadastrado;
+    INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa)
+      VALUES ('servico','provisionamento_controlado','provisionar_vinculo',to_jsonb(cadastrado),aprovacao);
+  END IF;
+
+  IF NOT ativar THEN RETURN; END IF;
+  -- Serialize with the running write service, which locks the release row before touching actor or approval rows.
+  PERFORM FROM sentinela_gestao_autorizacao.release WHERE singleton AND NOT aberta FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'A janela de gestão deve estar fechada'; END IF;
+  LOCK TABLE sentinela_gestao_autorizacao.atores,sentinela_gestao_autorizacao.exclusoes IN SHARE ROW EXCLUSIVE MODE;
+  IF conta !~ '^[0-9a-f]{64}$' OR prova !~ '^[0-9a-f]{64}$'
+    OR EXISTS (SELECT FROM sentinela_gestao_autorizacao.atores)
+    OR EXISTS (SELECT FROM sentinela_gestao_autorizacao.exclusoes)
+    OR EXISTS (SELECT FROM sentinela_exclusao.vinculos_inesperados())
+  THEN RAISE EXCEPTION 'Conta, restauração comprovada e ausência de liberações anteriores são obrigatórias'; END IF;
+
+  ate := clock_timestamp()+interval '24 hours';
+  INSERT INTO sentinela_gestao_autorizacao.atores(usuario,identidade,conta,validade)
+    VALUES (usuario,identidade,conta,ate);
+  UPDATE sentinela_gestao_autorizacao.release SET aberta=true WHERE singleton;
+  INSERT INTO sentinela.eventos_auditoria(ator_tipo,servico,acao,depois,justificativa)
+    VALUES ('servico','provisionamento_controlado','liberar_edicao_importada',
+      jsonb_build_object('usuario',usuario,'validade',ate,'prova_restauracao',prova),aprovacao);
+END $$;
+
+COMMIT;

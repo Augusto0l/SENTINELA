@@ -1,0 +1,116 @@
+\set ON_ERROR_STOP on
+BEGIN READ WRITE;
+SET LOCAL lock_timeout = '5s';
+SELECT set_config('sentinela.historical_target', :'cluster_uuid', true),
+       set_config('sentinela.historical_system', :'system_id', true),
+       set_config('sentinela.historical_port', :'port', true)
+\gset
+DO $guard$
+BEGIN
+ IF current_database()<>'sentinela_pcdf_local' OR inet_server_addr() IS DISTINCT FROM '127.0.0.1'::inet
+ OR inet_server_port() NOT IN (55484,55487) OR inet_server_port()::text<>current_setting('sentinela.historical_port')
+ OR current_setting('sentinela.sandbox_uuid',true) IS DISTINCT FROM current_setting('sentinela.historical_target')
+ OR (SELECT system_identifier::text FROM pg_control_system()) IS DISTINCT FROM current_setting('sentinela.historical_system')
+ OR pg_is_in_recovery()
+ OR to_regprocedure('sentinela_pcdf_local.efetivos_csv_v1(jsonb,date)') IS NULL
+ OR to_regprocedure('sentinela_pcdf_local.receive_csv(uuid,uuid,text,jsonb,bytea)') IS NULL
+ OR NOT EXISTS (SELECT FROM sentinela.lotes_importacao
+   WHERE id='84908630-bd04-4a03-923d-616649c8de74' AND competencia='2021-01-01'
+   AND sha256_arquivo='91fa79f88988d1540e81f438e0fb470cea07a0809ac60387577fbdf0be9d6a00')
+ OR NOT EXISTS (SELECT FROM sentinela.eventos_auditoria WHERE acao='pcdf.revisao_independente'
+   AND depois->>'lote'='84908630-bd04-4a03-923d-616649c8de74' AND depois->>'consolidadas'='6090')
+ THEN RAISE EXCEPTION 'Destino ou revisão de janeiro incompatível'; END IF;
+END $guard$;
+
+CREATE ROLE sentinela_pcdf_historico_owner NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
+CREATE SCHEMA sentinela_pcdf_historico;
+REVOKE ALL ON SCHEMA sentinela_pcdf_historico FROM PUBLIC;
+GRANT USAGE ON SCHEMA sentinela_pcdf_historico TO sentinela_pcdf_historico_owner,
+ sentinela_pcdf_owner,sentinela_local_admin,sentinela_local_operator,sentinela_local_analyst;
+CREATE TABLE sentinela_pcdf_historico.arquivos (
+ competencia date PRIMARY KEY, sha256 text UNIQUE NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+ bytes integer NOT NULL CHECK (bytes BETWEEN 1 AND 16777216),
+ linhas integer NOT NULL CHECK (linhas BETWEEN 1 AND 10000), candidatas integer NOT NULL CHECK (candidatas BETWEEN 1 AND linhas),
+ cobertura_ate date NOT NULL, completa boolean NOT NULL
+);
+CREATE TEMP TABLE matriz_historica (
+ competencia text,arquivo text,sha256 text,bytes integer,colunas integer,linhas_origem_distintas integer,
+ chaves_candidatas integer,chaves_com_multiplas_associacoes integer,chaves_com_datas_distintas_no_mes integer,
+ associacoes integer,associacoes_sem_chave integer,origens_repetidas_no_mes integer,associacoes_ano_registro_anterior_ao_fato integer,
+ horarios_nulos integer,naturezas_originais_distintas integer,crs_origem text,primeira_data_do_fato date,
+ ultima_data_do_fato date,dias_com_associacoes integer,geo_referencia_pendente integer,geo_ausente integer,
+ geo_incompleta integer,geo_invalida integer,utm_referencia_pendente integer,utm_ausente integer,utm_incompleta integer,
+ utm_invalida integer,naturezas_originais_json text,origens_repetidas_entre_meses integer,
+ chaves_presentes_em_outros_meses integer,chaves_e_naturezas_presentes_em_outros_meses integer
+) ON COMMIT DROP;
+\copy matriz_historica FROM 'docs/desenvolvimento/pcdf-inventario-mensal-2021-2026.csv' WITH (FORMAT csv, HEADER MATCH, DELIMITER ';', ENCODING 'UTF8')
+INSERT INTO sentinela_pcdf_historico.arquivos
+SELECT (competencia||'-01')::date,sha256,bytes,associacoes,chaves_candidatas,ultima_data_do_fato,
+ dias_com_associacoes=extract(day from (competencia||'-01')::date+interval '1 month -1 day')
+FROM matriz_historica
+WHERE arquivo='pcdf_naturezas_'||competencia||'.csv' AND colunas=26 AND crs_origem IS NULL
+ AND associacoes=linhas_origem_distintas AND origens_repetidas_entre_meses=0;
+DO $inventory$
+BEGIN
+ IF (SELECT count(*) FROM sentinela_pcdf_historico.arquivos)<>68
+ OR (SELECT sum(linhas) FROM sentinela_pcdf_historico.arquivos)<>369660
+ OR EXISTS (SELECT FROM generate_series('2021-01-01'::timestamp,'2026-08-01', '1 month') m
+            WHERE NOT EXISTS (SELECT FROM sentinela_pcdf_historico.arquivos a WHERE a.competencia=m::date))
+ OR (SELECT cobertura_ate FROM sentinela_pcdf_historico.arquivos WHERE NOT completa) IS DISTINCT FROM '2026-08-18'::date
+ THEN RAISE EXCEPTION 'Inventário histórico divergente'; END IF;
+END $inventory$;
+
+ALTER TABLE sentinela_pcdf_historico.arquivos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sentinela_pcdf_historico.arquivos FORCE ROW LEVEL SECURITY;
+GRANT SELECT ON sentinela_pcdf_historico.arquivos TO sentinela_pcdf_historico_owner;
+CREATE POLICY historico_inventario ON sentinela_pcdf_historico.arquivos FOR SELECT TO sentinela_pcdf_historico_owner USING (true);
+
+GRANT USAGE ON SCHEMA sentinela,sentinela_pcdf_local,sentinela_pcdf_revisao,sentinela_gestao_autorizacao TO sentinela_pcdf_historico_owner;
+GRANT SELECT ON sentinela.lotes_importacao,sentinela.execucoes_importacao,sentinela.extracoes_origem,
+ sentinela.linhas_origem,sentinela.linhas_staging,sentinela.naturezas_criminais,
+ sentinela.ocorrencias,sentinela.ocorrencia_naturezas,sentinela.eventos_auditoria TO sentinela_pcdf_historico_owner;
+GRANT INSERT ON sentinela.ocorrencias,sentinela.ocorrencia_naturezas,sentinela.pendencias_revisao,sentinela.eventos_auditoria
+ TO sentinela_pcdf_historico_owner;
+-- O trigger de vínculos resolve estas colunas mesmo com mapeamento nulo. RLS segue sem política de leitura para o papel.
+GRANT SELECT (id,categoria_id,natureza_id,status,crime_tentado) ON sentinela.mapeamentos_natureza TO sentinela_pcdf_historico_owner;
+GRANT SELECT (id,status) ON sentinela.categorias_criminais TO sentinela_pcdf_historico_owner;
+GRANT SELECT (id,ativo,perfil) ON sentinela.usuarios TO sentinela_pcdf_historico_owner;
+GRANT EXECUTE ON FUNCTION sentinela_gestao_autorizacao.exigir(uuid,text),
+ sentinela_pcdf_revisao.informado(text),
+ sentinela.descricao_pcdf(text) TO sentinela_pcdf_historico_owner;
+
+CREATE POLICY historico_extracao ON sentinela.extracoes_origem FOR SELECT TO sentinela_pcdf_historico_owner USING (fonte='PCDF');
+CREATE POLICY historico_lote ON sentinela.lotes_importacao FOR SELECT TO sentinela_pcdf_historico_owner
+ USING (EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id));
+CREATE POLICY historico_execucao ON sentinela.execucoes_importacao FOR SELECT TO sentinela_pcdf_historico_owner
+ USING (EXISTS (SELECT FROM sentinela.lotes_importacao l WHERE l.id=lote_id));
+CREATE POLICY historico_origem ON sentinela.linhas_origem FOR SELECT TO sentinela_pcdf_historico_owner
+ USING (session_user='sentinela_local_admin' AND EXISTS (SELECT FROM sentinela.extracoes_origem x WHERE x.id=extracao_id));
+CREATE POLICY historico_staging ON sentinela.linhas_staging FOR SELECT TO sentinela_pcdf_historico_owner
+ USING (session_user='sentinela_local_admin' AND campos_csv->>'fonte'='PCDF');
+CREATE POLICY historico_natureza ON sentinela.naturezas_criminais FOR SELECT TO sentinela_pcdf_historico_owner USING (fonte='PCDF');
+CREATE POLICY historico_ocorrencia_read ON sentinela.ocorrencias FOR SELECT TO sentinela_pcdf_historico_owner USING (fonte='PCDF');
+CREATE POLICY historico_ocorrencia_insert ON sentinela.ocorrencias FOR INSERT TO sentinela_pcdf_historico_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND fonte='PCDF' AND origem='importacao'
+  AND versao_identidade='pcdf-tupla-conferida-v1' AND consolidacao_status='consolidada' AND ra_id IS NULL
+  AND localizacao_status<>'validada' AND latitude IS NULL AND longitude IS NULL AND geometria IS NULL);
+CREATE POLICY historico_vinculo_read ON sentinela.ocorrencia_naturezas FOR SELECT TO sentinela_pcdf_historico_owner
+ USING (EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id));
+CREATE POLICY historico_vinculo_insert ON sentinela.ocorrencia_naturezas FOR INSERT TO sentinela_pcdf_historico_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND origem='importacao' AND linha_origem_id IS NOT NULL AND mapeamento_id IS NULL
+   AND EXISTS (SELECT FROM sentinela.ocorrencias o WHERE o.id=ocorrencia_id));
+CREATE POLICY historico_pendencia_insert ON sentinela.pendencias_revisao FOR INSERT TO sentinela_pcdf_historico_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND versao_regra='pcdf-consolidacao-historica-v1'
+   AND ocorrencia_id IS NULL AND status='aberta' AND tipo='identificacao'
+   AND EXISTS (SELECT FROM sentinela.linhas_origem o WHERE o.id=pendencias_revisao.linha_origem_id));
+CREATE POLICY historico_audit_read ON sentinela.eventos_auditoria FOR SELECT TO sentinela_pcdf_historico_owner
+ USING (acao IN ('pcdf.consolidacao_historica','pcdf.revisao_independente'));
+CREATE POLICY historico_audit_insert ON sentinela.eventos_auditoria FOR INSERT TO sentinela_pcdf_historico_owner
+ WITH CHECK (session_user='sentinela_local_admin' AND acao='pcdf.consolidacao_historica'
+   AND servico='sentinela-pcdf' AND ator_tipo='servico' AND execucao_id IS NOT NULL);
+CREATE POLICY historico_pendencia_leitor ON sentinela.pendencias_revisao FOR SELECT TO sentinela_ocorrencias_reader
+ USING (versao_regra='pcdf-consolidacao-historica-v1'
+   AND EXISTS (SELECT FROM sentinela.linhas_origem o WHERE o.id=pendencias_revisao.linha_origem_id));
+
+\ir pcdf-historical-import-functions.sql
+COMMIT;
