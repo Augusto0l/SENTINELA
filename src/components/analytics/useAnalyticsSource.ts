@@ -63,9 +63,11 @@ function summaryOf(data: PersistentAnalyticsData | null, ra: string) {
 }
 
 function drawPoints(points: PersistentAnalyticsData["points"], names: Record<string, string>): MapOccurrence[] {
-  return points.map(({ latitude, longitude, raCode, id }, index) => ({
-    id: id ?? String(index), occurrenceId: id, raCode: raCode ?? "", raName: raCode ? (names[raCode] ?? raCode) : "RA sem vínculo validado",
-    natureza: "Ocorrência com localização validada",
+  return points.map(({ latitude, longitude, raCode, id, territorialRaCode, publicationStatus }, index) => ({
+    id: id ?? String(index), occurrenceId: id, raCode: raCode ?? "", raName: raCode ? (names[raCode] ?? raCode) : "RA espacial não informada",
+    territorialRaName: territorialRaCode ? (names[territorialRaCode] ?? territorialRaCode) : undefined,
+    publicationStatus,
+    natureza: publicationStatus === "pcdf_crs_unverified" ? "Ponto PCDF publicado" : "Ocorrência localizada",
     data: "", horario: "", local: "", latitude, longitude, ...projectLonLat(longitude, latitude),
   }))
 }
@@ -96,6 +98,8 @@ export function useAnalyticsSource(persistent: boolean, filters: AnalyticSelecti
   const names = useMemo(() => Object.fromEntries(officialRegions?.map(region => [region.code, region.displayName]) ?? []), [officialRegions])
   const points = useMemo(() => drawPoints(data?.points ?? [], names), [data?.points, names])
   const reference = useMemo(() => drawPoints(data?.heatReference ?? [], names), [data?.heatReference, names])
+  const unverifiedPcdfPoints = useMemo(() => data?.unverifiedPcdfPoints ??
+    points.filter(point => point.publicationStatus === "pcdf_crs_unverified").length, [data?.unverifiedPcdfPoints, points])
   const period = dashboard && data ? dashboardPeriod(data, filters) : null
   const timeline = period?.timeline ?? data?.timeline
   const month = timeline?.length === 1 ? timeline[0].key : undefined
@@ -112,6 +116,8 @@ export function useAnalyticsSource(persistent: boolean, filters: AnalyticSelecti
     categoryCounts: data?.byCategory ?? [],
     mapSummary: demo?.mapSummary ?? { total: data?.mapTotal ?? 0, byRa: bucketMap(data?.mappedByRa ?? data?.byRa ?? []) },
     mapRecords: demo?.mapRecords ?? points,
+    eligiblePoints: demo?.mapRecords.length ?? data?.eligiblePoints ?? (data?.pointsTruncated ? null : points.length),
+    unverifiedPcdfPoints,
     heatReference: persistent ? reference : MOCK_OCCURRENCES,
     heatUnavailable: Boolean(data?.heatUnavailable), pointsTruncated: Boolean(data?.pointsTruncated),
     regionOptions: persistent

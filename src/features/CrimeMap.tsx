@@ -54,7 +54,7 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
     if (!point.occurrenceId) return;
     const href = occurrenceHrefFromMap(point.occurrenceId, {
       latitude: point.latitude, longitude: point.longitude,
-      raName: spatialRaName(officialGeometry, point, officialRegions),
+      raName: point.raCode ? point.raName : spatialRaName(officialGeometry, point, officialRegions),
     });
     if (!href) return;
     setHover(null);
@@ -85,7 +85,13 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
         {summary.total === 0 && mapOccurrences.length === 0 && <p role="status" className={analyticsStyles.empty}>Nenhuma ocorrência no intervalo e nos filtros aplicados. Ajuste o período ou limpe os filtros.</p>}
         <p data-testid="analytics-total" data-count={summary.total} className={analyticsStyles.mapTotal}>{raPoints === null
           ? `${summary.total.toLocaleString("pt-BR")} ocorrências únicas no recorte aplicado`
-          : <>{summary.total.toLocaleString("pt-BR")} {summary.total === 1 ? "ocorrência" : "ocorrências"} com vínculo territorial validado na RA · <span data-testid="analytics-ra-points" data-count={raPoints}>{raPoints.toLocaleString("pt-BR")} {raPoints === 1 ? "ponto localizado" : "pontos localizados"} espacialmente na RA</span></>}</p>
+          : <>{summary.total.toLocaleString("pt-BR")} {summary.total === 1 ? "ocorrência única" : "ocorrências únicas"} com vínculo territorial validado na RA · <span data-testid="analytics-ra-points" data-count={raPoints}>{raPoints.toLocaleString("pt-BR")} {raPoints === 1 ? "ponto localizado" : "pontos localizados"} espacialmente na RA</span></>}</p>
+        {mapMode === "points" && <p className={analyticsStyles.mapTotal} data-testid="analytics-eligible-points" data-count={source.eligiblePoints ?? undefined}>
+          {source.eligiblePoints === null ? "Total de pontos elegíveis indisponível" : `${source.eligiblePoints.toLocaleString("pt-BR")} pontos geograficamente elegíveis no recorte`}
+        </p>}
+        {mapMode === "points" && source.unverifiedPcdfPoints > 0 && <p className={analyticsStyles.mapTotal}>
+          {source.unverifiedPcdfPoints.toLocaleString("pt-BR")} pontos PCDF publicados no recorte com CRS de origem sem comprovação formal.
+        </p>}
         </>}
       </div>
       {/* Official cartography loads separately; it stays visible while indicators are pending. */}
@@ -174,9 +180,10 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
             />}
             {source.pending && source.officialRegions && <p className={analyticsStyles.mapNotice} role="status">Carregando ocorrências…</p>}
             {source.heatUnavailable && mapMode === "heat" && <p className={analyticsStyles.mapNotice} role="status">Calor indisponível: a base de referência excede o limite de pontos.</p>}
-            {source.pointsTruncated && (mapMode === "points" || mapMode === "clusters") && <p className={analyticsStyles.mapNotice} role="status">Camada parcial. Restrinja os filtros para ver todos os pontos.</p>}
-            {persistent && source.officialRegions && !source.pending && mapMode !== "satellite" && !source.heatUnavailable && mapOccurrences.length === 0 &&
-              <p className={analyticsStyles.mapNotice} role="status">Nenhum ponto geográfico homologado no recorte.</p>}
+            {source.pointsTruncated && (mapMode === "points" || mapMode === "clusters" || (mapMode === "satellite" && showSatelliteOccurrences)) &&
+              <p className={analyticsStyles.mapNotice} role="status">Cobertura parcial. A camada recebeu {mapOccurrences.length.toLocaleString("pt-BR")} pontos no limite da consulta. Restrinja os filtros para ver todos os pontos do novo recorte.</p>}
+            {persistent && source.officialRegions && !source.pending && mapMode !== "satellite" && (mapMode !== "heat" || !source.heatUnavailable) && mapOccurrences.length === 0 &&
+              <p className={analyticsStyles.mapNotice} role="status">Nenhum ponto elegível para exibição no recorte.</p>}
             {hover && <MapOccurrenceTooltip key={hover.id} {...hover} geometry={officialGeometry} regions={officialRegions} />}
           </div>
           <footer className={analyticsStyles.mapCaption}>

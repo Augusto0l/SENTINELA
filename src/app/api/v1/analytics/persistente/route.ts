@@ -28,7 +28,7 @@ export function GET(request: Request) {
           }
           const { rows } = await client.query(analyticsSql(filters, "integrated", confirmedMap))
           const data = !confirmedMap && (hosted || mode?.port === directDatabasePort) && rows[0]?.data
-            ? { ...rows[0].data, points: [], heatReference: [], mappedByRa: [], pointsTruncated: false, heatUnavailable: false }
+            ? { ...rows[0].data, points: [], heatReference: [], mappedByRa: [], eligiblePoints: 0, pointsTruncated: false, heatUnavailable: false }
             : rows[0]?.data
           if (!installed || !data) return data
           const { rows: [coverage] } = await client.query("SELECT sentinela_pcdf_historico.coverage() AS data")

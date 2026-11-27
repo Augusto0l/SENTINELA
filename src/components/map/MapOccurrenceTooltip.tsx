@@ -41,8 +41,11 @@ export default function MapOccurrenceTooltip({ id, point, anchor, geometry, regi
     element.style.top = `${Math.max(8, Math.min(y, anchor.height - height - 8))}px`
   }, [anchor, result, geometry, regions])
 
-  const spatialRa = result ? spatialRaName(geometry, point, regions) : undefined
+  const spatialRa = point.raCode ? point.raName : spatialRaName(geometry, point, regions)
+  const unverified = point.publicationStatus === "pcdf_crs_unverified" ||
+    (result?.fonte === "PCDF" && result.origem === "importacao" && result.localizacaoStatus !== "validada")
   return <div ref={tooltip} className={styles.occurrenceTooltip} role="tooltip">
+    {unverified && <p>Ponto PCDF publicado. CRS de origem sem comprovação formal.</p>}
     {result === undefined ? "Consultando ocorrência…" : result === null ? "Detalhes da ocorrência indisponíveis." : <>
       <strong>Natureza criminal</strong>
       {result.naturezas.length ? <ul>{result.naturezas.map(({ nome }, index) => <li key={index}>{nome}</li>)}</ul>
@@ -51,7 +54,7 @@ export default function MapOccurrenceTooltip({ id, point, anchor, geometry, regi
         {result.data && <div><dt>Data</dt><dd>{result.data.split("-").reverse().join("/")}</dd></div>}
         {result.hora && <div><dt>Horário</dt><dd>{result.hora}</dd></div>}
         {spatialRa && <div><dt>RA pela posição do ponto</dt><dd>{spatialRa}</dd></div>}
-        <div><dt>Vínculo territorial</dt><dd>{result.ra ?? "Não informado"}</dd></div>
+        <div><dt>Vínculo territorial</dt><dd>{result.ra ?? point.territorialRaName ?? "Não informado"}</dd></div>
       </dl>
     </>}
   </div>

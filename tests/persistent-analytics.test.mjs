@@ -27,8 +27,11 @@ test("PCDF Dashboard restricts source and applies nature and category to the sam
 test("confirmed maps use the published projection independently of the PCDF statistical population", async () => {
   const { text, values } = analyticsSql({ scope: "pcdf", ra: "RA-I", hour: "18-24" }, "integrated", true)
   assert.match(text, /statistical AS \(SELECT \* FROM matched o WHERE o\.fonte='PCDF' AND o\.origem='importacao'\)/)
-  // Map points filter by the validated RA or, without one, by the RA that covers the published point.
-  assert.match(text, /SELECT id,coalesce\(m\.code,to_jsonb\(p\)->>'ra_codigo'\) AS "raCode",p\.latitude,p\.longitude\s+FROM matched m JOIN sentinela_ocorrencias_analytics\.pontos_confirmados p USING\(id\)\s+WHERE coalesce\(m\.code,to_jsonb\(p\)->>'ra_codigo'\)=\$3::text/)
+  // Spatial RA has priority for filtering and counting points; the territorial link is a separate field.
+  assert.match(text, /SELECT id,coalesce\(to_jsonb\(p\)->>'ra_codigo',m\.code\) AS "raCode",p\.latitude,p\.longitude,m\.code AS "territorialRaCode"/)
+  assert.match(text, /WHERE coalesce\(to_jsonb\(p\)->>'ra_codigo',m\.code\)=\$3::text/)
+  assert.match(text, /'pcdf_crs_unverified' ELSE 'validated' END AS "publicationStatus"/)
+  assert.match(text, /'eligiblePoints',\(SELECT count\(\*\) FROM mapped\)/)
   assert.match(text, /selected AS MATERIALIZED \(SELECT \* FROM statistical WHERE code=\$3::text\)/)
   assert.match(text, /'points',\(SELECT coalesce\(jsonb_agg\(to_jsonb\(p\) ORDER BY id\)/)
   assert.match(text, /'mappedByRa'/)

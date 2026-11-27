@@ -20,10 +20,15 @@ import { clusterCell, frameDetail, pointRadius } from "@/components/map/mapSymbo
 import { officialRaLines } from "@/components/map/raTooltip";
 import { useStreetNavigation } from "@/components/map/useStreetNavigation";
 import type { MapOccurrenceInteraction } from "@/components/map/MapOccurrenceTooltip";
+import type { PointPublicationStatus } from "@/contracts/persistent-analytics";
 import styles from "@/components/map/AnalyticMap.module.css";
 
 export type MapMode = "heat" | "points" | "clusters" | "satellite";
-export type MapOccurrence = MockOccurrence & { occurrenceId?: string };
+export type MapOccurrence = MockOccurrence & {
+  occurrenceId?: string;
+  territorialRaName?: string;
+  publicationStatus?: PointPublicationStatus;
+};
 
 const MapOccurrenceDetail = dynamic(() => import("@/features/occurrences/OccurrenceWorkspace")
   .then(module => module.ConsolidatedDetail), { ssr: false });
@@ -507,7 +512,7 @@ export default function MapaDF({
       </>}
 
       {/* Legend */}
-      {!selectedRA && analyticMap && (
+      {(!selectedRA || mapMode === "points") && analyticMap && (
         <div className={styles.legend} style={{ position: "absolute", bottom: dashboard ? 12 : 14, left: dashboard ? undefined : 16, right: dashboard ? 12 : undefined, pointerEvents: "none", borderRadius: 7, padding: "8px 10px", fontSize: 10 }}>
           {mapMode === "heat" ? <>
             {dashboard && <div>Densidade de ocorrências</div>}
@@ -517,6 +522,7 @@ export default function MapaDF({
           </> : <>
             <span className={`${styles.legendSymbol} ${mapMode === "points" ? styles.pointSymbol : styles.clusterSymbol}`} />
             {mapMode === "points" ? "Ocorrência individual" : "Quantidade de ocorrências agrupadas"}
+            {mapMode === "points" && <div data-testid="point-symbol-count">{visibleOccs.length.toLocaleString("pt-BR")} símbolos carregados</div>}
           </>}
         </div>
       )}

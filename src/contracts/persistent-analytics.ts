@@ -19,6 +19,8 @@ const bucket = z.strictObject({ key: z.string(), count: countSchema })
 const monthlyCoverage = z.strictObject({ key: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
   status: z.enum(["not_imported", "complete", "partial"]), through: dateSchema })
 const point = coordinateSchema.extend({ raCode: code.nullable() })
+export const pointPublicationStatus = z.enum(["validated", "pcdf_crs_unverified"])
+export type PointPublicationStatus = z.infer<typeof pointPublicationStatus>
 export const ANALYTICS_POINT_LIMIT = 10000
 export const persistentAnalyticsData = z.strictObject({
   total: countSchema, mapTotal: countSchema,
@@ -30,11 +32,19 @@ export const persistentAnalyticsData = z.strictObject({
   weekday: z.number().int().min(0).max(6).nullable(), hour: z.number().int().min(0).max(23).nullable(),
   regions: z.array(z.strictObject({ code, name: z.string().min(1) })),
   natures: z.array(option), categories: z.array(option.extend({ id: z.string().min(1).max(240) })),
-  points: z.array(point.extend({ id: z.uuid().optional() })).max(ANALYTICS_POINT_LIMIT),
+  points: z.array(point.extend({
+    id: z.uuid().optional(),
+    territorialRaCode: code.nullable().optional(),
+    publicationStatus: pointPublicationStatus.optional(),
+  })).max(ANALYTICS_POINT_LIMIT),
   heatReference: z.array(point).max(ANALYTICS_POINT_LIMIT),
   pointsTruncated: z.boolean(), heatUnavailable: z.boolean(),
+  eligiblePoints: countSchema.optional(),
+  unverifiedPcdfPoints: countSchema.optional(),
 }).refine(value => value.total <= value.mapTotal && value.timeline.reduce((n,b) => n+b.count,0) <= value.total &&
   value.byRa.reduce((n,b) => n+b.count,0) <= value.mapTotal &&
+  (value.eligiblePoints === undefined || (value.eligiblePoints >= value.points.length &&
+    (value.unverifiedPcdfPoints ?? 0) <= value.eligiblePoints)) &&
   (!value.heatUnavailable || value.heatReference.length === 0))
 export const persistentAnalyticsResponse = successSchema(persistentAnalyticsData)
 export type PersistentAnalyticsData = z.infer<typeof persistentAnalyticsData>

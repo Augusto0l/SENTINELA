@@ -1464,6 +1464,24 @@
                           "type": "string",
                           "format": "uuid",
                           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "territorialRaCode": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[A-Z0-9-]{1,30}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "publicationStatus": {
+                          "type": "string",
+                          "enum": [
+                            "validated",
+                            "pcdf_crs_unverified"
+                          ]
                         }
                       },
                       "required": [
@@ -1515,6 +1533,16 @@
                   },
                   "heatUnavailable": {
                     "type": "boolean"
+                  },
+                  "eligiblePoints": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "unverifiedPcdfPoints": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -11668,6 +11696,24 @@
                       "type": "string",
                       "format": "uuid",
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "territorialRaCode": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Z0-9-]{1,30}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "publicationStatus": {
+                      "type": "string",
+                      "enum": [
+                        "validated",
+                        "pcdf_crs_unverified"
+                      ]
                     }
                   },
                   "required": [
@@ -11719,6 +11765,16 @@
               },
               "heatUnavailable": {
                 "type": "boolean"
+              },
+              "eligiblePoints": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "unverifiedPcdfPoints": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
             "required": [

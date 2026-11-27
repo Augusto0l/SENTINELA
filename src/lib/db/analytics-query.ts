@@ -32,8 +32,8 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
   }
   const raParam = query.ra ? bind(query.ra) : null
   const selected = raParam ? ` WHERE code=${raParam}::text` : ""
-  // Published map points without a validated territorial link carry the RA that covers them (map use only).
-  const pointRa = `coalesce(m.code,to_jsonb(p)->>'ra_codigo')`
+  // The published spatial RA governs the map. Older manual-only views expose the validated RA on the occurrence.
+  const pointRa = `coalesce(to_jsonb(p)->>'ra_codigo',m.code)`
   const limit = source === "integrated" ? ANALYTICS_POINT_LIMIT : 5000
   const eligiblePoint = `${source === "legacy" ? "code IS NOT NULL AND " : ""}localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL`
   const population = pcdf && confirmedMap ? "statistical" : "matched"
@@ -61,24 +61,25 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
     ${pcdf && linkFilters.length ? "WHERE " + linkFilters.join(" AND ") : ""}
   ),
   ${confirmedMap ? `mapped AS MATERIALIZED (
-    SELECT id,${pointRa} AS "raCode",p.latitude,p.longitude
+    SELECT id,${pointRa} AS "raCode",p.latitude,p.longitude,m.code AS "territorialRaCode",
+      CASE WHEN m.fonte='PCDF' AND m.origem='importacao' AND m.localizacao_status IS DISTINCT FROM 'validada'
+        THEN 'pcdf_crs_unverified' ELSE 'validated' END AS "publicationStatus"
     FROM matched m JOIN ${schema}.pontos_confirmados p USING(id)${raParam ? `
     WHERE ${pointRa}=${raParam}::text` : ""}
   ),
   points AS (SELECT * FROM mapped ORDER BY id LIMIT ${limit + 1}),
-  reference AS (SELECT id,NULL::text AS "raCode",latitude,longitude FROM ${schema}.pontos_confirmados ORDER BY id LIMIT ${limit + 1})` : `points AS (
+  reference AS (SELECT id,NULL::text AS "raCode",latitude,longitude FROM ${schema}.pontos_confirmados ORDER BY id LIMIT ${limit + 1})` : `mapped AS (
     SELECT id,code AS "raCode",latitude,longitude FROM selected
     WHERE ${eligiblePoint}
-    ORDER BY id LIMIT ${limit + 1}
-  ), reference AS (
+  ), points AS (SELECT * FROM mapped ORDER BY id LIMIT ${limit + 1}), reference AS (
     SELECT id,code AS "raCode",latitude,longitude FROM visible
     WHERE ${eligiblePoint}
     ORDER BY id LIMIT ${limit + 1}
   )`}
   SELECT jsonb_build_object(
     'total',(SELECT count(*) FROM selected),'mapTotal',(SELECT count(*) FROM ${population}),
-    ${confirmedMap ? `'mappedByRa',(SELECT coalesce(jsonb_agg(b ORDER BY key),'[]') FROM
-      (SELECT "raCode" AS key,count(*) AS count FROM mapped WHERE "raCode" IS NOT NULL GROUP BY 1) b),` : ""}
+    'mappedByRa',(SELECT coalesce(jsonb_agg(b ORDER BY key),'[]') FROM
+      (SELECT "raCode" AS key,count(*) AS count FROM mapped WHERE "raCode" IS NOT NULL GROUP BY 1) b),
     'byRa',(SELECT coalesce(jsonb_agg(b ORDER BY key),'[]') FROM
       (SELECT code AS key,count(*) AS count FROM ${pcdf ? "selected" : "matched"} WHERE code IS NOT NULL GROUP BY code) b),
     'byNature',(SELECT coalesce(jsonb_agg(b ORDER BY count DESC,key COLLATE "C"),'[]') FROM
@@ -103,6 +104,8 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
         ORDER BY name,canonical DESC,id) labels),
     'categories',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',name,'name',name) ORDER BY name),'[]') FROM source_categories),
     'points',(SELECT coalesce(jsonb_agg(${confirmedMap ? "to_jsonb(p)" : "to_jsonb(p)-'id'"} ORDER BY id),'[]') FROM (SELECT * FROM points ORDER BY id LIMIT ${limit}) p),
+    'eligiblePoints',(SELECT count(*) FROM mapped),
+    ${confirmedMap ? `'unverifiedPcdfPoints',(SELECT count(*) FROM mapped WHERE "publicationStatus"='pcdf_crs_unverified'),` : ""}
     'heatReference',CASE WHEN (SELECT count(*) FROM reference)>${limit} THEN '[]'::jsonb ELSE (SELECT coalesce(jsonb_agg(to_jsonb(reference)-'id' ORDER BY id),'[]') FROM reference) END,
     'pointsTruncated',(SELECT count(*) FROM points)>${limit},
     'heatUnavailable',(SELECT count(*) FROM reference)>${limit}
