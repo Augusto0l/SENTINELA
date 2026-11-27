@@ -30,6 +30,8 @@ export const localOccurrencesQuery = z.discriminatedUnion("view", [
     view: z.literal("consolidadas"), ...listQuery,
     ordenar: z.enum(["data", "identificacao", "ra"]).default("data"),
     raId: z.uuid().optional(), naturezaId: z.uuid().optional(),
+    // Homologated SENTINELA category name (migration 0020); offered only when the summary lists categories.
+    categoria: z.string().trim().min(1).max(160).optional(),
   }),
   z.strictObject({
     view: z.literal("manuais"), ...listQuery,
@@ -55,6 +57,7 @@ export const localOccurrenceSummary = z.strictObject({
   pendencias: countSchema.nullable(), competencias: z.array(directMonth).nullable(),
   rasImportadas: z.array(z.string()), naturezasImportadas: z.array(z.string()),
   rasConsolidadas: z.array(option), naturezasConsolidadas: z.array(option),
+  categoriasConsolidadas: z.array(z.string()).optional(),
 })
 export const localOccurrenceRow = z.strictObject({
   id: z.uuid(), origem_id: z.uuid().nullable(), identificacao: nullableText,
@@ -89,7 +92,9 @@ export const consolidatedOccurrenceDetail = z.strictObject({
   }).optional(),
   dadosCrime: storedManualCrimeDetails.optional(),
   localizacaoConfirmada: z.boolean().optional(),
-  naturezas: z.array(z.strictObject({ nome: z.string(), classificacao: z.string(), crimeTentado: z.boolean().nullable() })),
+  naturezas: z.array(z.strictObject({ nome: z.string(), classificacao: z.string(), crimeTentado: z.boolean().nullable(),
+    // Homologated SENTINELA category (migration 0020); absent before it and null while unclassified.
+    categoria: z.string().nullable().optional() })),
 })
 export const localOccurrenceResponse = successSchema(z.union([
   localOccurrenceSummary, localOccurrenceList, importedOccurrenceDetail, consolidatedOccurrenceDetail,

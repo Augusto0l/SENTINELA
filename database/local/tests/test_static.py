@@ -55,6 +55,8 @@ QUALIFIED_LOCAL_SQL = {
     ROOT / 'write-sandbox/geography.sql': 'ad8702472205a4fb6642c2778608bf7f08478041bd7e526bb75ca72289070857',
     ROOT / 'write-sandbox/mutations.sql': 'ca3ba3f41cf93e2dd72359748262dc61390318bc9ff8cf1bfb7e66fc7490a9ce',
     ROOT / 'write-sandbox/setup.sql': 'a274933b339d7ae86153c3bd35905f6ced8626b2908bade1217da45d38084904',
+    # Clone-only audited classification backend v2 (Etapa 3 rehearsal); pending institutional review.
+    ROOT / 'catalogo-criminal/sql/0002_reclassificacao_backend.sql': '48d1393792bf1c30d1b34f887daacdcc4e2a00e467632fdc5b1f857ec2cf4eb8',
 }
 
 

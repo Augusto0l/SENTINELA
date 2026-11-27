@@ -11,8 +11,13 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
   const sourceCategory = source === "integrated" ? "to_jsonb(a)->>'categoria_pcdf_original'" : "original.categoria_pcdf_original"
   const categoryJoin = source === "legacy" ? ` JOIN ${schema}.naturezas_criminais original ON original.id=a.natureza_id` : ""
   const canonical = source === "integrated" ? "coalesce((to_jsonb(n)->>'catalogo_pcdf')::boolean,false)" : "false"
-  const mappedCategory = confirmedMap ? `LEFT JOIN ${schema}.mapeamentos_natureza m ON m.id=a.mapeamento_id
-    LEFT JOIN ${schema}.categorias_criminais c ON c.id=m.categoria_id` : ""
+  // Integrated sources group by the homologated SENTINELA category when the association is classified and fall back
+  // to the PCDF source label otherwise, so nothing disappears before homologation.
+  const homologated = source === "integrated"
+  const mappedCategory = confirmedMap || homologated ? `LEFT JOIN ${schema}.mapeamentos_natureza m ON m.id=a.mapeamento_id
+    LEFT JOIN ${schema}.categorias_criminais c ON c.id=m.categoria_id${homologated ? " AND c.status='homologada'" : ""}` : ""
+  const categoryExpression = homologated ? `coalesce(c.nome,nullif(${sourceCategory},''))`
+    : confirmedMap ? `coalesce(nullif(${sourceCategory},''),c.nome)` : sourceCategory
   const values: unknown[] = []
   const bind = (value: unknown) => { values.push(value); return `$${values.length}` }
   const filters = ["true"]
@@ -50,7 +55,7 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
     SELECT n.id,n.descricao_original COLLATE "C" AS name,${canonical} AS canonical
     FROM ${schema}.naturezas_criminais n
   ), links AS MATERIALIZED (
-    SELECT a.ocorrencia_id,a.natureza_id,(${confirmedMap ? `coalesce(nullif(${sourceCategory},''),c.nome)` : sourceCategory}) COLLATE "C" AS categoria
+    SELECT a.ocorrencia_id,a.natureza_id,(${categoryExpression}) COLLATE "C" AS categoria
     FROM ${schema}.ocorrencia_naturezas a${categoryJoin}
     JOIN visible o ON o.id=a.ocorrencia_id
     ${mappedCategory}

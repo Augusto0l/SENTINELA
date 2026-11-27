@@ -1,0 +1,308 @@
+{
+  "versao": "pcdf-matriz-conjunta-2021-01",
+  "fonte": {
+    "lote": "84908630-bd04-4a03-923d-616649c8de74",
+    "competencia": "2021-01",
+    "sha256Arquivo": "91fa79f88988d1540e81f438e0fb470cea07a0809ac60387577fbdf0be9d6a00",
+    "ambiente": "clone descartável do PostgreSQL operacional local (leitura)"
+  },
+  "totais": {
+    "associacoesImportadas": 6392,
+    "associacoesManuais": 1,
+    "triplas": 36,
+    "naturezasObservadas": 34,
+    "categoriasPcdfObservadas": 19
+  },
+  "conclusao": "Cada par (natureza original, crime_tentado) corresponde a uma única categoria PCDF em 2021-01.",
+  "triplas": [
+    {
+      "associacoes": 6,
+      "ocorrencias": 6,
+      "crime_tentado": false,
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "natureza_original": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 121,
+      "ocorrencias": 121,
+      "crime_tentado": false,
+      "categoria_pcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "natureza_original": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 30,
+      "ocorrencias": 30,
+      "crime_tentado": false,
+      "categoria_pcdf": "05_ESTUPRO",
+      "natureza_original": "ESTUPRO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 86,
+      "ocorrencias": 86,
+      "crime_tentado": false,
+      "categoria_pcdf": "05_ESTUPRO",
+      "natureza_original": "ESTUPRO DE VULNERÁVEL",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 5,
+      "ocorrencias": 5,
+      "crime_tentado": true,
+      "categoria_pcdf": "123.1_TENTATIVA DE FEMINICIDIO",
+      "natureza_original": "FEMINICIDIO",
+      "crime_tentado_origem": "SIM"
+    },
+    {
+      "associacoes": 3,
+      "ocorrencias": 3,
+      "crime_tentado": false,
+      "categoria_pcdf": "123_FEMINICIDIO",
+      "natureza_original": "FEMINICIDIO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 110,
+      "ocorrencias": 110,
+      "crime_tentado": false,
+      "categoria_pcdf": "25_FURTO DE VEICULO",
+      "natureza_original": "FURTO DE MOTOCICLETA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 235,
+      "ocorrencias": 235,
+      "crime_tentado": false,
+      "categoria_pcdf": "25_FURTO DE VEICULO",
+      "natureza_original": "FURTO DE VEICULO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 332,
+      "ocorrencias": 332,
+      "crime_tentado": false,
+      "categoria_pcdf": "26_FURTO EM COMERCIO",
+      "natureza_original": "FURTO EM COMERCIO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 549,
+      "ocorrencias": 549,
+      "crime_tentado": false,
+      "categoria_pcdf": "28_FURTO EM INTERIOR DE VEICULO",
+      "natureza_original": "FURTO EM INTERIOR DE VEICULO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 473,
+      "ocorrencias": 473,
+      "crime_tentado": false,
+      "categoria_pcdf": "27_FURTO EM RESIDENCIA",
+      "natureza_original": "FURTO EM RESIDENCIA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 56,
+      "ocorrencias": 56,
+      "crime_tentado": true,
+      "categoria_pcdf": "01.1_TENTATIVA DE HOMICIDIO",
+      "natureza_original": "HOMICIDIO",
+      "crime_tentado_origem": "SIM"
+    },
+    {
+      "associacoes": 33,
+      "ocorrencias": 33,
+      "crime_tentado": false,
+      "categoria_pcdf": "01_HOMICIDIO",
+      "natureza_original": "HOMICIDIO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 2,
+      "ocorrencias": 2,
+      "crime_tentado": false,
+      "categoria_pcdf": "21_LATROCINIO",
+      "natureza_original": "LATROCINIO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 1690,
+      "ocorrencias": 1690,
+      "crime_tentado": false,
+      "categoria_pcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "natureza_original": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 14,
+      "ocorrencias": 14,
+      "crime_tentado": false,
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "natureza_original": "PORTE DE ARMA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 429,
+      "ocorrencias": 429,
+      "crime_tentado": false,
+      "categoria_pcdf": "88_USO E PORTE DE DROGAS",
+      "natureza_original": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 53,
+      "ocorrencias": 53,
+      "crime_tentado": false,
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "natureza_original": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 28,
+      "ocorrencias": 28,
+      "crime_tentado": false,
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "natureza_original": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 13,
+      "ocorrencias": 13,
+      "crime_tentado": false,
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "natureza_original": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 2,
+      "ocorrencias": 2,
+      "crime_tentado": false,
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "natureza_original": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 4,
+      "ocorrencias": 4,
+      "crime_tentado": false,
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "natureza_original": "ROUBO A BAR",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 10,
+      "ocorrencias": 10,
+      "crime_tentado": false,
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "natureza_original": "ROUBO A DROGARIA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 5,
+      "ocorrencias": 5,
+      "crime_tentado": false,
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "natureza_original": "ROUBO A PANIFICADORA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 3,
+      "ocorrencias": 3,
+      "crime_tentado": false,
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "natureza_original": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 2,
+      "ocorrencias": 2,
+      "crime_tentado": false,
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "natureza_original": "ROUBO A TRAILLER",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 1387,
+      "ocorrencias": 1387,
+      "crime_tentado": false,
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "natureza_original": "ROUBO A TRANSEUNTE",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 199,
+      "ocorrencias": 199,
+      "crime_tentado": false,
+      "categoria_pcdf": "18_ROUBO DE VEICULO",
+      "natureza_original": "ROUBO DE VEICULO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 2,
+      "ocorrencias": 2,
+      "crime_tentado": false,
+      "categoria_pcdf": "20_ROUBO EM RESIDÊNCIA",
+      "natureza_original": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 53,
+      "ocorrencias": 53,
+      "crime_tentado": false,
+      "categoria_pcdf": "14_ROUBO EM COLETIVO",
+      "natureza_original": "ROUBO EM COLETIVO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 70,
+      "ocorrencias": 70,
+      "crime_tentado": false,
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "natureza_original": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 117,
+      "ocorrencias": 117,
+      "crime_tentado": false,
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "natureza_original": "ROUBO EM PARADA DE ONIBUS",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 43,
+      "ocorrencias": 43,
+      "crime_tentado": false,
+      "categoria_pcdf": "20_ROUBO EM RESIDÊNCIA",
+      "natureza_original": "ROUBO EM RESIDENCIA",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 2,
+      "ocorrencias": 2,
+      "crime_tentado": false,
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "natureza_original": "ROUBO NA PROXIMIDADES DE BANCO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 1,
+      "ocorrencias": 1,
+      "crime_tentado": false,
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "natureza_original": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "crime_tentado_origem": "NÃO"
+    },
+    {
+      "associacoes": 224,
+      "ocorrencias": 224,
+      "crime_tentado": false,
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "natureza_original": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "crime_tentado_origem": "NÃO"
+    }
+  ],
+  "sha256Triplas": "57d7b8c88a548a2cee70c16161f8d5ef078a3b037dd0eae8c3b05915df303e6a"
+}

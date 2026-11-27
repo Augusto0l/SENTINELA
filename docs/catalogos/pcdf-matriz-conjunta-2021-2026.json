@@ -1,0 +1,453 @@
+{
+  "versao": "pcdf-matriz-conjunta-2021-2026",
+  "fonte": {
+    "inventario": "pcdf-inventario-mensal-2021-2026.csv",
+    "arquivos": 68,
+    "verificacao": "SHA-256, bytes, linhas e naturezas por arquivo"
+  },
+  "totais": {
+    "associacoes": 369660,
+    "triplas": 43,
+    "naturezas": 41,
+    "categoriasPcdf": 19,
+    "valoresTentativa": [
+      "NÃO",
+      "SIM"
+    ],
+    "paresAmbiguos": 0
+  },
+  "paresAmbiguos": [],
+  "triplas": [
+    {
+      "natureza_original": "ASSOCIACAO PARA O FIM DE TRAFICO DE SUBSTANCIA ENTORPECENTE",
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 799,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "DESCUMPRIR DECISÃO JUDICIAL QUE DEFERE MEDIDAS PROTETIVAS DE URGÊNCIA PREVISTAS NA LEI 11.340/2006",
+      "categoria_pcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 12648,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ESTUPRO",
+      "categoria_pcdf": "05_ESTUPRO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1795,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ESTUPRO COLETIVO",
+      "categoria_pcdf": "05_ESTUPRO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 14,
+      "competencias": 11,
+      "primeira": "2021-10",
+      "ultima": "2026-07"
+    },
+    {
+      "natureza_original": "ESTUPRO COM RESULTADO MORTE",
+      "categoria_pcdf": "05_ESTUPRO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1,
+      "competencias": 1,
+      "primeira": "2024-02",
+      "ultima": "2024-02"
+    },
+    {
+      "natureza_original": "ESTUPRO CORRETIVO",
+      "categoria_pcdf": "05_ESTUPRO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1,
+      "competencias": 1,
+      "primeira": "2024-06",
+      "ultima": "2024-06"
+    },
+    {
+      "natureza_original": "ESTUPRO DE VULNERÁVEL",
+      "categoria_pcdf": "05_ESTUPRO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 4032,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FEMINICIDIO",
+      "categoria_pcdf": "123.1_TENTATIVA DE FEMINICIDIO",
+      "crime_tentado_origem": "SIM",
+      "crime_tentado": true,
+      "associacoes": 540,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FEMINICIDIO",
+      "categoria_pcdf": "123_FEMINICIDIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 141,
+      "competencias": 61,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FURTO DE MOTOCICLETA",
+      "categoria_pcdf": "25_FURTO DE VEICULO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 6059,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FURTO DE VEICULO",
+      "categoria_pcdf": "25_FURTO DE VEICULO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 12667,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FURTO EM COMERCIO",
+      "categoria_pcdf": "26_FURTO EM COMERCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 24918,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FURTO EM INTERIOR DE VEICULO",
+      "categoria_pcdf": "28_FURTO EM INTERIOR DE VEICULO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 37474,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "FURTO EM RESIDENCIA",
+      "categoria_pcdf": "27_FURTO EM RESIDENCIA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 24102,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "HOMICIDIO",
+      "categoria_pcdf": "01.1_TENTATIVA DE HOMICIDIO",
+      "crime_tentado_origem": "SIM",
+      "crime_tentado": true,
+      "associacoes": 2952,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "HOMICIDIO",
+      "categoria_pcdf": "01_HOMICIDIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1280,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "LATROCINIO",
+      "categoria_pcdf": "21_LATROCINIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 85,
+      "competencias": 46,
+      "primeira": "2021-01",
+      "ultima": "2026-05"
+    },
+    {
+      "natureza_original": "LEI MARIA DA PENHA (Lei 11.340/06)",
+      "categoria_pcdf": "112_LEI MARIA DA PENHA (Lei 11.340/06)",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 116262,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "PORTE DE ARMA",
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 631,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "PORTE DE SUBSTANCIA ENTORPECENTE PARA CONSUMO PESSOAL",
+      "categoria_pcdf": "88_USO E PORTE DE DROGAS",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 19565,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "PORTE ILEGAL DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 2530,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "POSSE IRREGULAR DE ARMA DE FOGO DE USO PERMITIDO (L.10826/03)",
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1299,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "POSSE OU PORTE ILEGAL DE ARMA DE FOGO DE  USO RESTRITO (L.10826/03)",
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1429,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "POSSUIR, DETIVER, FABRICAR OU EMPREGAR ARTEFATO EXPLOSIVO OU INCENDIÁRIO, SEM AUTORIZAÇÃO OU EM DESACORDO COM DETERMINAÇÃO LEGAL OU REGULAMENTAR",
+      "categoria_pcdf": "87_PORTE/POSSE DE ARMA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 21,
+      "competencias": 17,
+      "primeira": "2021-01",
+      "ultima": "2026-03"
+    },
+    {
+      "natureza_original": "ROUBO A BAR",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 50,
+      "competencias": 34,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO A CASA LOTERICA",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 3,
+      "competencias": 3,
+      "primeira": "2022-03",
+      "ultima": "2025-07"
+    },
+    {
+      "natureza_original": "ROUBO A DROGARIA",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 335,
+      "competencias": 67,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO A PANIFICADORA",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 141,
+      "competencias": 51,
+      "primeira": "2021-01",
+      "ultima": "2026-07"
+    },
+    {
+      "natureza_original": "ROUBO A SUPERMERCADO E ATACADISTA",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 113,
+      "competencias": 55,
+      "primeira": "2021-01",
+      "ultima": "2026-07"
+    },
+    {
+      "natureza_original": "ROUBO A TRAILLER",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 20,
+      "competencias": 18,
+      "primeira": "2021-01",
+      "ultima": "2026-02"
+    },
+    {
+      "natureza_original": "ROUBO A TRANSEUNTE",
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 64430,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO DE VEICULO",
+      "categoria_pcdf": "18_ROUBO DE VEICULO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 7117,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO EM CHÁCARA, SÍTIO OU FAZENDA",
+      "categoria_pcdf": "20_ROUBO EM RESIDÊNCIA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 122,
+      "competencias": 52,
+      "primeira": "2021-01",
+      "ultima": "2026-07"
+    },
+    {
+      "natureza_original": "ROUBO EM COLETIVO",
+      "categoria_pcdf": "14_ROUBO EM COLETIVO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 2059,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO EM OUTROS ESTABELECIMENTOS COMERCIAIS",
+      "categoria_pcdf": "19_ROUBO EM COMÉRCIO",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1893,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO EM PARADA DE ONIBUS",
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 6233,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO EM RESIDENCIA",
+      "categoria_pcdf": "20_ROUBO EM RESIDÊNCIA",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 1090,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "ROUBO NA PROXIMIDADES DE BANCO",
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 51,
+      "competencias": 35,
+      "primeira": "2021-01",
+      "ultima": "2026-05"
+    },
+    {
+      "natureza_original": "ROUBO NAS PROXIMIDADES DE CAIXA ELETRONICO",
+      "categoria_pcdf": "13_ROUBO A TRANSEUNTE",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 11,
+      "competencias": 9,
+      "primeira": "2021-01",
+      "ultima": "2026-04"
+    },
+    {
+      "natureza_original": "TRÁFICO DE DROGAS PREVALECENDO-SE DE FUNÇÃO PÚBLICA",
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 3,
+      "competencias": 3,
+      "primeira": "2023-07",
+      "ultima": "2025-09"
+    },
+    {
+      "natureza_original": "TRÁFICO DE SUBSTANCIA ENTORPECENTE",
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 14644,
+      "competencias": 68,
+      "primeira": "2021-01",
+      "ultima": "2026-08"
+    },
+    {
+      "natureza_original": "TRÁFICO INTERNACIONAL DE SUBSTANCIA ENTORPECENTE",
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 18,
+      "competencias": 14,
+      "primeira": "2021-03",
+      "ultima": "2026-06"
+    },
+    {
+      "natureza_original": "TRÁFICO PRIVILEGIADO",
+      "categoria_pcdf": "89_TRAFICO DE DROGAS",
+      "crime_tentado_origem": "NÃO",
+      "crime_tentado": false,
+      "associacoes": 82,
+      "competencias": 31,
+      "primeira": "2023-05",
+      "ultima": "2026-07"
+    }
+  ],
+  "sha256Triplas": "7037c4bd4b6699a6232469315e4cd9d413d022b2eb4ecb55a6bd7b04f8ea305b"
+}
