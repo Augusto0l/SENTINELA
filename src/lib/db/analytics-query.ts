@@ -1,7 +1,17 @@
 import { ANALYTICS_POINT_LIMIT, persistentAnalyticsQuery, type PersistentAnalyticsQuery } from "@/contracts/persistent-analytics"
+import { pointViewport, VIEWPORT_POINT_LIMIT, type PointViewport } from "@/contracts/point-viewport"
 import { visibleOccurrence } from "@/lib/db/occurrence-visibility"
 
 export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" | "integrated" = "legacy", confirmedMap = false) {
+  return buildAnalyticsSql(input, source, confirmedMap)
+}
+
+/** Requires the clone-only indexed reader. The HTTP runtime continues to use analyticsSql. */
+export function pointViewportSql(input: PersistentAnalyticsQuery, bbox: PointViewport) {
+  return buildAnalyticsSql(input, "integrated", true, pointViewport.parse(bbox))
+}
+
+function buildAnalyticsSql(input: PersistentAnalyticsQuery, source: "legacy" | "integrated", confirmedMap: boolean, viewport?: PointViewport) {
   const query = persistentAnalyticsQuery.parse(input)
   const pcdf = source === "integrated" && query.scope === "pcdf"
   const schema = source === "integrated" ? "sentinela_ocorrencias_analytics" : "sentinela"
@@ -37,12 +47,20 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
   const limit = source === "integrated" ? ANALYTICS_POINT_LIMIT : 5000
   const eligiblePoint = `${source === "legacy" ? "code IS NOT NULL AND " : ""}localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL`
   const population = pcdf && confirmedMap ? "statistical" : "matched"
-  const text = `WITH regions AS MATERIALIZED (
+  const bounds = viewport ? [viewport.west, viewport.south, viewport.east, viewport.north]
+    .map(value => `(${bind(value)}::double precision)`) : []
+  const [west, south, east, north] = bounds
+  const coords = bounds.join(",")
+  const zoom = viewport ? bind(viewport.zoom) : ""
+  const spatialPoints = viewport ? "spatial_candidates" : `${schema}.pontos_confirmados`
+  const common = `WITH regions AS MATERIALIZED (
     SELECT id,codigo_interno::text AS code,nome::text AS name FROM ${schema}.regioes_administrativas
-  ), visible AS MATERIALIZED (
+  ), ${viewport ? `spatial_candidates AS MATERIALIZED (
+    SELECT * FROM ${schema}.pontos_no_enquadramento(${coords})
+  ), ` : ""}visible AS MATERIALIZED (
     SELECT o.id,r.code,o.data_fato,o.horario_fato,o.latitude,o.longitude,o.localizacao_status${confirmedMap ? ",o.fonte,o.origem" : ""}
     FROM ${schema}.ocorrencias o LEFT JOIN regions r ON r.id=o.ra_id
-    WHERE o.ativo AND ${visibility}
+    WHERE o.ativo AND ${visibility}${viewport ? " AND o.id IN (SELECT id FROM spatial_candidates)" : ""}
   ), nature_labels AS MATERIALIZED (
     SELECT n.id,n.descricao_original COLLATE "C" AS name,${canonical} AS canonical
     FROM ${schema}.naturezas_criminais n
@@ -64,7 +82,7 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
     SELECT id,${pointRa} AS "raCode",p.latitude,p.longitude,m.code AS "territorialRaCode",
       CASE WHEN m.fonte='PCDF' AND m.origem='importacao' AND m.localizacao_status IS DISTINCT FROM 'validada'
         THEN 'pcdf_crs_unverified' ELSE 'validated' END AS "publicationStatus"
-    FROM matched m JOIN ${schema}.pontos_confirmados p USING(id)${raParam ? `
+    FROM matched m JOIN ${spatialPoints} p USING(id)${raParam ? `
     WHERE ${pointRa}=${raParam}::text` : ""}
   ),
   points AS (SELECT * FROM mapped ORDER BY id LIMIT ${limit + 1}),
@@ -75,7 +93,30 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
     SELECT id,code AS "raCode",latitude,longitude FROM visible
     WHERE ${eligiblePoint}
     ORDER BY id LIMIT ${limit + 1}
-  )`}
+  )`}`
+  // Web Mercator bins use scalar math. PostGIS stays in the protected reader that searches the GiST index.
+  if (viewport) return { values, text: `${common},
+    tally AS (SELECT count(*) AS count FROM mapped),
+    spacing AS (
+      SELECT greatest(40075016.68557849*24/(256*power(2,${zoom}::int)),
+        6378137*radians(${east}-${west})/63,
+        6378137*ln(tan(radians(45+${north}/2))/tan(radians(45+${south}/2)))/63) AS cell
+    ), projected AS (
+      SELECT latitude,longitude,cell,6378137*radians(longitude) AS x,
+        6378137*ln(tan(radians(45+latitude/2))) AS y
+      FROM mapped CROSS JOIN spacing WHERE (SELECT count FROM tally)>${VIEWPORT_POINT_LIMIT}
+    ), groups AS (
+      SELECT count(*) AS count,(min(latitude)+max(latitude))/2 AS latitude,(min(longitude)+max(longitude))/2 AS longitude,
+        jsonb_build_object('west',min(longitude),'south',min(latitude),'east',max(longitude),'north',max(latitude)) AS bounds
+      FROM projected GROUP BY floor(x/cell),floor(y/cell)
+    )
+    SELECT CASE WHEN tally.count>${VIEWPORT_POINT_LIMIT} THEN
+      jsonb_build_object('kind','groups','representedOccurrences',tally.count,'groups',
+        (SELECT coalesce(jsonb_agg(g ORDER BY latitude,longitude),'[]') FROM groups g))
+      ELSE jsonb_build_object('kind','points','representedOccurrences',tally.count,'points',
+        (SELECT coalesce(jsonb_agg(m ORDER BY id),'[]') FROM mapped m)) END AS data
+    FROM tally` }
+  const text = `${common}
   SELECT jsonb_build_object(
     'total',(SELECT count(*) FROM selected),'mapTotal',(SELECT count(*) FROM ${population}),
     'mappedByRa',(SELECT coalesce(jsonb_agg(b ORDER BY key),'[]') FROM

@@ -21,6 +21,11 @@ const monthlyCoverage = z.strictObject({ key: z.string().regex(/^\d{4}-(0[1-9]|1
 const point = coordinateSchema.extend({ raCode: code.nullable() })
 export const pointPublicationStatus = z.enum(["validated", "pcdf_crs_unverified"])
 export type PointPublicationStatus = z.infer<typeof pointPublicationStatus>
+export const analyticPointSchema = point.extend({
+  id: z.uuid().optional(),
+  territorialRaCode: code.nullable().optional(),
+  publicationStatus: pointPublicationStatus.optional(),
+})
 export const ANALYTICS_POINT_LIMIT = 10000
 export const persistentAnalyticsData = z.strictObject({
   total: countSchema, mapTotal: countSchema,
@@ -32,11 +37,7 @@ export const persistentAnalyticsData = z.strictObject({
   weekday: z.number().int().min(0).max(6).nullable(), hour: z.number().int().min(0).max(23).nullable(),
   regions: z.array(z.strictObject({ code, name: z.string().min(1) })),
   natures: z.array(option), categories: z.array(option.extend({ id: z.string().min(1).max(240) })),
-  points: z.array(point.extend({
-    id: z.uuid().optional(),
-    territorialRaCode: code.nullable().optional(),
-    publicationStatus: pointPublicationStatus.optional(),
-  })).max(ANALYTICS_POINT_LIMIT),
+  points: z.array(analyticPointSchema).max(ANALYTICS_POINT_LIMIT),
   heatReference: z.array(point).max(ANALYTICS_POINT_LIMIT),
   pointsTruncated: z.boolean(), heatUnavailable: z.boolean(),
   eligiblePoints: countSchema.optional(),
