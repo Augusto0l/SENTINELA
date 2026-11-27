@@ -171,6 +171,91 @@
                                         "type": "null"
                                       }
                                     ]
+                                  },
+                                  "treatment": {
+                                    "type": "object",
+                                    "properties": {
+                                      "state": {
+                                        "type": "string",
+                                        "enum": [
+                                          "aguardando",
+                                          "processando",
+                                          "concluido",
+                                          "concluido_com_pendencias",
+                                          "falha_recuperavel"
+                                        ]
+                                      },
+                                      "version": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "treated": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "remaining": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "before": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "attempts": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "updatedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "state",
+                                      "version",
+                                      "treated",
+                                      "remaining",
+                                      "before",
+                                      "attempts",
+                                      "updatedAt"
+                                    ],
+                                    "additionalProperties": false
                                   }
                                 },
                                 "required": [
@@ -322,6 +407,91 @@
                                         "type": "null"
                                       }
                                     ]
+                                  },
+                                  "treatment": {
+                                    "type": "object",
+                                    "properties": {
+                                      "state": {
+                                        "type": "string",
+                                        "enum": [
+                                          "aguardando",
+                                          "processando",
+                                          "concluido",
+                                          "concluido_com_pendencias",
+                                          "falha_recuperavel"
+                                        ]
+                                      },
+                                      "version": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "treated": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "remaining": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "before": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "attempts": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "updatedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "state",
+                                      "version",
+                                      "treated",
+                                      "remaining",
+                                      "before",
+                                      "attempts",
+                                      "updatedAt"
+                                    ],
+                                    "additionalProperties": false
                                   }
                                 },
                                 "required": [
@@ -647,6 +817,91 @@
                                 }
                               ]
                             },
+                            "treatment": {
+                              "type": "object",
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "aguardando",
+                                    "processando",
+                                    "concluido",
+                                    "concluido_com_pendencias",
+                                    "falha_recuperavel"
+                                  ]
+                                },
+                                "version": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "treated": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "remaining": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "before": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "attempts": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "updatedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "state",
+                                "version",
+                                "treated",
+                                "remaining",
+                                "before",
+                                "attempts",
+                                "updatedAt"
+                              ],
+                              "additionalProperties": false
+                            },
                             "accepted": {
                               "type": "integer",
                               "minimum": 0,
@@ -812,6 +1067,91 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "treatment": {
+                              "type": "object",
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "aguardando",
+                                    "processando",
+                                    "concluido",
+                                    "concluido_com_pendencias",
+                                    "falha_recuperavel"
+                                  ]
+                                },
+                                "version": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "treated": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "remaining": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "before": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "attempts": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "updatedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "state",
+                                "version",
+                                "treated",
+                                "remaining",
+                                "before",
+                                "attempts",
+                                "updatedAt"
+                              ],
+                              "additionalProperties": false
                             },
                             "replay": {
                               "type": "boolean"
@@ -1037,6 +1377,91 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "treatment": {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "aguardando",
+                                "processando",
+                                "concluido",
+                                "concluido_com_pendencias",
+                                "falha_recuperavel"
+                              ]
+                            },
+                            "version": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "treated": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "remaining": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "before": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "attempts": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "updatedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "state",
+                            "version",
+                            "treated",
+                            "remaining",
+                            "before",
+                            "attempts",
+                            "updatedAt"
+                          ],
+                          "additionalProperties": false
                         },
                         "replay": {
                           "type": "boolean"

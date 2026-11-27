@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import Button from "@/components/ui/button";
-import { directCsvLimit, historicalMonthCount, historicalPreview, historicalReceipt, historicalStatus } from "@/contracts/pcdf-direct";
+import {
+  directCsvLimit, historicalMonthCount, historicalPreview, historicalReceipt, historicalStatus, historicalTreatmentRun,
+} from "@/contracts/pcdf-direct";
 import { callDirectPcdf } from "./pcdf-intake-client";
 import { PcdfHttpError } from "./pcdf-client";
 import styles from "./ImportWorkflow.module.css";
@@ -23,6 +25,15 @@ type Entry = { id: string; name: string; month?: string; file?: File; status: St
   preview?: Preview; result?: Month; error?: string };
 const format = (value: number | null | undefined) => value == null ? "—" : value.toLocaleString("pt-BR");
 const terminal = new Set<Status>(["done", "imported", "review", "error"]);
+const treatmentLabels = {
+  aguardando: "Aguardando", processando: "Processando", concluido: "Concluído",
+  concluido_com_pendencias: "Concluído com pendências", falha_recuperavel: "Falha recuperável",
+} as const;
+function treatmentText(treatment: Month["treatment"]) {
+  if (!treatment) return "";
+  const counts = treatment.treated == null ? "" : ` · ${format(treatment.treated)} tratadas · ${format(treatment.remaining)} restantes`;
+  return `Tratamento: ${treatmentLabels[treatment.state]}${counts}`;
+}
 const blockMessages = {
   profile: "Somente Administrador pode validar arquivos e confirmar a importação.",
   inventory: "A confirmação aguarda o inventário completo no PostgreSQL.",
@@ -35,7 +46,7 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
   const [entries, setEntries] = useState<Entry[]>([]);
   const [catalog, setCatalog] = useState<z.infer<typeof historicalStatus>>();
   const [message, setMessage] = useState("");
-  const [mode, setMode] = useState<"check" | "import">();
+  const [mode, setMode] = useState<"check" | "import" | "treat">();
   const [paused, setPaused] = useState(false);
   const stop = useRef(false);
   const input = useRef<HTMLInputElement>(null);
@@ -162,10 +173,26 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
     }
   }
 
+  async function resumeTreatment() {
+    if (processing.current || !catalog?.canApprove) return;
+    processing.current = true;
+    setMode("treat");
+    setMessage("");
+    try {
+      const run = await callDirectPcdf(historicalTreatmentRun, query + "&etapa=tratar", new FormData(), AbortSignal.timeout(150000));
+      setCatalog(await callDirectPcdf(historicalStatus, query, undefined, AbortSignal.timeout(30000)));
+      const failed = run.filter(item => item.state === "falha_recuperavel").length;
+      setMessage(failed ? `${failed} competência(s) seguem com falha recuperável. Tente novamente.` : "");
+      if (run.length) onComplete();
+    } catch (failure) { setMessage((failure as Error).message); }
+    finally { processing.current = false; setMode(undefined); }
+  }
+
   const finished = entries.filter(entry => terminal.has(entry.status)).length;
   const ready = entries.filter(entry => entry.status === "ready").length;
   const examined = entries.filter(entry => entry.preview || terminal.has(entry.status)).length;
   const completed = catalog?.items.filter(item => item.state === "done") ?? [];
+  const resumable = completed.filter(item => item.treatment && ["aguardando", "falha_recuperavel"].includes(item.treatment.state));
   return <section className={styles.panel} aria-labelledby="pcdf-historical-heading" aria-busy={!!mode}>
     <div className={styles.sectionHead}><h2 id="pcdf-historical-heading">Histórico mensal PCDF</h2></div>
     <p>Selecione os CSVs originais de janeiro de 2021 a agosto de 2026. Valide a seleção antes de aprovar a importação.</p>
@@ -187,6 +214,8 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
           {mode && <Button variant="outline" disabled={paused} onClick={() => {
             stop.current = true; setPaused(true);
           }}>Interromper após o arquivo atual</Button>}
+          {resumable.length > 0 && catalog.canApprove && <Button variant="outline" disabled={!!mode}
+            onClick={() => void resumeTreatment()}>Retomar tratamento ({resumable.length})</Button>}
           {!mode && entries.length > 0 && <Button variant="ghost" onClick={() => {
             try { localStorage.removeItem(storageKey); sessionStorage.removeItem(storageKey); } catch { /* Optional checkpoint. */ }
             setEntries([]); setMessage("");
@@ -209,13 +238,14 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
                 {entry.preview?.errors.map(error => <p key={`${error.row}-${error.field}-${error.message}`}>Linha {error.row} · {error.field} · {error.message}</p>)}
                 {entry.status === "interrupted" && !entry.file && <p>Selecione o CSV novamente para retomar.</p>}
                 {(entry.result?.review ?? 0) > 0 && <p>{format(entry.result?.review)} associações em revisão de identidade.</p>}
+                {entry.result?.treatment && <p>{treatmentText(entry.result.treatment)}</p>}
                 {(entry.status === "validating" || entry.status === "importing")
                   ? <progress className={styles.historicalProgress} aria-label={`Processamento de ${entry.name}`} />
                   : entry.preview && <><p>Validação · 100%</p><progress className={styles.historicalProgress} aria-label={`Validação de ${entry.name}`}
                     max={entry.preview.records} value={entry.preview.accepted + entry.preview.rejected} /></>}
               </td>
               <td>{format((entry.result ?? entry.preview)?.records)} / {format(entry.preview?.accepted ?? entry.result?.records)} / {format(entry.preview?.rejected ?? (entry.result?.state === "done" ? 0 : null))}</td>
-              <td>{format(entry.result?.unique)}</td><td>{format(entry.result?.issues ?? entry.preview?.diagnostics)}</td>
+              <td>{format(entry.result?.unique)}</td><td>{format(entry.result?.treatment?.remaining ?? entry.result?.issues ?? entry.preview?.diagnostics)}</td>
             </tr>)}</tbody>
           </table>
         </div>
@@ -225,6 +255,7 @@ export default function PcdfHistoricalQueue({ onComplete }: { onComplete: () => 
           {item.month} · {item.state === "done" ? `Consolidada · ${format(item.records)} linhas · ${format(item.unique)} ocorrências · ${format(item.links)} vínculos · lote ${item.lot}`
             : item.state === "staged" ? "Recebida em staging" : item.state === "conflict" ? "Requer revisão" : "Ainda sem importação"}
           {!item.complete && ` · cobertura parcial até ${item.through}`}
+          {item.treatment && ` · ${treatmentText(item.treatment)}`}
         </li>)}</ul>
       </details>
     </>}

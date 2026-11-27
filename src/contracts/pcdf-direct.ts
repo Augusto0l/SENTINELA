@@ -42,13 +42,27 @@ export const directReceipt = z.strictObject({
   issues: count, replay: z.boolean(),
 });
 
+export const historicalTreatmentState = z.enum([
+  "aguardando", "processando", "concluido", "concluido_com_pendencias", "falha_recuperavel",
+]);
+// Tratamento automático e auditado das pendências da competência (0019).
+export const historicalTreatment = z.strictObject({
+  state: historicalTreatmentState, version: z.string().nullable(), treated: count.nullable(),
+  remaining: count.nullable(), before: count.nullable(), attempts: count.nullable(), updatedAt: z.string().nullable(),
+});
 export const historicalMonth = z.strictObject({
   month: directMonth, sha256: directHash, bytes: count.min(1).max(directCsvLimit),
   records: count.min(1).max(directMaxRows), candidates: count, through: z.iso.date(), complete: z.boolean(),
   state: z.enum(["missing", "conflict", "staged", "done"]), lot: z.uuid().nullable(),
   unique: count.nullable(), links: count.nullable(), review: count.nullable(), issues: count.nullable(),
+  treatment: historicalTreatment.optional(),
 });
 export const historicalMonthCount = 68;
+export const historicalTreatmentRun = z.array(z.strictObject({
+  lot: z.uuid(), month: directMonth.nullable(),
+  state: z.enum(["concluido", "concluido_com_pendencias", "falha_recuperavel"]),
+  treated: count.nullable(), remaining: count.nullable(), replay: z.boolean(),
+})).max(historicalMonthCount);
 const historicalAccess = {
   canValidate: z.boolean().optional(),
   block: z.enum(["profile", "inventory", "january", "configuration", "recovery"]).optional(),
