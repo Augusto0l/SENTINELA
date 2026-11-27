@@ -155,3 +155,9 @@
 
 # Preserve the installed local PCDF SQL attestation across Windows checkouts.
 /database/local/pcdf-sandbox/direct.sql text eol=lf
+
+# Preserve the SHA-256 pinned bytes of the institutional Supabase installer inputs.
+/database/supabase/migrations/0009_importador_papeis_ambiente.sql -text
+/database/supabase/migrations/0010_importador_objetos.sql -text
+/database/supabase/migrations/0011_central_revisao_hospedada.sql -text
+/database/supabase/pendentes/* -text
