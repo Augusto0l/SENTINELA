@@ -11,7 +11,7 @@ const { generalImportMode, isGeneralImportEndpoint } = await import("../src/lib/
 
 const mapping={data:0,horario:1,naturezas:2,ra:3,local:4,latitude:-1,longitude:-1}
 const header="Data;Hora;Tipo de crime;Região Administrativa;Local;Observação"
-const first="2026-01-01;13:34;Furto;Plano Piloto;Rua de ensaio;000001"
+const first="2026-01-01;13:34;FURTO EM COMERCIO;Plano Piloto;Rua de ensaio;000001"
 const csv=Buffer.from("\ufeff\r\n"+header+"\r\n"+first+"\r\n"+first+"\r\n2026-01-02;13:34;Furto;Inexistente;;\"Acentuação; e\r\nquebra\"")
 const metadata={name:"dados.csv",sheet:"CSV",mapping}
 const input = (meta=metadata,mime=generalFormats.csv) => generalInput(new Request("http://127.0.0.1",{
@@ -73,7 +73,7 @@ test("XLSX is independently expanded within limits and the requested sheet is pa
   const book=utils.book_new()
   utils.book_append_sheet(book,utils.aoa_to_sheet([["Instruções"]]),"Instruções")
   utils.book_append_sheet(book,utils.aoa_to_sheet([header.split(";"),
-    [new Date(2026,2,1,12),0.5,"Furto","Plano Piloto","Via local","00018"]]),"Dados")
+    [new Date(2026,2,1,12),0.5,"FURTO EM COMERCIO","Plano Piloto","Via local","00018"]]),"Dados")
   const buffer=write(book,{type:"array",bookType:"xlsx",compression:true})
   await verifyImportWorkbookSize(buffer)
   const meta={name:"dados.xlsx",sheet:"Dados",mapping}

@@ -1,6 +1,7 @@
 import { SSF } from "xlsx";
 import { occurrenceSchema } from "@/data/occurrenceForm";
 import { CRIME_NATURES, RA_LIST } from "@/data/mockData";
+import { pcdfNatureDescriptions } from "@/data/pcdfNatureCatalog";
 import { IMPORT_FIELDS, IMPORT_LABELS, REQUIRED_IMPORT_FIELDS } from "@/data/importTypes";
 import type { ImportAnalysis, ImportField, ImportMapping, ImportResult, ImportTable, ValidatedImportRow } from "@/data/importTypes";
 
@@ -10,7 +11,7 @@ export function normalizeImportName(value: string) {
 const aliases: Record<ImportField, string[]> = {
   data: ["data", "data da ocorrência", "data ocorrência", "dt ocorrência", "data fato", "data do fato"],
   horario: ["hora", "horário", "hora da ocorrência", "hora ocorrência", "hora fato"],
-  naturezas: ["natureza", "naturezas", "natureza criminal", "naturezas criminais", "tipo do crime", "tipo de crime", "crime"],
+  naturezas: ["natureza_original", "natureza", "naturezas", "natureza criminal", "naturezas criminais", "tipo do crime", "tipo de crime", "crime"],
   ra: ["RA", "região administrativa", "regiao_administrativa", "raCode", "código RA"],
   local: ["local", "endereço", "endereço/local", "local/endereço", "logradouro", "local da ocorrência"],
   latitude: ["latitude", "lat"], longitude: ["longitude", "lon", "lng", "long"],
@@ -51,7 +52,7 @@ function normalizedTime(value: string | number | boolean | null): string {
   }
   return String(value ?? "").trim();
 }
-export function analyzeImport(table: ImportTable, mapping: ImportMapping): ImportAnalysis {
+export function analyzeImport(table: ImportTable, mapping: ImportMapping, persistent = false): ImportAnalysis {
   const mappingErrors = importMappingErrors(table.headers, mapping);
   const counts = { total: table.rows.length, valid: 0, invalid: 0, pending: 0, possibleDuplicates: 0 };
   if (mappingErrors.length) return { mappingErrors, rows: [], counts };
@@ -61,7 +62,8 @@ export function analyzeImport(table: ImportTable, mapping: ImportMapping): Impor
     const text = (field: ImportField) => String(value(field)).trim();
     const ra = RA_LIST.find(item => [item.codigo, item.nome, item.nomeDisplay].some(name => normalizeImportName(name) === normalizeImportName(text("ra"))));
     const rawNatures = text("naturezas").split(/[|;]/);
-    const naturezas = rawNatures.slice(0, 32).map(item => item.trim()).map(item => CRIME_NATURES.find(nature => normalizeImportName(nature) === normalizeImportName(item)) ?? item);
+    const naturezas = rawNatures.slice(0, 32).map(item => item.trim()).map(item => persistent ? item
+      : CRIME_NATURES.find(nature => normalizeImportName(nature) === normalizeImportName(item)) ?? item);
     const normalized = {
       data: normalizedDate(value("data"), table.date1904), horario: normalizedTime(value("horario")),
       naturezas: [...new Set(naturezas)], raCode: ra?.codigo ?? text("ra"), local: text("local"),
@@ -84,7 +86,8 @@ export function analyzeImport(table: ImportTable, mapping: ImportMapping): Impor
       if (!parsed.success) for (const issue of parsed.error.issues) add(field === "raCode" ? "ra" : field, issue.message);
     }
     for (const nature of naturezas) {
-      if (!occurrenceSchema.shape.natureza.safeParse(nature).success) add("naturezas", `Natureza fora do catálogo demonstrativo: ${nature || "(vazia)"}.`);
+      const recognized = persistent ? pcdfNatureDescriptions.has(nature) : occurrenceSchema.shape.natureza.safeParse(nature).success;
+      if (!recognized) add("naturezas", `Natureza fora do catálogo ${persistent ? "PCDF" : "demonstrativo"}: ${nature || "(vazia)"}.`);
     }
     for (const field of ["latitude", "longitude"] as const) {
       if (normalized[field] && !/^-?\d+(\.\d+)?$/.test(normalized[field])) add(field, "Use uma coordenada decimal, sem símbolos ou notação científica.");

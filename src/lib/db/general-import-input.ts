@@ -38,7 +38,7 @@ export async function prepareGeneralImport(content: Uint8Array, input: ReturnTyp
       (typeof cell.value === "string" && cell.value.includes("\0")) || cell.formula?.includes("\0"))))
       throw new Error("Célula contém caractere nulo.")
     if (isInstitutionalPcdf(selection.name, table.headers)) throw new GeneralImportError(422, "pcdf_institucional")
-    const analysis = analyzeImport(table, selection.mapping as ImportMapping)
+    const analysis = analyzeImport(table, selection.mapping as ImportMapping, true)
     if (analysis.mappingErrors.length) throw new Error(analysis.mappingErrors.join(" "))
     const rows = analysis.rows.map(row => {
       const { original: cells, normalized, line, status, issues, possibleDuplicateOf } = row

@@ -4,7 +4,8 @@ import { join } from "node:path"
 import { Client } from "pg"
 import { z } from "zod"
 import { attestManifest } from "../../../database/local/write-sandbox/service.ts"
-import { getLocalPrincipal } from "@/lib/auth/local-server"
+import { getOperationalPrincipal } from "@/lib/auth/operational-server"
+import type { OperationalPrincipal } from "@/lib/auth/operational-access"
 import { hasPermission, type Permission, type Role } from "@/lib/auth/policy"
 import { isolatedPcdfMode, generalImportMode } from "@/lib/db/isolated-write-mode"
 import { pcdfDecision, pcdfIssue, pcdfLot, pcdfMonth, pcdfPromotion,
@@ -16,8 +17,10 @@ import { localAllowed } from "@/lib/auth/local-provider"
 import { persistentIdentitySql } from "@/lib/db/persistent-read"
 import { generalDetail, generalHistory, generalReceipt, generalUploadLimit } from "@/contracts/general-import"
 import { GeneralImportError, generalInput, prepareGeneralImport } from "@/lib/db/general-import-input"
-import { integratedImportMode } from "@/lib/db/pcdf-direct-mode"
+import { hostedImportMode, integratedImportMode } from "@/lib/db/pcdf-direct-mode"
+import { occurrenceManagementMode } from "@/lib/db/occurrence-management-mode"
 import { attestLocalImportDatabase, localImportConnection, LocalImportDbError } from "@/lib/db/local-import-db"
+import { attestHostedImportDatabase, getHostedImportPrincipal, hostedImportConnection } from "@/lib/db/hosted-import-db"
 
 const maxCsvBytes = 16 * 1024 * 1024
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie, Host" }
@@ -109,22 +112,29 @@ function sqlError(error: unknown) {
 export async function pcdfWorkspace(request: Request, operation: Operation, id?: string) {
   let client: Client | undefined
   let registered: [string, string] | undefined
+  let generalSchema = "sentinela_import_lab"
   try {
     const general = operation.startsWith("general-")
-    const integrated = ["general-upload", "general-lots", "general-detail"].includes(operation) && integratedImportMode()
+    const combined = ["general-upload", "general-lots", "general-detail"].includes(operation)
+    const integrated = combined && integratedImportMode()
+    const hosted = combined && hostedImportMode()
     const persistent = !general && persistentPcdfEnabled()
     const completion = persistentPcdfCompletionEnabled()
-    const mode = persistent || integrated ? null : general ? generalImportMode() : isolatedPcdfMode()
-    const origin = persistent ? process.env.SENTINELA_APP_ORIGIN : integrated ? integrated.origin : mode?.origin
+    const mode = persistent || integrated || hosted ? null : general ? generalImportMode() : isolatedPcdfMode()
+    const origin = hosted ? hosted.origin : persistent ? process.env.SENTINELA_APP_ORIGIN : integrated ? integrated.origin : mode?.origin
     if (!origin || request.headers.get("host") !== new URL(origin).host
       || (persistent && !localAllowed(request.headers.get("host")))) throw new WorkspaceError(403)
     const write = operation === "upload" || operation === "promote" || operation === "decide"
       || operation === "general-upload" || operation === "general-decide"
-    if (write && request.headers.get("origin") !== origin) throw new WorkspaceError(403)
-    const principal = await getLocalPrincipal()
+    if (write && (request.headers.get("origin") !== origin || (hosted && !hosted.write))) throw new WorkspaceError(403)
+    const hostedPrincipal = hosted ? await getHostedImportPrincipal() : null
+    const principal: OperationalPrincipal | null = hosted ? hostedPrincipal : await getOperationalPrincipal()
     if (!principal) throw new WorkspaceError(401)
-    if (principal.source !== "local" || !hasPermission(principal.role, permissions[operation])) throw new WorkspaceError(403)
-    const connection = integrated && principal.role !== "Analista" ? localImportConnection(principal.role) : null
+    if ((!hosted && principal.source !== "local" && (!integrated || write))
+      || !hasPermission(principal.role, permissions[operation])) throw new WorkspaceError(403)
+    const remote = hostedPrincipal && hostedImportConnection(hostedPrincipal)
+    const connection = remote || (integrated && principal.role !== "Analista" ? localImportConnection(principal.role, integrated.port, !write) : null)
+    if (connection) generalSchema = "sentinela_import_local"
     const writer = principal.role === "Analista" ? undefined : persistentWriters[principal.role]
     if ((!persistent && !connection && !principal.localSubject) || (persistent && writer && writer.subject!==principal.localSubject)) throw new WorkspaceError(403)
     const reader = persistent ? persistentReadConfig(principal.role) : null
@@ -159,7 +169,9 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
       }
       case "general-lots": {
         z.strictObject({}).parse(query)
-        statement = "SELECT sentinela_import_lab.history() AS data"
+        statement = integrated && occurrenceManagementMode()
+          ? "SELECT sentinela_gestao.marcar_historico(sentinela_import_lab.history()) AS data"
+          : "SELECT sentinela_import_lab.history() AS data"
         params = []
         schema = generalHistory
         break
@@ -256,7 +268,10 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
 
     client = connection?.client ?? new Client({ ...(reader ?? { host: "127.0.0.1", port: 55432, database: "sentinela_rls_sandbox" }), user, password, ssl: false,
       connectionTimeoutMillis: 3000, statement_timeout: 45000, query_timeout: 50000, lock_timeout: 3000 })
-    if (integrated && connection) {
+    if (remote && hostedPrincipal) {
+      if (!await attestHostedImportDatabase(remote, hostedPrincipal, !write)) throw new WorkspaceError(403)
+      statement = statement.replace("sentinela_import_lab.", "sentinela_import_local.")
+    } else if (integrated && connection) {
       await attestLocalImportDatabase(client, connection.login, integrated, principal.role)
       statement = statement.replace("sentinela_import_lab.", "sentinela_import_local.")
     } else {
@@ -280,7 +295,6 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     [user, mode.id, manifest.system_id, manifest.start_epoch])
       if (rowCount !== 1) throw new WorkspaceError(403)
     } else if (!connection) throw new WorkspaceError(403)
-    const generalSchema = connection ? "sentinela_import_local" : "sentinela_import_lab"
     if (intake) {
       const key = [String(params[0]), String(params[1])] as [string, string]
       await client.query(`SELECT ${generalSchema}.begin_request($1,$2,$3,$4,$5)`,
@@ -296,13 +310,12 @@ export async function pcdfWorkspace(request: Request, operation: Operation, id?:
     await client.query("COMMIT")
     registered = undefined
     const status = (operation === "upload" || operation === "general-upload") && !(validated.data as { replay: boolean }).replay ? 201 : 200
-    return Response.json({ success: true, scope: connection ? "importacao-local" : persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only",
+    return Response.json({ success: true, scope: hosted ? "importacao-supabase" : connection ? "importacao-local" : persistent ? "homologacao-persistente-sintetica" : "sandbox-synthetic-only",
       data: validated.data }, { status, headers })
   } catch (error) {
     await client?.query("ROLLBACK").catch(() => {})
     if (registered) {
-      const schema = integratedImportMode() ? "sentinela_import_local" : "sentinela_import_lab"
-      await client?.query(`SELECT ${schema}.fail($1,$2)`, registered).catch(() => {})
+      await client?.query(`SELECT ${generalSchema}.fail($1,$2)`, registered).catch(() => {})
     }
     const status = error instanceof WorkspaceError || error instanceof GeneralImportError || error instanceof LocalImportDbError ? error.status
       : error instanceof SyntaxError || error instanceof URIError || error instanceof z.ZodError ? 400 : sqlError(error)
