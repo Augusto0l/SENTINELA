@@ -7,7 +7,12 @@ import { localDemoEnabled } from "@/lib/auth/local-demo"
 import { apiError, isLocalReadEndpoint } from "@/lib/db/http"
 import { isolatedWriteMode, isIsolatedMutation, isolatedPcdfMode, isPcdfEndpoint, generalImportMode, isGeneralImportEndpoint } from "@/lib/db/isolated-write-mode"
 import { persistentCrudEnabled, persistentPcdfEnabled } from "@/lib/db/config"
-import { directPcdfMode, integratedImportMode, isDirectPcdfEndpoint, isIntegratedGeneralEndpoint } from "@/lib/db/pcdf-direct-mode"
+import { directPcdfMode, expectsIntegratedImport, integratedImportMode, isDirectPcdfEndpoint, isIntegratedGeneralEndpoint } from "@/lib/db/pcdf-direct-mode"
+import { localImportStartupMessage } from "@/contracts/pcdf-direct"
+import { manualOccurrencesPath } from "@/contracts/manual-occurrences"
+import { managementPath, managementWriteBlocked } from "@/contracts/occurrence-management"
+import { occurrenceManagementMode, operationalOccurrenceManagementMode } from "@/lib/db/occurrence-management-mode"
+import { onboardingPhase } from "@/lib/auth/onboarding"
 
 export async function proxy(request: NextRequest) {
   const config = publicSupabaseConfig()
@@ -17,20 +22,41 @@ export async function proxy(request: NextRequest) {
     result.headers.set("Cache-Control", "private, no-store")
     result.headers.set("Pragma", "no-cache")
     result.headers.set("Expires", "0")
-    result.headers.set("Referrer-Policy", "no-referrer")
+    // Native password updates need their same-origin POST to retain the Origin header.
+    result.headers.set("Referrer-Policy", request.nextUrl.pathname === "/atualizar-senha" ? "same-origin" : "no-referrer")
     for (const [name, cookie] of refreshed) result.cookies.set(name, cookie.value, cookie.options)
     return result
   }
   if (localSelected()) {
     const principal = await localSession(request.cookies.get(LOCAL_COOKIE)?.value, request.headers.get("host"))
     if (request.nextUrl.pathname.startsWith("/api/")) {
-      const isolatedMutation = (isolatedWriteMode() || persistentCrudEnabled()) && isIsolatedMutation(request.nextUrl.pathname, request.method)
-      const pcdf = (isolatedPcdfMode() || persistentPcdfEnabled()) && isPcdfEndpoint(request.nextUrl.pathname, request.method)
-      const general = (generalImportMode() && isGeneralImportEndpoint(request.nextUrl.pathname, request.method))
-        || (integratedImportMode() && isIntegratedGeneralEndpoint(request.nextUrl.pathname, request.method))
-      const directPcdf = directPcdfMode() && isDirectPcdfEndpoint(request.nextUrl.pathname, request.method)
-      if (!isolatedMutation && !pcdf && !general && !directPcdf && !isLocalReadEndpoint(request.nextUrl.pathname, request.method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
+      const { pathname } = request.nextUrl
+      const { method } = request
+      const managementWrite = pathname === managementPath && method === "POST"
+      if (managementWrite && !occurrenceManagementMode()
+        && !(operationalOccurrenceManagementMode() && principal?.role === "Administrador" && principal.localSubject))
+        return apiError("FORBIDDEN", managementWriteBlocked)
+      const manualCreate = pathname === manualOccurrencesPath && method === "POST" && Boolean(occurrenceManagementMode())
+      const manualSearch = pathname === "/api/ocorrencias/geocode" && method === "POST"
+        && (Boolean(directPcdfMode()) || expectsIntegratedImport())
+      const isolatedMutation = (isolatedWriteMode() || persistentCrudEnabled()) && isIsolatedMutation(pathname, method)
+      const pcdf = (isolatedPcdfMode() || persistentPcdfEnabled()) && isPcdfEndpoint(pathname, method)
+      const generalEndpoint = isIntegratedGeneralEndpoint(pathname, method)
+      const directEndpoint = isDirectPcdfEndpoint(pathname, method)
+      const integrated = integratedImportMode()
+      const general = (generalImportMode() && isGeneralImportEndpoint(pathname, method))
+        || (integrated && generalEndpoint)
+      const directPcdf = directPcdfMode() && directEndpoint
+      const setupRequired = !integrated && (generalEndpoint || directEndpoint) && expectsIntegratedImport()
+      if (!setupRequired && !isolatedMutation && !pcdf && !general && !directPcdf && !manualCreate && !managementWrite && !manualSearch && !isLocalReadEndpoint(pathname, method)) return noStore(NextResponse.json({ error: "Acesso local sem acesso remoto." }, { status: 403 }))
       if (!principal) return apiError("UNAUTHORIZED", "Sessão necessária.")
+      if (setupRequired) {
+        if (!hasPermission(principal.role, "importar")
+          || (method === "POST" && request.headers.get("origin") !== process.env.SENTINELA_APP_ORIGIN)) {
+          return apiError("FORBIDDEN", "Importação não autorizada.")
+        }
+        return apiError("SERVICE_UNAVAILABLE", localImportStartupMessage)
+      }
       if (!hasPermission(principal.role, "analisar")) return apiError("FORBIDDEN", "Consulta não autorizada.")
       return noStore(response)
     }
@@ -41,6 +67,7 @@ export async function proxy(request: NextRequest) {
     return noStore(response)
   }
   let valid = false
+  let onboarding: ReturnType<typeof onboardingPhase>
   if (!request.nextUrl.pathname.startsWith("/api/") && localDemoEnabled(request.headers.get("host"))) {
     return noStore(response)
   }
@@ -61,6 +88,7 @@ export async function proxy(request: NextRequest) {
     try {
       const { data, error } = await client.auth.getClaims()
       valid = !error && typeof data?.claims.sub === "string"
+      if (valid) onboarding = onboardingPhase(data?.claims.app_metadata)
     } catch { /* invalid/expired/unavailable: deny protected requests */ }
   }
   if (isProtectedPath(request.nextUrl.pathname) && !valid) {
@@ -70,6 +98,12 @@ export async function proxy(request: NextRequest) {
     const login = new URL("/login", request.url)
     login.searchParams.set("erro", config ? "sessao" : "configuracao")
     return noStore(NextResponse.redirect(login))
+  }
+  if (isProtectedPath(request.nextUrl.pathname) && onboarding) {
+    const path = onboarding === "password" ? "/atualizar-senha" : "/acesso-pendente"
+    if (request.nextUrl.pathname.startsWith("/api/"))
+      return noStore(NextResponse.json({ error: "Conclua o primeiro acesso ao SENTINELA." }, { status: 403 }))
+    return noStore(NextResponse.redirect(new URL(path, request.url)))
   }
   return noStore(response)
 }

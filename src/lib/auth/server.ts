@@ -24,6 +24,7 @@ export async function requirePrincipal(permission?: Permission) {
   if (access.status === "unauthenticated") redirect("/login?erro=sessao")
   if (access.status === "unavailable") redirect("/login?erro=configuracao")
   if (access.status === "unlinked") redirect("/acesso-pendente")
+  if (access.status === "first_password") redirect("/atualizar-senha")
   if (access.status !== "allowed") redirect("/login?erro=sessao")
   if (permission && !hasPermission(access.principal.role, permission)) redirect("/acesso-negado")
   return access.principal

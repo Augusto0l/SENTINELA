@@ -4,7 +4,9 @@ import LoginIcon from "@/components/auth/LoginIcon"
 import styles from "@/components/auth/LoginScreen.module.css"
 import Link from "next/link"
 
-export default function LoginScreen({ configured, message, notice, localDemo = false, localProvider = false }: { configured: boolean; message?: string; notice?: string; localDemo?: boolean; localProvider?: boolean }) {
+export default function LoginScreen({ configured, message, notice, localDemo = false, localProvider = false, operational = false }: {
+  configured: boolean; message?: string; notice?: string; localDemo?: boolean; localProvider?: boolean; operational?: boolean;
+}) {
   return <main className={styles.page}>
     <div className={styles.background} aria-hidden="true" />
     <div className={styles.layout}>
@@ -20,7 +22,8 @@ export default function LoginScreen({ configured, message, notice, localDemo = f
           {localDemo && <div className={styles.feedback} role="status"><p>Prévia local com dados fictícios, sem autenticação real ou acesso ao banco.</p><Link className={styles.submit} href="/dashboard">Entrar na demonstração local →</Link></div>}
           <footer className={styles.security}>
             <LoginIcon name="lock" />
-            <p>{localProvider ? "Ambiente demonstrativo (acesso local)." : "Ambiente demonstrativo com dados fictícios."}</p>
+            <p>{operational ? "Acesso institucional com Supabase Auth."
+              : localProvider ? "Ambiente demonstrativo (acesso local)." : "Ambiente demonstrativo com dados fictícios."}</p>
           </footer>
         </section>
         {!configured && <p className={styles.serviceNotice} role="status">{message}</p>}

@@ -48,7 +48,7 @@ try {
   await writeFile(join(directory, 'accounts.json'), JSON.stringify({ accounts }))
   const html = await start(false)
   for (const account of accounts) assert.ok(!html.includes(account.hash) && !html.includes(account.salt) && !html.includes(account.email))
-  assert.ok(html.includes('Acesso local'))
+  assert.ok(html.includes('Ambiente demonstrativo (acesso local).'))
   for (let i = 0; i < 3; i++) {
     const response = await post('login', { email: accounts[i].email, password: passwords[i], role: 'Administrador' })
     assert.equal(response.status, 303, response.status !== 303 ? await response.text() : undefined)

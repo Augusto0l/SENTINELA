@@ -1,8 +1,10 @@
-﻿param([switch]$Reconfigure)
+﻿param([switch]$Reconfigure, [Guid]$AdministratorSubject)
 $ErrorActionPreference = 'Stop'
 # Run in your own terminal. Never supply passwords as command arguments.
 $accountDirectory = Join-Path $env:USERPROFILE '.sentinela-local'
 $accountFile = Join-Path $accountDirectory 'accounts.json'
+$bindAdministrator = $PSBoundParameters.ContainsKey('AdministratorSubject')
+if ($bindAdministrator -and $AdministratorSubject -eq [Guid]::Empty) { throw 'Use the approved institutional administrator UUID.' }
 if ((Test-Path -LiteralPath $accountFile) -and -not $Reconfigure) { throw 'Configuration already exists. Use -Reconfigure to replace the three local accounts.' }
 . (Join-Path $PSScriptRoot "local-auth-acl.ps1")
 Protect-SentinelaLocalAccounts -Directory $accountDirectory
@@ -20,7 +22,9 @@ try {
       $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($firstPtr)
       $confirmation = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($secondPtr)
       if ($plain.Length -lt 4 -or $plain.Length -gt 1024 -or $plain -cne $confirmation) { throw 'Invalid password or confirmation.' }
-      $accounts += @{ email = $email; role = $role; password = $plain }
+      $account = @{ email = $email; role = $role; password = $plain }
+      if ($role -eq 'Administrador' -and $bindAdministrator) { $account.subject = $AdministratorSubject.ToString() }
+      $accounts += $account
     } finally {
       [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($firstPtr)
       [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($secondPtr)

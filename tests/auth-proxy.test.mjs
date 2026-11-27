@@ -42,3 +42,18 @@ test("Proxy conserva todos os cookies renovados em respostas e redirecionamentos
     assert.equal(response.headers.has("location"),!valid)
   }
 })
+
+test("primeiro acesso bloqueia páginas e APIs com base nos metadados administrativos da sessão", async t => {
+  environment(t)
+  const claims = { sub: "synthetic-user", app_metadata: { sentinela_onboarding: "password" } }
+  configure({ result: { data: { claims }, error: null } })
+  const page = await proxy(new NextRequest("http://localhost:3000/usuarios"))
+  assert.equal(new URL(page.headers.get("location")).pathname, "/atualizar-senha")
+  const api = await proxy(new NextRequest("http://localhost:3000/api/v1/usuarios", { method: "POST" }))
+  assert.equal(api.status, 403)
+  const password = await proxy(new NextRequest("http://localhost:3000/atualizar-senha"))
+  assert.equal(password.headers.has("location"), false)
+  configure({ result: { data: { claims: { sub: claims.sub, user_metadata: claims.app_metadata } }, error: null } })
+  const legacy = await proxy(new NextRequest("http://localhost:3000/dashboard"))
+  assert.equal(legacy.headers.has("location"), false)
+})

@@ -1,7 +1,8 @@
 import { ROLES, type Principal } from "@/lib/auth/policy"
+import { strongInstitutionalPassword } from "@/lib/auth/onboarding"
 
 export interface AuthGateway {
-  identity(): Promise<{ id: string } | null>
+  identity(): Promise<{ id: string; onboarding?: "provisioning" | "password" } | null>
   access(): Promise<unknown>
   login(email: string, password: string): Promise<boolean>
   logout(): Promise<boolean>
@@ -10,13 +11,15 @@ export interface AuthGateway {
   exchange(code: string): Promise<boolean>
   verify(tokenHash: string, type: "recovery" | "invite"): Promise<boolean>
 }
-export type AccessResult = { status: "allowed"; principal: Principal } | { status: "unauthenticated" | "unlinked" | "unavailable" }
+export type AccessResult = { status: "allowed"; principal: Principal } | { status: "unauthenticated" | "unlinked" | "unavailable" | "first_password" }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function resolveAccess(gateway: AuthGateway): Promise<AccessResult> {
   try {
     const identity = await gateway.identity()
     if (!identity || !uuid.test(identity.id)) return { status: "unauthenticated" }
+    if (identity.onboarding === "provisioning") return { status: "unlinked" }
+    if (identity.onboarding === "password") return { status: "first_password" }
     const rows = await gateway.access()
     if (!Array.isArray(rows) || rows.length !== 1) return { status: "unlinked" }
     const row = rows[0]
@@ -32,12 +35,13 @@ export async function resolveAccess(gateway: AuthGateway): Promise<AccessResult>
 
 export type AuthAction = "login" | "logout" | "recuperar" | "senha"
 const messages: Record<string, string> = {
-  local_reinicio: "Para ativar o acesso local, encerre o servidor deste projeto e execute pnpm dev novamente. A conexão deve ficar restrita ao loopback.",
+  local_reinicio: "Para ativar o acesso local, encerre o servidor deste projeto e execute pnpm dev:next. A conexão deve ficar restrita ao loopback.",
   configuracao: "Autenticação indisponível neste ambiente. Contate a administração.",
   credenciais: "Não foi possível entrar. Verifique suas credenciais e tente novamente.",
   acesso: "Sua conta ainda não possui acesso ativo ao SENTINELA.",
   sessao: "A sessão é inválida ou expirou. Entre novamente.",
   senha: "Use uma senha de 12 a 72 caracteres e confirme o mesmo valor.",
+  primeira_senha: "Use de 16 a 72 bytes, com letras maiúsculas, minúsculas, número e símbolo. Escolha uma senha diferente da inicial.",
   falha: "Não foi possível concluir a operação. Tente novamente.",
   link: "O link é inválido ou expirou. Solicite um novo link.",
 }
@@ -73,8 +77,12 @@ export async function authPost(action: AuthAction, request: Request, origin: str
       return redirect(origin, await gateway.logout() ? "/login?estado=saiu" : "/acesso-pendente?erro=falha")
     }
     if (action === "senha") {
-      if (!(await gateway.identity())) return redirect(origin, "/login?erro=sessao")
+      const identity = await gateway.identity()
+      if (!identity) return redirect(origin, "/login?erro=sessao")
+      if (identity.onboarding === "provisioning") return redirect(origin, "/acesso-pendente")
       const password = fields.get("password") ?? ""
+      if (identity.onboarding === "password" && (!strongInstitutionalPassword(password) || password !== fields.get("confirmation")))
+        return redirect(origin, "/atualizar-senha?erro=primeira_senha")
       if (password.length < 12 || password.length > 72 || new TextEncoder().encode(password).length > 72 || password !== fields.get("confirmation")) {
         return redirect(origin, "/atualizar-senha?erro=senha")
       }
@@ -96,6 +104,7 @@ export async function authPost(action: AuthAction, request: Request, origin: str
     if (!password || password.length > 1024 || !(await gateway.login(email, password))) return redirect(origin, "/login?erro=credenciais")
     const access = await resolveAccess(gateway)
     if (access.status === "allowed") return redirect(origin, "/dashboard")
+    if (access.status === "first_password") return redirect(origin, "/atualizar-senha")
     return redirect(origin, access.status === "unauthenticated" ? "/login?erro=sessao" : "/acesso-pendente")
   } catch {
     return redirect(origin, action === "recuperar" ? "/recuperar-senha?estado=enviado" : "/login?erro=falha")
