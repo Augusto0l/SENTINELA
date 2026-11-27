@@ -1,9 +1,30 @@
 import type { RaFeature, RaGeoJSON } from "@/data/geoLoader"
 import { GEO_BOUNDS, RA_BY_CODE } from "@/components/map/raMapData"
+import type { MapOccurrence } from "@/components/map/MapaDF"
 
 // Public non-commercial WMTS endpoint. See docs/relatorio-mapa-satelite.md.
 export const SATELLITE_TILES = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg"
+export const SATELLITE_NATIVE_ZOOM = 14
+export const SATELLITE_DETAIL_ZOOM = SATELLITE_NATIVE_ZOOM + 1
 export const SATELLITE_ATTRIBUTION = '<a href="https://cloudless.eox.at/">EOxCloudless</a> by <a href="https://eox.at/">EOX IT Services GmbH</a> (Contains modified Copernicus Sentinel data 2024) · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>'
+
+export function satelliteTilesOptions(highDensity: boolean) {
+  // On HiDPI screens, fit more native tiles in the same extent without asking EOX for z15.
+  return highDensity
+    ? { tileSize: 128, zoomOffset: 1, maxNativeZoom: SATELLITE_NATIVE_ZOOM - 1 }
+    : { tileSize: 256, zoomOffset: 0, maxNativeZoom: SATELLITE_NATIVE_ZOOM }
+}
+
+export function satelliteMapPoints(points: readonly MapOccurrence[]) {
+  const seen = new Set<string>()
+  return points.filter(({ id, occurrenceId, latitude, longitude }) => {
+    const key = occurrenceId ?? id
+    if (seen.has(key) || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return false
+    seen.add(key)
+    return true
+  })
+}
 
 export function satelliteFeatures(geo: RaGeoJSON, selectedRaCode?: string | null) {
   const selected = geo.features.filter((feature) => feature.properties.ra_codigo === selectedRaCode)

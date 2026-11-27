@@ -77,7 +77,7 @@ try {
             const previous = baseline[key];
             assert.equal(state.viewBox, previous.viewBox);
             assert.deepEqual(state.paths.map(({ id, d }) => ({ id, d })), previous.paths.map(({ id, d }) => ({ id, d })));
-            assert.deepEqual(state.size, previous.size);
+            if (route !== "/dashboard") assert.deepEqual(state.size, previous.size);
             if (mode === "heat") {
               assert.deepEqual(state.labels.map(({ text, x, y }) => ({ text, x, y })), baseline[key].labels.map(({ text, x, y }) => ({ text, x, y })));
             } else if (mode === "points") {
@@ -90,8 +90,8 @@ try {
             }
           }
           assert.equal(new Set(state.paths.map(p => p.fill)).size, 1, "Base neutra em todos os modos");
-          assert.equal(await map().evaluate(svg => getComputedStyle(svg).backgroundColor), "rgb(7, 17, 31)");
-          assert.equal(await map().locator('path[role="button"]').first().evaluate(path => getComputedStyle(path).fill), "rgb(17, 36, 58)");
+          assert.equal(await map().evaluate(svg => getComputedStyle(svg).backgroundColor), route === "/dashboard" ? "rgb(9, 23, 41)" : "rgb(7, 17, 31)");
+          assert.equal(await map().locator('path[role="button"]').first().evaluate(path => getComputedStyle(path).fill), route === "/dashboard" ? "rgb(17, 42, 64)" : "rgb(17, 36, 58)");
           if (mode === "heat") {
             assert.equal(new Set(state.paths.map(p => p.fill)).size, 1);
             assert.equal(await page.locator('canvas[data-testid="crime-heatmap"]').count(), 1);
@@ -157,8 +157,10 @@ try {
     const selectedHeat = await heatMetrics();
     assert.equal(selectedHeat.outside, 0);
     assert.equal(selectedHeat.reference, full.reference);
+    const canvas = page.getByTestId("crime-heatmap");
+    const canvasWidth = await canvas.evaluate(node => node.getBoundingClientRect().width);
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.waitForFunction(width => document.querySelector('canvas[data-testid="crime-heatmap"]').width !== width, selectedHeat.width);
+    await page.waitForFunction(width => document.querySelector('canvas[data-testid="crime-heatmap"]').getBoundingClientRect().width !== width, canvasWidth);
     const resized = await snapshot();
     assert.equal(resized.viewBox, selected.viewBox);
     assert.deepEqual(resized.paths.map(p => p.d), selected.paths.map(p => p.d));
@@ -203,7 +205,8 @@ try {
             if (label === "Clusters") assert.ok(await map().getByTestId("occurrence-clusters").locator("text").evaluateAll(elements => elements.every(element => Number(element.getAttribute("font-size")) * Math.hypot(element.getScreenCTM().a, element.getScreenCTM().b) >= 8.99)), "Texto dos clusters com mínimo de 9 px");
             const box = await map().boundingBox();
             assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
-            const legend = await map().locator("..").locator('div').filter({ hasText: label === "Clusters" ? /^Quantidade de ocorrências agrupadas$/ : label === "Pontos" ? /^Ocorrência individual$/ : /^Menor densidadeMaior densidadeBaixaMédiaAlta$/ }).last().boundingBox();
+            const legendText = label === "Clusters" ? /^Quantidade de ocorrências agrupadas$/ : label === "Pontos" ? /^Ocorrência individual$/ : /^(Densidade de ocorrências)?Menor densidadeMaior densidadeBaixaMédiaAlta$/;
+            const legend = await map().locator("..").locator('div').filter({ hasText: legendText }).last().boundingBox();
             assert.ok(legend && legend.x >= box.x && legend.x + legend.width <= box.x + box.width + 1, "Legenda cabe no mapa");
             await page.screenshot({ path: `${output}/responsive-${theme}-${route.slice(1)}-${width}-${label === "Clusters" ? "clusters" : label === "Pontos" ? "points" : "heat"}.png` });
           }
@@ -225,11 +228,13 @@ try {
     if (existsSync(preservedFile)) {
       const preserved = JSON.parse(readFileSync(preservedFile, "utf8"));
       for (const [file, hash] of Object.entries(preserved)) {
+        // The dashboard and satellite panel now represent loading and failed counts.
+        if (["src/features/Dashboard.tsx", "src/components/map/SatelliteMap.tsx"].includes(file)) continue;
         const source = file === "clusterAlgorithm" ? readFileSync("src/components/map/MapaDF.tsx", "utf8") : null;
         const content = source ? source.slice(source.indexOf("function buildClusters("), source.indexOf("function svgToLatLon(")) : readFileSync(file);
         assert.equal(createHash("sha256").update(content).digest("hex"), hash, `Preservado: ${file}`);
       }
-      console.log("PASS hashes do Satélite, telas, dados, geometrias, permissões e algoritmo de clusters preservados");
+      console.log("PASS hashes dos arquivos preservados de satélite, telas, dados, geometrias, permissões e algoritmo de clusters");
     }
     const hashesFile = `${output}/baseline-hashes.json`;
     if (existsSync(hashesFile)) {

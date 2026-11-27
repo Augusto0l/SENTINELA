@@ -12,6 +12,22 @@ export type HeatPoint = { x: number; y: number };
 type GeographicRecord = { latitude: number; longitude: number };
 export type DensityField = { values: Float32Array; columns: number; rows: number; step: number; peak: number };
 
+/**
+ * Remembers each answer of a deterministic point test, keyed by the exact coordinates.
+ * The test still runs once per distinct (x, y); repeated coordinates reuse that same answer,
+ * so the result is identical to calling `test` directly. Create a new one whenever the geometry changes.
+ */
+export function memoizePointTest(test: (x: number, y: number) => boolean): (x: number, y: number) => boolean {
+  const answers = new Map<number, Map<number, boolean>>();
+  return (x, y) => {
+    let column = answers.get(x);
+    if (!column) answers.set(x, column = new Map());
+    let inside = column.get(y);
+    if (inside === undefined) column.set(y, inside = test(x, y));
+    return inside;
+  };
+}
+
 export function projectHeatRecords(
   records: readonly GeographicRecord[],
   project: (longitude: number, latitude: number) => HeatPoint,

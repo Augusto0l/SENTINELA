@@ -4,17 +4,36 @@ import { projectLonLat, RA_BY_CODE, type RAData } from "@/components/map/raMapDa
 
 export const OFFICIAL_GEOJSON_PATH = "/data/cartography/ras-ide-2026-11-13.geojson"
 
+// Only cartography that already passed the official SHA-256 check is kept, keyed by path and hash.
+// Requests in flight are never shared, so each caller keeps its own cancellation and timeout.
+let verified: { key: string; geo: RaGeoJSON } | undefined
+const projected = new WeakMap<RaGeoJSON, RAData[]>()
+
 export async function loadOfficialRegions(signal: AbortSignal): Promise<RaGeoJSON> {
+  const key = `${OFFICIAL_GEOJSON_PATH}#${CARTOGRAPHY_SHA256}`
+  if (verified?.key === key) {
+    signal.throwIfAborted()
+    return verified.geo
+  }
   const response = await fetch(OFFICIAL_GEOJSON_PATH, { signal })
   if (!response.ok) throw new Error("Limites oficiais indisponíveis.")
   const bytes = await response.arrayBuffer()
   const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
     .map(value => value.toString(16).padStart(2, "0")).join("")
   if (sha !== CARTOGRAPHY_SHA256) throw new Error("Versão cartográfica inesperada.")
-  return JSON.parse(new TextDecoder().decode(bytes)) as RaGeoJSON
+  const geo = JSON.parse(new TextDecoder().decode(bytes)) as RaGeoJSON
+  verified = { key, geo }
+  return geo
 }
 
+/** Projection is a pure function of the GeoJSON object; the same verified object reuses the same result. */
 export function projectOfficialRegions(geo: RaGeoJSON): RAData[] {
+  let regions = projected.get(geo)
+  if (!regions) projected.set(geo, regions = projectGeometry(geo))
+  return regions
+}
+
+function projectGeometry(geo: RaGeoJSON): RAData[] {
   return geo.features.map(({ properties, geometry }) => {
     const code = properties.ra_codigo
     const legacy = RA_BY_CODE[code]

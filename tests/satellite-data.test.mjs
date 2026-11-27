@@ -9,7 +9,10 @@ registerHooks({
     return nextResolve(specifier, context)
   },
 })
-const { satelliteFeatures, satelliteLabelPosition, satelliteMaskRings, visibleSatelliteLabels, SATELLITE_TILES } = await import("../src/components/map/satelliteData.ts")
+const {
+  satelliteFeatures, satelliteLabelPosition, satelliteMapPoints, satelliteMaskRings,
+  satelliteTilesOptions, visibleSatelliteLabels, SATELLITE_TILES, SATELLITE_NATIVE_ZOOM, SATELLITE_DETAIL_ZOOM,
+} = await import("../src/components/map/satelliteData.ts")
 const { RAS, projectLonLat } = await import("../src/components/map/raMapData.ts")
 const geo = JSON.parse(readFileSync(new URL("../public/data/ras-df.geojson", import.meta.url), "utf8"))
 
@@ -57,4 +60,26 @@ test("rótulos sobrepostos são omitidos visualmente sem somar ou alterar quanti
   assert.equal(JSON.stringify(anchors), original)
   const separated = anchors.map((anchor) => ({ ...anchor, x: anchor.x * 2 }))
   assert.ok(visibleSatelliteLabels(separated, 400, 150).has("c"))
+})
+
+test("satélite usa mais tiles em HiDPI e respeita o último nível nativo da EOX", () => {
+  const standard = satelliteTilesOptions(false)
+  const highDensity = satelliteTilesOptions(true)
+  assert.equal(standard.tileSize, highDensity.tileSize * 2)
+  for (const options of [standard, highDensity])
+    assert.equal(options.maxNativeZoom + options.zoomOffset, SATELLITE_NATIVE_ZOOM)
+  assert.equal(SATELLITE_DETAIL_ZOOM, SATELLITE_NATIVE_ZOOM + 1)
+})
+
+test("satélite usa as coordenadas publicadas e agrega apenas duplicatas do mesmo identificador", () => {
+  const first = { id: "row-1", occurrenceId: "pcdf-1", latitude: -15.7998, longitude: -47.8645 }
+  const otherAtSamePosition = { ...first, id: "row-3", occurrenceId: "pcdf-2" }
+  const demo = { id: "demo-1", latitude: -15.83, longitude: -47.95 }
+  const input = [
+    first, { ...first, id: "row-2", natureza: "outra" },
+    otherAtSamePosition, demo, { ...demo }, { ...demo, id: "inválido", longitude: NaN },
+  ]
+  const result = satelliteMapPoints(input)
+  assert.deepEqual(result, [first, otherAtSamePosition, demo])
+  assert.equal(result[0], first)
 })
