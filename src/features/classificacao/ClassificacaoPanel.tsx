@@ -30,13 +30,16 @@ export default function ClassificacaoPanel() {
   const nextVersion = useMemo(() => `pcdf-classificacao-v2.${status?.versoes.length ?? 0}`, [status])
 
   const load = useCallback(() => {
-    call().then(data => { setStatus(data); setMessage("") }).catch(error => setMessage((error as Error).message))
+    call().then(data => { setStatus(data); setMessage("") }).catch(error => {
+      setStatus(undefined)
+      setMessage((error as Error).message)
+    })
   }, [])
   useEffect(load, [load])
 
   async function submit(event: FormEvent<HTMLFormElement>, build: (form: FormData) => object) {
     event.preventDefault()
-    if (busy) return
+    if (busy || !status) return
     setBusy(true)
     setResult("")
     try {
@@ -72,6 +75,7 @@ export default function ClassificacaoPanel() {
       </tr>)}</tbody>
     </table>}
 
+    {status && <>
     <form className={styles.form} onSubmit={event => submit(event, form => ({ acao: "homologar", versao: text(form, "versao"),
       regras: [...selected], evidencia: text(form, "evidencia"), vigenciaInicio: text(form, "inicio"),
       ...(text(form, "fim") ? { vigenciaFim: text(form, "fim") } : {}) }))}>
@@ -140,6 +144,7 @@ export default function ClassificacaoPanel() {
       <input id="classificacao-reverter-justificativa" name="justificativa" required minLength={10} maxLength={500} />
       <button type="submit" disabled={busy || !status?.versoes.length}>Reverter</button>
     </form>
+    </>}
     {result && <p role="status" className={styles.result}>{result}</p>}
   </section>
 }

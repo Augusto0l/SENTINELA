@@ -113,6 +113,8 @@ test("importação confirmada aplica a versão ativa na mesma transação, antes
   assert(apply > 0 && apply < source.indexOf('await client.query("COMMIT")', apply))
   const lib = read("src/lib/db/classificacao.ts")
   assert.match(lib, /to_regprocedure\('sentinela_classificacao\.aplicar_lote\(uuid,text\)'\)/)
+  assert.match(lib, /to_regprocedure\('sentinela_classificacao\.situacao\(\)'\) IS NOT NULL AS installed/)
+  assert.match(lib, /if \(!check\?\.installed\) throw new ClassificacaoError\(503,/)
   assert.match(lib, /proposal\.regras\.filter/)
   const route = read("src/app/api/v1/classificacao/route.ts")
   assert.match(route, /code === "55P03"/)

@@ -62,6 +62,9 @@ async function withAdministrador<T>(write: boolean, run: (client: Client) => Pro
 
 export function lerSituacao() {
   return withAdministrador(false, async client => {
+    const { rows: [check] } = await client.query(`SELECT
+      to_regprocedure('sentinela_classificacao.situacao()') IS NOT NULL AS installed`)
+    if (!check?.installed) throw new ClassificacaoError(503, "Classificação PCDF ainda não instalada no banco institucional.")
     const { rows: [row] } = await client.query("SELECT sentinela_classificacao.situacao() AS data")
     if (!row?.data) throw new ClassificacaoError(403, "Situação indisponível para esta sessão.")
     return classificacaoSituacao.parse(row.data)
