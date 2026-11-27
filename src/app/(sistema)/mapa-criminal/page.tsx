@@ -8,6 +8,8 @@ export default async function Page({ searchParams }: {
   const principal = await requirePrincipal("analisar");
   const params = await searchParams;
   const filters = demoFiltersFromSearch({ get: name => typeof params[name] === "string" ? params[name] : null });
-  return <CrimeMapEntry persistent={principal.source === "local"} initialFilters={{ ...filters,
-    category: principal.source === "local" && typeof params.category === "string" ? params.category : undefined }} />;
+  const persistent = principal.source === "supabase" || canReadOperational(principal);
+  return <CrimeMapEntry persistent={persistent} initialFilters={{ ...filters,
+    category: persistent && typeof params.category === "string" ? params.category : undefined }} />;
 }
+import { canReadOperational } from "@/lib/auth/operational-access";

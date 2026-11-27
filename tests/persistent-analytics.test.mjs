@@ -12,16 +12,68 @@ const { occurrenceSql } = await import("../src/lib/db/occurrence-query.ts")
 const { persistentQuerySchema } = await import("../src/contracts/persistent-occurrences.ts")
 const { projectOfficialRegions } = await import("../src/components/map/officialRegions.ts")
 const { CARTOGRAPHY_SHA256 } = await import("../src/data/territorial-validation.ts")
+const { dashboardPeriod } = await import("../src/components/analytics/dashboard-period.ts")
+
+test("PCDF Dashboard restricts source and applies nature and category to the same links", () => {
+  const nature = "30000000-0000-4000-8000-000000000001"
+  const sql = analyticsSql({ scope: "pcdf", nature, category: "Categoria", ra: "I" }, "integrated")
+  assert.match(sql.text, /o\.fonte='PCDF' AND o\.origem='importacao'/)
+  assert.equal(sql.text.match(/a\.categoria=\$2::text/g)?.length, 2)
+  assert.match(sql.text, /'natureLinks'/)
+  assert.match(sql.text, /FROM selected WHERE code IS NOT NULL/)
+  assert.deepEqual(sql.values, [nature, "Categoria", "I"])
+})
+
+test("confirmed maps use the published projection independently of the PCDF statistical population", async () => {
+  const { text, values } = analyticsSql({ scope: "pcdf", ra: "RA-I", hour: "18-24" }, "integrated", true)
+  assert.match(text, /statistical AS \(SELECT \* FROM matched o WHERE o\.fonte='PCDF' AND o\.origem='importacao'\)/)
+  // Map points filter by the validated RA or, without one, by the RA that covers the published point.
+  assert.match(text, /SELECT id,coalesce\(m\.code,to_jsonb\(p\)->>'ra_codigo'\) AS "raCode",p\.latitude,p\.longitude\s+FROM matched m JOIN sentinela_ocorrencias_analytics\.pontos_confirmados p USING\(id\)\s+WHERE coalesce\(m\.code,to_jsonb\(p\)->>'ra_codigo'\)=\$3::text/)
+  assert.match(text, /selected AS MATERIALIZED \(SELECT \* FROM statistical WHERE code=\$3::text\)/)
+  assert.match(text, /'points',\(SELECT coalesce\(jsonb_agg\(to_jsonb\(p\) ORDER BY id\)/)
+  assert.match(text, /'mappedByRa'/)
+  assert.deepEqual(values, [18, "24:00", "RA-I"])
+  const install = await readFile(new URL("../database/release/map-confirmed-points.psql", import.meta.url), "utf8")
+  assert.match(install, /o\.origem='manual' AND o\.fonte='SENTINELA_MANUAL'/)
+  assert.match(install, /o\.localizacao_status='validada' AND o\.referencia_espacial_confirmada='WGS84; IDE-DF-2026-11-13'/)
+  assert.match(install, /NULL::float8 AS longitude WHERE false/)
+})
+
+test("monthly Dashboard compares known zero counts and excludes missing and partial months", () => {
+  const filters = { period: "all", startDate: "", endDate: "" }
+  const data = { total: 4, timeline: [{ key: "2026-06", count: 4 }], monthCoverage: [
+    { key: "2026-06", status: "complete", through: "2026-06-30" },
+    { key: "2026-07", status: "complete", through: "2026-07-31" },
+    { key: "2026-08", status: "not_imported", through: "2026-08-18" },
+  ] }
+  const full = dashboardPeriod(data, filters)
+  assert.deepEqual(full.timeline, [{ key: "2026-06", count: 4 }, { key: "2026-07", count: 0 }])
+  assert.equal(full.variation, "-100%")
+  const custom = { period: "custom", startDate: "2026-06-01", endDate: "2026-08-31" }
+  assert.equal(dashboardPeriod(data, custom).variation, null)
+  assert.equal(dashboardPeriod(data, custom).notice, "1 competência ainda sem importação")
+  assert.equal(dashboardPeriod({ ...data, total: 0, timeline: [] }, { ...custom, startDate: "2026-08-01" }).uncovered, true)
+  assert.equal(dashboardPeriod({ ...data, monthCoverage: data.monthCoverage.slice(0, 2) }, custom).variation, null)
+  const partial = { ...data, monthCoverage: data.monthCoverage.map(month => month.key === "2026-08" ? { ...month, status: "partial" } : month) }
+  assert.equal(dashboardPeriod(partial, filters).variation, null)
+  assert.equal(dashboardPeriod(partial, filters).notice, "Dados parciais até 18/08/2026")
+  const beyondCutoff = dashboardPeriod({ ...partial, total: 0, timeline: [] }, { ...custom, startDate: "2026-08-19" })
+  assert.deepEqual(beyondCutoff.timeline, [])
+  assert.equal(beyondCutoff.uncovered, true)
+})
 
 test("persistent filters reject duplicate, malformed and out-of-order inputs", () => {
-  for (const value of ["ra=RA-I&ra=RA-I", "startDate=2026-02-30", "startDate=2026-02-01&endDate=2026-01-01", "category=not-uuid", "host=local", "hour=17-24"]) {
+  for (const value of ["ra=RA-I&ra=RA-I", "startDate=2026-02-30", "startDate=2026-02-01&endDate=2026-01-01", "category=+", "host=local", "hour=17-24"]) {
     assert.throws(() => parseAnalyticsSearch(new URLSearchParams(value)))
   }
   const sql = analyticsSql({ ra: "XXXVII", nature: "30000000-0000-4000-8000-000000000001",
-    category: "20000000-0000-4000-8000-000000000001", hour: "18-24" })
-  assert.match(sql.text, /EXISTS.*SELECT 1 FROM sentinela.ocorrencia_naturezas/)
-  assert.match(sql.text, /count\(DISTINCT s.id\)/)
+    category: "Categoria de origem PCDF", hour: "18-24" })
+  assert.match(sql.text, /o\.id IN \(SELECT a\.ocorrencia_id FROM links/)
+  assert.match(sql.text, /selected_links AS MATERIALIZED \([\s\S]*?JOIN selected s ON s.id=a.ocorrencia_id/)
+  assert.equal([...sql.text.matchAll(/count\(DISTINCT a\.ocorrencia_id\)/g)].length, 2)
   assert.equal(sql.values.at(-1), "XXXVII")
+  assert(sql.values.includes("Categoria de origem PCDF"))
+  assert.doesNotMatch(sql.text, /mapeamentos_natureza|categorias_criminais/)
   assert(!sql.text.includes("XXXVII"))
   assert(!sql.text.includes("numero_registro"))
 })
@@ -51,6 +103,18 @@ test("operational map projects all 37 official features without modifying the pi
   assert.equal(new Set(regions.map(region => region.code)).size, 37)
   assert(regions.some(region => region.code === "XXXVII" && region.path.length > 0))
   assert(regions.every(region => region.bounds.width > 0 && region.bounds.height > 0))
+})
+
+test("validated integrated GEO points without RA contribute to points and heat but not the RA filter", () => {
+  const sql = analyticsSql({ ra: "RA-I" }, "integrated")
+  assert.match(sql.text, /selected AS MATERIALIZED \(SELECT \* FROM matched WHERE code=\$1::text\)/)
+  assert.doesNotMatch(sql.text, /WHERE code IS NOT NULL AND localizacao_status/)
+  assert.match(sql.text, /count\(\*\) AS count FROM matched WHERE code IS NOT NULL/)
+  assert.match(sql.text, /LIMIT 10001/)
+  const geo = { latitude: -15.8, longitude: -47.9, raCode: null }
+  const data = { total: 1, mapTotal: 1, byRa: [], byNature: [], timeline: [], weekday: null, hour: null,
+    regions: [], natures: [], categories: [], points: [geo], heatReference: [geo], pointsTruncated: false, heatUnavailable: false }
+  assert.deepEqual(persistentAnalyticsData.parse(data).points, [geo])
 })
 
 test("persistent analytics authenticates before querying and returns only private contract data", async () => {
@@ -88,4 +152,29 @@ test("persistent analytics authenticates before querying and returns only privat
       else process.env[key] = previous[key]
     }
   }
+})
+
+test("publicação PCDF: um ponto por ocorrência, RA oficial única, auditoria e decisão sobre o CRS registradas", async () => {
+  const sql = await readFile(new URL("../database/release/pcdf-publicar-pontos.psql", import.meta.url), "utf8")
+  const rollback = await readFile(new URL("../database/release/pcdf-publicar-pontos-rollback.psql", import.meta.url), "utf8")
+  for (const script of [sql, rollback])
+    assert.deepEqual(script.split(/\r?\n/).filter(line => /^(BEGIN|COMMIT|ROLLBACK);$/.test(line)), ["BEGIN;", "COMMIT;"])
+  assert.match(sql, /p\.origens=p\.validas AND p\.distintos=1/)
+  assert.match(sql, /WHERE v\.ras=1/)
+  assert.match(sql, /o\.ativo AND o\.consolidacao_status='consolidada' AND o\.fonte='PCDF' AND o\.origem='importacao'/)
+  assert.match(sql, /AND o\.versao=p\.versao_ocorrencia/)
+  assert.match(sql, /sem comprovação formal/)
+  assert.match(sql, /'pcdf\.publicacao_pontos'/)
+  assert.doesNotMatch(sql, /UPDATE sentinela\.ocorrencias|DELETE FROM sentinela\.ocorrencias|INSERT INTO sentinela\.ocorrencias/)
+  assert.match(rollback, /NULL::float8 AS longitude WHERE false/)
+})
+
+test("publicação PCDF pode ser revertida e reinstalada com ledger imutável", async () => {
+  const sql = await readFile(new URL("../database/release/pcdf-publicar-pontos.psql", import.meta.url), "utf8")
+  const rollback = await readFile(new URL("../database/release/pcdf-publicar-pontos-rollback.psql", import.meta.url), "utf8")
+  assert.match(sql, /'local-pcdf-pontos-0001-reinstalada-'\|\|\(n\+1\)/)
+  assert.match(rollback, /'local-pcdf-pontos-0001-revertida-'\|\|\(n\+1\)/)
+  assert.doesNotMatch(sql + rollback, /DELETE FROM sentinela\.schema_migrations/)
+  // Active exactly while installs exceed reversals by one.
+  assert.match(rollback, /<>\(SELECT count\(\*\) FROM sentinela\.schema_migrations WHERE versao LIKE 'local-pcdf-pontos-0001-revertida%'\)\+1/)
 })

@@ -1,6 +1,6 @@
 import { CONTRACT_VERSION, catalogVersion } from "@/contracts/common"
 import { parseAnalyticsSearch, persistentAnalyticsResponse, type PersistentAnalyticsQuery } from "@/contracts/persistent-analytics"
-import { localAllowed } from "@/lib/auth/local-provider"
+import { canReadOperational, operationalHostAllowed } from "@/lib/auth/operational-access"
 import { hasPermission, type Principal } from "@/lib/auth/policy"
 import { apiError } from "@/lib/db/http"
 import { DatabaseUnavailable } from "@/lib/db/config"
@@ -8,10 +8,10 @@ import { DatabaseUnavailable } from "@/lib/db/config"
 export async function analyticsGET(request: Request, principal: () => Promise<Principal | null>,
   query: (principal: Principal, filters: PersistentAnalyticsQuery) => Promise<unknown>) {
   try {
-    if (!localAllowed(request.headers.get("host"))) return apiError("FORBIDDEN", "Provedor local indisponível.")
+    if (!operationalHostAllowed(request.headers.get("host"))) return apiError("FORBIDDEN", "Consulta indisponível neste ambiente.")
     const user = await principal()
     if (!user) return apiError("UNAUTHORIZED", "Sessão necessária.")
-    if (user.source !== "local" || !hasPermission(user.role, "analisar")) return apiError("FORBIDDEN", "Consulta não autorizada.")
+    if (!canReadOperational(user) || !hasPermission(user.role, "analisar")) return apiError("FORBIDDEN", "Consulta não autorizada.")
     let filters
     try { filters = parseAnalyticsSearch(new URL(request.url).searchParams) }
     catch { return apiError("BAD_REQUEST", "Filtros analíticos inválidos.") }

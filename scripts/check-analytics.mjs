@@ -17,6 +17,10 @@ const total = async () => Number(await page.getByTestId("analytics-total").getAt
 const period = () => page.getByLabel("Período da base fictícia", { exact: true });
 const heat = () => page.getByTestId("crime-heatmap");
 const geometry = () => page.locator('svg:has(path[role="button"]) path[role="button"]').evaluateAll(paths => paths.map(path => [path.id, path.getAttribute("d")]));
+const complementaryFilters = async (open) => {
+  const summary = page.getByRole("form", { name: "Filtros analíticos" }).locator("details > summary").filter({ hasText: /^Filtros\b/ });
+  if (await summary.count() && (await summary.evaluate(element => element.parentElement.open)) !== open) await summary.click();
+};
 const range = async (start, end) => {
   await period().selectOption("custom");
   await page.getByLabel("Data inicial", { exact: true }).fill(start);
@@ -24,7 +28,9 @@ const range = async (start, end) => {
   await page.getByRole("button", { name: "Aplicar período", exact: true }).click();
 };
 const clear = async () => {
+  await complementaryFilters(true);
   await page.getByRole("button", { name: "Limpar filtros", exact: true }).click();
+  await complementaryFilters(false);
   await page.waitForFunction(() => document.querySelector('[data-testid="analytics-total"]')?.getAttribute("data-count") === "790");
 };
 const goto = async route => {
@@ -57,7 +63,7 @@ try {
     assert.equal(await total(), quickTotal);
     await range("2027-01-01", "2027-01-31");
     assert.equal(await total(), 0);
-    await page.getByRole("status").filter({ hasText: "Nenhuma ocorrência" }).waitFor();
+    await page.getByRole("status").filter({ hasText: /Nenhuma ocorrência.*no intervalo/ }).waitFor();
     assert.equal(await heat().getAttribute("data-point-count"), "0");
     assert.equal(await heat().getAttribute("data-reference-peak"), reference);
     assert.doesNotMatch(await page.locator("body").innerText(), /NaN|Infinity/);
@@ -77,9 +83,11 @@ try {
 
   await goto("/dashboard");
   await range("2026-01-01", "2026-08-25");
+  await complementaryFilters(true);
   await page.getByLabel("Região Administrativa", { exact: true }).selectOption("RA-I");
   await page.getByLabel("Natureza criminal", { exact: true }).selectOption("Furto");
   await page.getByLabel("Faixa de horário", { exact: true }).selectOption("18-24");
+  await complementaryFilters(false);
   const combined = await total();
   assert.ok(combined > 0 && combined < 790);
   await page.getByText("Série mensal em tabela", { exact: true }).click();
