@@ -5,7 +5,11 @@ import { canReadOperational, operationalHostAllowed } from "@/lib/auth/operation
 import { requirePagePrincipal } from "@/lib/auth/page-access"
 import { readDashboard } from "@/lib/db/dashboard"
 
-export default async function Page({ searchParams }: PageProps<"/dashboard">) {
+type DashboardPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function Page({ searchParams }: DashboardPageProps) {
   const principal = await requirePagePrincipal("analisar")
   if (!canReadOperational(principal) || !operationalHostAllowed((await headers()).get("host"))) {
     return <Dashboard filters={defaultDashboardFilters} message="Indicadores operacionais indisponíveis nesta sessão." />
