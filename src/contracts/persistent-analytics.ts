@@ -19,7 +19,11 @@ const bucket = z.strictObject({ key: z.string(), count: countSchema })
 const monthlyCoverage = z.strictObject({ key: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
   status: z.enum(["not_imported", "complete", "partial"]), through: dateSchema })
 const point = coordinateSchema.extend({ raCode: code.nullable() })
+// Published map points aggregated into 0.002° cells for the heat layer; weight = occurrences in the cell.
+const heatCell = point.extend({ weight: z.number().int().positive() })
 export const ANALYTICS_POINT_LIMIT = 10000
+// Heat cells are 0.002° (below one heat-grid step and far below the kernel blur), each weighted by its occurrences.
+export const ANALYTICS_HEAT_CELL_LIMIT = 40000
 export const persistentAnalyticsData = z.strictObject({
   total: countSchema, mapTotal: countSchema,
   byRa: z.array(bucket), byNature: z.array(bucket), timeline: z.array(bucket),
@@ -31,10 +35,11 @@ export const persistentAnalyticsData = z.strictObject({
   regions: z.array(z.strictObject({ code, name: z.string().min(1) })),
   natures: z.array(option), categories: z.array(option.extend({ id: z.string().min(1).max(240) })),
   points: z.array(point.extend({ id: z.uuid().optional() })).max(ANALYTICS_POINT_LIMIT),
-  heatReference: z.array(point).max(ANALYTICS_POINT_LIMIT),
+  heatReference: z.array(z.union([heatCell, point])).max(ANALYTICS_HEAT_CELL_LIMIT),
+  heat: z.array(heatCell).max(ANALYTICS_HEAT_CELL_LIMIT).optional(),
   pointsTruncated: z.boolean(), heatUnavailable: z.boolean(),
 }).refine(value => value.total <= value.mapTotal && value.timeline.reduce((n,b) => n+b.count,0) <= value.total &&
   value.byRa.reduce((n,b) => n+b.count,0) <= value.mapTotal &&
-  (!value.heatUnavailable || value.heatReference.length === 0))
+  (!value.heatUnavailable || (value.heatReference.length === 0 && !value.heat?.length)))
 export const persistentAnalyticsResponse = successSchema(persistentAnalyticsData)
 export type PersistentAnalyticsData = z.infer<typeof persistentAnalyticsData>

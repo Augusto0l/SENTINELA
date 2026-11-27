@@ -23,7 +23,7 @@ import type { MapOccurrenceInteraction } from "@/components/map/MapOccurrenceToo
 import styles from "@/components/map/AnalyticMap.module.css";
 
 export type MapMode = "heat" | "points" | "clusters" | "satellite";
-export type MapOccurrence = MockOccurrence & { occurrenceId?: string; underReview?: boolean };
+export type MapOccurrence = MockOccurrence & { occurrenceId?: string; underReview?: boolean; weight?: number };
 
 const MapOccurrenceDetail = dynamic(() => import("@/features/occurrences/OccurrenceWorkspace")
   .then(module => module.ConsolidatedDetail), { ssr: false });
@@ -58,6 +58,8 @@ type Props = {
   mapMode?: MapMode;
   mockOccurrences?: MapOccurrence[];
   heatReferenceOccurrences?: readonly MapOccurrence[];
+  /** Weighted heat cells of the current filters; without them the heat follows the visible points. */
+  heatOccurrences?: readonly MapOccurrence[];
   officialRegions?: RAData[];
   heatUnavailable?: boolean;
   countsUnavailable?: boolean;
@@ -106,6 +108,7 @@ export default function MapaDF({
   mapMode = "heat",
   mockOccurrences = [],
   heatReferenceOccurrences = mockOccurrences,
+  heatOccurrences,
   officialRegions,
   heatUnavailable = false,
   countsUnavailable = false,
@@ -210,7 +213,9 @@ export default function MapaDF({
     return createDensityField(points, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains, heatStyle);
   }, [heatDomain, heatReferenceOccurrences, heatStyle]);
 
-  const heatPoints = useMemo(() => heatDomain ? projectHeatRecords(visibleOccs, projectLonLat, heatDomain.contains) : [], [visibleOccs, heatDomain]);
+  const heatRecords = useMemo(() => !heatOccurrences ? visibleOccs
+    : selectedRaCode ? heatOccurrences.filter(cell => cell.raCode === selectedRaCode) : heatOccurrences, [heatOccurrences, visibleOccs, selectedRaCode]);
+  const heatPoints = useMemo(() => heatDomain ? projectHeatRecords(heatRecords, projectLonLat, heatDomain.contains) : [], [heatRecords, heatDomain]);
   const heatField = useMemo(() => heatDomain ? createDensityField(heatPoints, MAP_WIDTH, MAP_HEIGHT, heatDomain.contains, heatStyle) : null, [heatPoints, heatDomain, heatStyle]);
   const streetHeatActive = streetBasemap && heatmapActive;
   const useFullHeatClip = streetHeatActive && !selectedRA;

@@ -32,6 +32,11 @@ test("confirmed maps use the published projection independently of the PCDF stat
   assert.match(text, /selected AS MATERIALIZED \(SELECT \* FROM statistical WHERE code=\$3::text\)/)
   assert.match(text, /'points',\(SELECT coalesce\(jsonb_agg\(to_jsonb\(p\) ORDER BY id\)/)
   assert.match(text, /'mappedByRa'/)
+  // Heat: weighted 0.002° cells of the filtered points and of every published point; no 10,000-occurrence cutoff.
+  assert.match(text, /heat AS \(SELECT \(round\(latitude::numeric\*500\)\/500\)::float8 AS latitude,\(round\(longitude::numeric\*500\)\/500\)::float8 AS longitude,"raCode",count\(\*\)::int AS weight\s+FROM mapped GROUP BY 1,2,3/)
+  assert.match(text, /FROM sentinela_ocorrencias_analytics\.pontos_confirmados GROUP BY 1,2 ORDER BY 1,2/)
+  assert.match(text, /'heat',CASE WHEN/)
+  assert.doesNotMatch(text, /pontos_confirmados ORDER BY id LIMIT/)
   assert.deepEqual(values, [18, "24:00", "RA-I"])
   const install = await readFile(new URL("../database/release/map-confirmed-points.psql", import.meta.url), "utf8")
   assert.match(install, /o\.origem='manual' AND o\.fonte='SENTINELA_MANUAL'/)
@@ -177,4 +182,30 @@ test("publicação PCDF pode ser revertida e reinstalada com ledger imutável", 
   assert.doesNotMatch(sql + rollback, /DELETE FROM sentinela\.schema_migrations/)
   // Active exactly while installs exceed reversals by one.
   assert.match(rollback, /<>\(SELECT count\(\*\) FROM sentinela\.schema_migrations WHERE versao LIKE 'local-pcdf-pontos-0001-revertida%'\)\+1/)
+})
+
+test("heat cells weigh each occurrence once and the contract keeps the heat bounded", async () => {
+  const { createDensityField } = await import("../src/components/map/heatmapDensity.ts")
+  const single = createDensityField([{ x: 50, y: 50 }, { x: 50, y: 50 }, { x: 50, y: 50 }], 100, 100)
+  const weighted = createDensityField([{ x: 50, y: 50, weight: 3 }], 100, 100)
+  assert.ok(Math.abs(single.peak - weighted.peak) < 1e-6)
+  const base = { total: 0, mapTotal: 0, byRa: [], byNature: [], timeline: [], weekday: null, hour: null, regions: [],
+    natures: [], categories: [], points: [], pointsTruncated: false }
+  assert(persistentAnalyticsData.safeParse({ ...base, heatReference: [{ latitude: -15.8, longitude: -47.9, raCode: null, weight: 12 }],
+    heat: [{ latitude: -15.8, longitude: -47.9, raCode: "RA-I", weight: 2 }], heatUnavailable: false }).success)
+  assert(!persistentAnalyticsData.safeParse({ ...base, heatReference: [], heat: [{ latitude: -15.8, longitude: -47.9, raCode: null, weight: 1 }],
+    heatUnavailable: true }).success)
+})
+
+test("0018 publishes PCDF map points automatically with the reviewed rule and least privilege", async () => {
+  const sql = await readFile(new URL("../database/supabase/pendentes/0018_publicacao_automatica_pontos_pcdf.sql", import.meta.url), "utf8")
+  assert.match(sql, /CREATE TRIGGER pontos_pcdf_vinculos AFTER INSERT ON sentinela\.ocorrencia_naturezas/)
+  assert.match(sql, /CREATE TRIGGER pontos_pcdf_ocorrencias AFTER UPDATE ON sentinela\.ocorrencias/)
+  assert.match(sql, /o\.ativo AND o\.consolidacao_status = 'consolidada' AS consolidada/)
+  assert.match(sql, /p\.origens = p\.validas AND p\.distintos = 1/)
+  assert.match(sql, /HAVING count\(\*\) = 1/)
+  assert.match(sql, /ON CONFLICT \(ocorrencia_id\) DO UPDATE/)
+  assert.match(sql, /NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/)
+  assert.match(sql, /REVOKE USAGE ON SCHEMA sentinela_ocorrencias_analytics FROM SESSION_USER/)
+  assert.doesNotMatch(sql, /DISABLE ROW LEVEL SECURITY|TO sentinela_local_(admin|operator|analyst)/)
 })

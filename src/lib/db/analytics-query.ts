@@ -1,4 +1,4 @@
-import { ANALYTICS_POINT_LIMIT, persistentAnalyticsQuery, type PersistentAnalyticsQuery } from "@/contracts/persistent-analytics"
+import { ANALYTICS_HEAT_CELL_LIMIT, ANALYTICS_POINT_LIMIT, persistentAnalyticsQuery, type PersistentAnalyticsQuery } from "@/contracts/persistent-analytics"
 import { visibleOccurrence } from "@/lib/db/occurrence-visibility"
 
 export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" | "integrated" = "legacy", confirmedMap = false) {
@@ -37,6 +37,9 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
   const limit = source === "integrated" ? ANALYTICS_POINT_LIMIT : 5000
   const eligiblePoint = `${source === "legacy" ? "code IS NOT NULL AND " : ""}localizacao_status='validada' AND latitude IS NOT NULL AND longitude IS NOT NULL`
   const population = pcdf && confirmedMap ? "statistical" : "matched"
+  const cells = ANALYTICS_HEAT_CELL_LIMIT
+  const cell = (column: string) => `(round(${column}::numeric*500)/500)::float8`
+  const heatOverflow = `((SELECT count(*) FROM reference)>${cells} OR (SELECT count(*) FROM heat)>${cells})`
   const text = `WITH regions AS MATERIALIZED (
     SELECT id,codigo_interno::text AS code,nome::text AS name FROM ${schema}.regioes_administrativas
   ), visible AS MATERIALIZED (
@@ -66,7 +69,11 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
     WHERE ${pointRa}=${raParam}::text` : ""}
   ),
   points AS (SELECT * FROM mapped ORDER BY id LIMIT ${limit + 1}),
-  reference AS (SELECT id,NULL::text AS "raCode",latitude,longitude FROM ${schema}.pontos_confirmados ORDER BY id LIMIT ${limit + 1})` : `points AS (
+  -- Heat uses weighted 0.002° cells: every published occurrence counts once, however many months are loaded.
+  heat AS (SELECT ${cell("latitude")} AS latitude,${cell("longitude")} AS longitude,"raCode",count(*)::int AS weight
+    FROM mapped GROUP BY 1,2,3 ORDER BY 1,2,3 LIMIT ${cells + 1}),
+  reference AS (SELECT ${cell("latitude")} AS latitude,${cell("longitude")} AS longitude,NULL::text AS "raCode",count(*)::int AS weight
+    FROM ${schema}.pontos_confirmados GROUP BY 1,2 ORDER BY 1,2 LIMIT ${cells + 1})` : `points AS (
     SELECT id,code AS "raCode",latitude,longitude FROM selected
     WHERE ${eligiblePoint}
     ORDER BY id LIMIT ${limit + 1}
@@ -103,9 +110,12 @@ export function analyticsSql(input: PersistentAnalyticsQuery, source: "legacy" |
         ORDER BY name,canonical DESC,id) labels),
     'categories',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',name,'name',name) ORDER BY name),'[]') FROM source_categories),
     'points',(SELECT coalesce(jsonb_agg(${confirmedMap ? "to_jsonb(p)" : "to_jsonb(p)-'id'"} ORDER BY id),'[]') FROM (SELECT * FROM points ORDER BY id LIMIT ${limit}) p),
-    'heatReference',CASE WHEN (SELECT count(*) FROM reference)>${limit} THEN '[]'::jsonb ELSE (SELECT coalesce(jsonb_agg(to_jsonb(reference)-'id' ORDER BY id),'[]') FROM reference) END,
-    'pointsTruncated',(SELECT count(*) FROM points)>${limit},
-    'heatUnavailable',(SELECT count(*) FROM reference)>${limit}
+    ${confirmedMap ? `'heatReference',CASE WHEN ${heatOverflow} THEN '[]'::jsonb ELSE (SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY latitude,longitude),'[]') FROM reference r) END,
+    'heat',CASE WHEN ${heatOverflow} THEN '[]'::jsonb ELSE (SELECT coalesce(jsonb_agg(to_jsonb(h) ORDER BY latitude,longitude,"raCode"),'[]') FROM heat h) END,
+    'heatUnavailable',${heatOverflow},`
+    : `'heatReference',CASE WHEN (SELECT count(*) FROM reference)>${limit} THEN '[]'::jsonb ELSE (SELECT coalesce(jsonb_agg(to_jsonb(reference)-'id' ORDER BY id),'[]') FROM reference) END,
+    'heatUnavailable',(SELECT count(*) FROM reference)>${limit},`}
+    'pointsTruncated',(SELECT count(*) FROM points)>${limit}
   ) AS data`
   return { text, values }
 }

@@ -181,6 +181,7 @@ export default function CrimeMap({ initialRaCode, initialFilters, persistent = f
               mapMode={mapMode}
               mockOccurrences={mapOccurrences}
               heatReferenceOccurrences={source.heatReference}
+              heatOccurrences={source.heatRecords}
               officialRegions={source.officialRegions}
               heatUnavailable={source.heatUnavailable}
               countsUnavailable={source.pending}
