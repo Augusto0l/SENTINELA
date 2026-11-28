@@ -33,8 +33,10 @@ try {
           throw new Error(`${viewport.width}px / ${theme} / ${mode}: ${text} ${errors.join(" | ")}`, { cause: error })
         })
         if (mode === "Pontos") {
-          await page.waitForFunction(() => Number(document.querySelector('[data-testid="occurrence-points"]')?.dataset.pointCount) > 0)
-          assert.equal(await layer.evaluate(element => element.tagName), "CANVAS")
+          await layer.getByTestId("occurrence-marker").first().waitFor()
+          assert.equal(await layer.evaluate(element => element.tagName), "g")
+          assert.equal(await layer.getByTestId("occurrence-marker").count(), Number(await layer.getAttribute("data-point-count")))
+          assert.equal(await page.getByText("Ocorrências agrupadas ou coincidentes", { exact: true }).count(), 0)
           assert(await page.getByTestId("point-symbol-count").isVisible())
         } else if (mode === "Satélite") await layer.locator("path[data-ra-code]").first().waitFor()
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))

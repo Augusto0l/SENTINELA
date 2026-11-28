@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import MapClusterLayer from "@/components/map/MapClusterLayer";
-import PointCanvasLayer from "@/components/map/PointCanvasLayer";
 import SatelliteBoundary from "@/components/map/SatelliteBoundary";
 import StreetBasemap, { StreetAttribution } from "@/components/map/StreetBasemap";
 import {
@@ -20,7 +19,7 @@ import { renderDensityHeatmap, renderProjectedHeatmap } from "@/components/map/h
 import { clusterCell, frameDetail, pointRadius } from "@/components/map/mapSymbols";
 import { officialRaLines } from "@/components/map/raTooltip";
 import { useStreetNavigation } from "@/components/map/useStreetNavigation";
-import type { MapOccurrenceInteraction, MarkerHover } from "@/components/map/MapOccurrenceTooltip";
+import type { MapOccurrenceInteraction } from "@/components/map/MapOccurrenceTooltip";
 import type { PointPublicationStatus } from "@/contracts/persistent-analytics";
 import styles from "@/components/map/AnalyticMap.module.css";
 
@@ -153,11 +152,6 @@ export default function MapaDF({
   const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(" ").map(Number);
   const onOccurrenceHover = occurrenceInteraction?.onHover;
   const onOccurrenceOpen = occurrenceInteraction?.onOpen;
-  const canvasPoints = mapMode === "points" && streetBasemap && analyticMap;
-  const hoverCanvasPoint = useCallback((marker: MarkerHover | null) => {
-    setHoveredOcc(marker?.point ?? null);
-    onOccurrenceHover?.(marker);
-  }, [onOccurrenceHover]);
   const openOccurrence = useCallback((point: MapOccurrence) => {
     if (onOccurrenceOpen) onOccurrenceOpen(point);
     else setOpenedPoint(point);
@@ -173,7 +167,7 @@ export default function MapaDF({
 
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || canvasPoints || (!dashboard && mapMode !== "points" && mapMode !== "clusters")) return;
+    if (!svg || (!dashboard && mapMode !== "points" && mapMode !== "clusters")) return;
     const update = () => {
       const matrix = streetBasemap ? null : svg.getScreenCTM();
       const scale = streetBasemap ? Math.min(svg.clientWidth / width, svg.clientHeight / height)
@@ -184,7 +178,7 @@ export default function MapaDF({
     const observer = new ResizeObserver(update);
     observer.observe(svg);
     return () => { cancelAnimationFrame(frame); observer.disconnect(); };
-  }, [canvasPoints, dashboard, mapMode, viewBox, streetBasemap, width, height]);
+  }, [dashboard, mapMode, viewBox, streetBasemap, width, height]);
 
   const values = regions.map((ra) => occurrencesByRa[ra.code] ?? 0);
   const minValue = Math.min(...values);
@@ -194,9 +188,18 @@ export default function MapaDF({
     if (!selectedRaCode) return mockOccurrences;
     return mockOccurrences.filter((o) => o.raCode === selectedRaCode);
   }, [mockOccurrences, selectedRaCode]);
-  const pointOccurrences = useMemo(() => mapMode === "points" && focusedPoint
-    ? [...visibleOccs.filter(point => point.occurrenceId !== focusedPoint.occurrenceId), focusedPoint] : visibleOccs,
-  [mapMode, focusedPoint, visibleOccs]);
+  const pointOccurrences = useMemo(() => {
+    if (mapMode !== "points") return visibleOccs;
+    const seen = new Set<string>(focusedPoint ? [focusedPoint.occurrenceId ?? focusedPoint.id] : []);
+    const points = visibleOccs.filter(point => {
+      const id = point.occurrenceId ?? point.id;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    if (focusedPoint) points.push(focusedPoint);
+    return points;
+  }, [mapMode, focusedPoint, visibleOccs]);
   const canOpenPoint = mapMode === "points" || (mapMode === "satellite" && satelliteOccurrences?.visible);
   const activePoint = canOpenPoint && openedPoint
     ? pointOccurrences.find(point => point.occurrenceId === openedPoint.occurrenceId) : undefined;
@@ -268,11 +271,12 @@ export default function MapaDF({
     }
   };
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (mapMode === "points" && onOccurrenceHover && hoveredOcc) return;
     if (streetBasemap && (svgRef.current?.dataset.navigating === "true" || (!hoveredCode && !hoveredOcc))) return;
     updateTooltipPosition(e);
   };
 
-  const activeHoveredOcc = hoveredOcc && visibleOccs.includes(hoveredOcc) ? hoveredOcc : null;
+  const activeHoveredOcc = mapMode === "points" && hoveredOcc && pointOccurrences.includes(hoveredOcc) ? hoveredOcc : null;
   // Persistent maps use the official names and separate statistical occurrences from published map points.
   const tooltipRA = hoveredCode ? (regions.find(ra => ra.code === hoveredCode) ?? RA_BY_CODE[hoveredCode]) : null;
   const raLines = (code: string) => countsUnavailable ? null : officialRegions
@@ -444,8 +448,8 @@ export default function MapaDF({
         )}
 
         {/* Points mode */}
-        {mapMode === "points" && !canvasPoints && (
-          <g data-testid="occurrence-points">
+        {mapMode === "points" && (
+          <g data-testid="occurrence-points" data-point-count={pointOccurrences.length}>
             {pointOccurrences.map((p) => (
               <g key={p.id} role={p.occurrenceId ? "button" : undefined} tabIndex={p.occurrenceId ? 0 : undefined}
                 aria-label={p.occurrenceId ? `${p.underReview ? "Ocorrência em revisão" : "Detalhes da ocorrência"} em ${p.raName}` : undefined}
@@ -487,6 +491,19 @@ export default function MapaDF({
                 />
               </g>
             ))}
+            {activeHoveredOcc && <circle
+              data-testid="occurrence-point-halo"
+              cx={activeHoveredOcc.x}
+              cy={activeHoveredOcc.y}
+              r={6.5 / symbolScale}
+              fill="none"
+              stroke="#fff"
+              strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
+              pointerEvents="none"
+              aria-hidden="true"
+              style={{ r: streetBasemap ? symbolLength(6.5 / symbolScale) : undefined }}
+            />}
           </g>
         )}
 
@@ -522,8 +539,6 @@ export default function MapaDF({
           </g>
         )}
       </svg>
-      {canvasPoints && <PointCanvasLayer points={pointOccurrences} focusedPoint={focusedPoint} svgRef={svgRef} fittedWidth={width}
-        onHover={hoverCanvasPoint} onOpen={openOccurrence} />}
 
       {streetBasemap && <>
         <StreetAttribution />
@@ -535,7 +550,7 @@ export default function MapaDF({
       </>}
 
       {/* Legend */}
-      {(!selectedRA || mapMode === "points") && analyticMap && !canvasPoints && (
+      {(!selectedRA || mapMode === "points") && analyticMap && (
         <div className={styles.legend} style={{ position: "absolute", bottom: dashboard ? 12 : 14, left: dashboard ? undefined : 16, right: dashboard ? 12 : undefined, pointerEvents: "none", borderRadius: 7, padding: "8px 10px", fontSize: 10 }}>
           {mapMode === "heat" ? <>
             {dashboard && <div>Densidade de ocorrências</div>}
@@ -545,7 +560,7 @@ export default function MapaDF({
           </> : <>
             <span className={`${styles.legendSymbol} ${mapMode === "points" ? styles.pointSymbol : styles.clusterSymbol}`} />
             {mapMode === "points" ? "Ocorrência individual" : "Quantidade de ocorrências agrupadas"}
-            {mapMode === "points" && <div data-testid="point-symbol-count">{visibleOccs.length.toLocaleString("pt-BR")} símbolos carregados</div>}
+            {mapMode === "points" && <div data-testid="point-symbol-count">{pointOccurrences.length.toLocaleString("pt-BR")} símbolos carregados</div>}
           </>}
         </div>
       )}
